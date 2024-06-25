@@ -1,0 +1,41 @@
+{
+  "name": "lib-fints",
+  "version": "1.0.0",
+  "description": "Typescript/Javascript client library for Online-Banking via the FinTS 3.0 protocol with PIN/TAN",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "./dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "rm -rf ./dist && tsc",
+    "pack": "npm run build && npm pack --pack-destination ~/npm-repo",
+    "test": "vitest"
+  },
+  "keywords": [
+    "FinTS",
+    "HBCI",
+    "Online Banking",
+    "Home Banking",
+    "PIN/TAN"
+  ],
+  "author": "Robert Weber",
+  "license": "LGPL-2.1-or-later",
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.0"
+  }
+}

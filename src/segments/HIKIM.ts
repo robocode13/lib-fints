@@ -1,0 +1,18 @@
+import { Text } from '../dataElements/Text.js';
+import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { Segment } from '../segment.js';
+import { SegmentDefinition } from '../segmentDefinition.js';
+
+export type HIKIMSegment = Segment & {
+  subject: string;
+  text: string;
+};
+
+/**
+ * Information to the customer of the bank
+ */
+export class HIKIM extends SegmentDefinition {
+  static Id = this.name;
+  version = 2;
+  elements = [new AlphaNumeric('subject', 1, 1, 35), new Text('text', 1, 1, 2048)];
+}
