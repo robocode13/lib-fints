@@ -31,8 +31,12 @@
     "Home Banking",
     "PIN/TAN"
   ],
-  "author": "Robert Weber",
+  "author": "Robert Weber <robocode@outlook.com>",
   "license": "LGPL-2.1-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robocode13/lib-fints.git"
+  },
   "devDependencies": {
     "@types/node": "^20.10.6",
     "typescript": "^5.3.3",
