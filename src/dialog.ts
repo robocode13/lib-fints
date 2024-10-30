@@ -77,7 +77,7 @@ export class Dialog {
     const clientResponse = interaction.getClientResponse<InitResponse>(initResponse);
     this.dialogId = clientResponse.dialogId;
 
-    if (clientResponse.success && !clientResponse.requiresTan) {
+    if (clientResponse.success) {
       this.isInitialized = true;
     }
 
