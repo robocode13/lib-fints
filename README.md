@@ -1,6 +1,6 @@
 # Lib-FinTS
 
-A Typescript/Javascript client library for Online-Banking via the FinTS 3.0 protocol with PIN/TAN. The library has no dependencies on other libraries
+A Typescript/Javascript client library for Online-Banking via the FinTS 3.0 protocol with PIN/TAN, supporting PSD2 and decoupled TAN methods. The library has no dependencies on other libraries
 
 ## Getting Started
 
@@ -22,7 +22,7 @@ In order to communicate with banks via the FinTS protocol you have to register a
 The library is written in Typescript and compiled to the ES2022 Javascript language standard which means a minimum Node version of 18 is required.
 
 **A note about Browsers:**
-It wouldn't be hard to make the code compatible with a browser environment, but communicating directly from the front-end with a bank server will most likely fail because of the imposed CORS restrictions from web browsers and the lack of corresponding CORS headers in bank server responses.
+In theory the library is compatible with a browser environment, but communicating directly from the front-end with a bank server will, apart from security considerations, most likely fail because of the imposed CORS restrictions from web browsers and the lack of corresponding CORS headers in bank server responses.
 
 ### Installing
 
@@ -34,7 +34,7 @@ npm i lib-fints
 
 ### Sample Usage
 
-The main public API of this library is the `FinTSClient` class and `FinTSConfig` class. In order to instantiate the client you need to provide a configration instance. There are basically two ways to initialize a configuration object, one is when you communicate with a bank for the first time and the other when you already have banking information from a prevous session available (more on that later).
+The main public API of this library is the `FinTSClient` class and `FinTSConfig` class. In order to instantiate the client you need to provide a configuration instance. There are basically two ways to initialize a configuration object, one is when you communicate with a bank for the first time and the other when you already have banking information from a prevous session available (more on that later).
 
 If you don't have any previous banking information available you can use the static `forFirstTimeUse()` factory method like this:
 
@@ -57,16 +57,16 @@ If the call is successfull the response will contain a `bankingInformation` obje
 
 ```typescript
 export type BankingInformation = {
-  systemId: string;
-  bpd?: BPD;
-  upd?: UPD;
-  bankMessages: BankMessage[];
+	systemId: string;
+	bpd?: BPD;
+	upd?: UPD;
+	bankMessages: BankMessage[];
 };
 ```
 
 The BPD object (_BankParameterDaten_) contains general information (e.g. available TAN methods and allowed transactions) and the UPD object (_UserParameterDaten_) user-specific information which is mainly the list of the user's bank accounts.
 
-Unfortunately with this first synchronization call most banks will most likely only return most of the BPA information but no UPD (accounts) information, which is needed to fetch balances or statements. The reason for this is that you need to specify a TAN method before making the synchronization call, but how would you know which TAN methods are available and how to specify them? This is why you need to make a second synchronization call with a TAN method selected from the `availableTanMethodIds`in the BPA, returned from the first synchronization call:
+Unfortunately with this first synchronization call most banks will likely only return the BPA information but no UPD (accounts) information, which is needed to fetch balances or statements. The reason for this is that you need to specify a TAN method before making the synchronization call, but you can only know which TAN methods are available from the BPA? This is why you need to make a second synchronization call with a TAN method selected from the `availableTanMethodIds`in the BPA, returned from the first synchronization call:
 
 ```typescript
 // for simplicity, we just select the first available TAN method
@@ -88,7 +88,7 @@ const balanceResponse = await client.getAccountBalance(account.accountNumber);
 const statementResponse = await client.getAccountStatements(account.accountNumber);
 ```
 
-These are only the most basic steps needed to retrieve information from the bank. It kept many questions unanswered like "how to handle TANs" or "how to avoid synchronizations every time you start a new session". These are explained in the corresponding sections below.
+These are only the most basic steps needed to retrieve information from the bank. There are still some unanswered questions like "how to handle TANs" or "how to avoid synchronizations every time you start a new session". These are explained in the corresponding sections below.
 
 ## More detailed API Description
 
@@ -99,26 +99,34 @@ Most transactions may require authorization with a two step TAN process. As ment
 ```typescript
 // we use the node readline interface later to ask the user for a TAN
 const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
+	input: process.stdin,
+	output: process.stdout,
 });
 
 let response = await client.getAccountStatements(account.accountNumber);
 
 if (!response.success) {
-  return;
+	return;
 }
 
 // need to check if a TAN is required to continue the transaction
 if (response.requiresTan) {
-  // asking the user for the TAN, using the tanChallenge property
-  const tan = await rl.question(response.tanChallenge + ': ');
-  // continue the transaction by providing the tanReference from the response and the entered TAN
-  response = await client.getAccountStatementsWithTan(response.tanReference!, tan);
+	// asking the user for the TAN, using the tanChallenge property
+	const tan = await rl.question(response.tanChallenge + ': ');
+	// continue the transaction by providing the tanReference from the response and the entered TAN
+	response = await client.getAccountStatementsWithTan(response.tanReference!, tan);
 }
 ```
 
 The `FinTSClient`contains for every transaction method like `synchronize()` or `getAccountStatements()` a corresponding `...WithTan()` method which needs to be called to continue the transaction with the given `tanReference` returned in the first response. The response object of this second call should now contain all transaction related data, assuming `success=true`.
+
+**Decoupled TAN methods**
+
+The library now also supports decoupled TAN methods where you don't actually have to provide a TAN entered by a user, but the approval is done "decoupled" on another device (e.g. mobile phone via banking app). The procedure explained above is still very similar, `requiresTan` will signal a required approval and you can continue with one of the `...WithTan()` methods where you can ommit the last `tan` parameter.
+
+You could ask the user to confirm that the approval was given and then continue with the call or periodically call the method until it returns the transaction result (`requiresTan=false` and `success=true`). The continuation methods will keep returning `requiresTan=true` as long as the user hasn't approved the transaction.
+
+see also the `decoupled` property on the `TanMethod` object for related parameters given by the bank.
 
 ### Starting a session from saved banking information
 
@@ -127,13 +135,13 @@ This not only saves you from making the same synchronization requests every time
 
 ```typescript
 const config = FinTSConfig.fromBankingInformation(
-  productId,
-  productVersion,
-  bankingInformation,
-  userId,
-  pin,
-  tanMethodId,
-  tanMediaName // when also needed (see below)
+	productId,
+	productVersion,
+	bankingInformation,
+	userId,
+	pin,
+	tanMethodId,
+	tanMediaName // when also needed (see below)
 );
 const client = new FinTSClient(config);
 ```
@@ -148,12 +156,12 @@ You can get a list of all available TAN methods from the `config.availableTanMet
 
 ```typescript
 export type TanMethod = {
-  id: number;
-  name: string;
-  version: number;
-  activeTanMediaCount: number;
-  activeTanMedia: string[];
-  tanMediaRequirement: TanMediaRequirement;
+	id: number;
+	name: string;
+	version: number;
+	activeTanMediaCount: number;
+	activeTanMedia: string[];
+	tanMediaRequirement: TanMediaRequirement;
 };
 ```
 
@@ -163,7 +171,7 @@ The property `activeTanMedia` contains a list of the TAN media names you can use
 
 #### Banking Information may be updated any time
 
-The `bankingInformation` is primarily obtained by the `synchronize()` calls as seen above. But what if the banking information changed since the last synchronization call and how would you know? For this reason the BPD and UPD are versioned and with every transaction made, not just synchronizations, the currently used versions are provided to the bank and if something changed, the bank will sent back new versions of the BPD and UPD respectively. This is all handled by the client but you need to check the `bankingInformationUpdated` property, which is available in every response, which tells you if there were changes and make sure to persist the new version for future sessions. You can always get the up-to-date version of the `bankingInformation` object with `config.bankingInformation`.
+The `bankingInformation` is primarily obtained through the `synchronize()` calls as demonstrated above. However, it is possible that the banking information may have changed since the last synchronization call. To address this, the BPD and UPD are versioned, and with every transaction made, not just synchronizations, the currently used versions are provided to the bank. If any changes have occurred, the bank will send back new versions of the BPD and UPD respectively. This process is managed by the client, but it is essential to check the `bankingInformationUpdated` property, which is available in every response. This property indicates if there have been any changes, and it is important to persist the new version for future sessions. The most up-to-date version of the `bankingInformation` object can always be retrieved using `config.bankingInformation`.
 
 ### Debugging
 
@@ -178,7 +186,7 @@ This will print out all sent messages and received responses to the console in a
 ## Limitations
 
 - Only FinTS 3.0 is supported (older versions may not work)
-- Only PIN/TAN security is supported
+- Only PIN/TAN security is supported (inluding decoupled TAN methods)
 - Currently only the following transactions are supported:
   - Synchronize bank and account information
   - Fetching account balances

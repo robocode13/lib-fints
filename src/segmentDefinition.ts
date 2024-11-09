@@ -4,15 +4,21 @@ import { Segment } from './segment.js';
 import { SegmentHeaderGroup } from './segmentHeader.js';
 
 export abstract class SegmentDefinition {
-  id = this.constructor.name;
+	id = this.constructor.name;
 
-  abstract version: number;
-  static header = new SegmentHeaderGroup();
-  abstract elements: DataElement[];
+	abstract version: number;
+	static header = new SegmentHeaderGroup();
+	abstract elements: DataElement[];
 
-  encode(data: Segment) {
-    const headerText = SegmentDefinition.header.encode(data.header, [data.header.segId], data.header.version);
-    const elementsText = encodeElements(data, this.elements, '+', data.header.version, [data.header.segId]);
-    return `${headerText}+${elementsText}'`;
-  }
+	getElementsForVersion(version: number) {
+		return this.elements.filter(
+			(element) => version >= (element.minVersion ?? 0) && version <= (element.maxVersion ?? Number.MAX_SAFE_INTEGER)
+		);
+	}
+
+	encode(data: Segment) {
+		const headerText = SegmentDefinition.header.encode(data.header, [data.header.segId], data.header.version);
+		const elementsText = encodeElements(data, this.elements, '+', data.header.version, [data.header.segId]);
+		return `${headerText}+${elementsText}'`;
+	}
 }
