@@ -183,22 +183,34 @@ export class FinTSClient {
 
 		const dialog = interaction.dialog!;
 		let responseMessage = await dialog.sendTanMessage(interaction.segId, tanReference, tan);
+		let clientResponse = interaction.getClientResponse(responseMessage) as TClientResponse;
 
-		// const initDialogInteraction = interaction as InitDialogInteraction;
-		// if (initDialogInteraction.followUpInteraction) {
-		//   const clientResponse = await dialog.startCustomerOrderInteraction<TClientResponse>(initDialogInteraction.followUpInteraction);
+		this.openCustomerInteractions.delete(tanReference);
 
-		//   if (clientResponse.requiresTan) {
-		//     this.openCustomerInteractions.set(clientResponse.tanReference!, initDialogInteraction.followUpInteraction);
-		//   } else {
-		//     await dialog.end();
-		//   }
+		if (!clientResponse.success) {
+			await dialog.end();
+			return clientResponse;
+		}
 
-		// }
+		if (clientResponse.requiresTan) {
+			this.openCustomerInteractions.set(clientResponse.tanReference!, interaction);
+			return clientResponse;
+		}
+
+		const initDialogInteraction = interaction as InitDialogInteraction;
+		if (initDialogInteraction.followUpInteraction) {
+			clientResponse = await dialog.startCustomerOrderInteraction<TClientResponse>(
+				initDialogInteraction.followUpInteraction
+			);
+
+			if (clientResponse.requiresTan) {
+				this.openCustomerInteractions.set(clientResponse.tanReference!, initDialogInteraction.followUpInteraction);
+				return clientResponse;
+			}
+		}
 
 		await dialog.end();
-		this.openCustomerInteractions.delete(tanReference);
-		return interaction.getClientResponse(responseMessage) as TClientResponse;
+		return clientResponse;
 	}
 
 	private async initDialog(
