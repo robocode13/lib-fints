@@ -37,11 +37,11 @@ export abstract class CustomerInteraction {
 		return this.createSegments(init);
 	}
 
-	getClientResponse<TResponse extends ClientResponse>(response: Message): TResponse {
-		const clientResponse = this.handleBaseResponse(response);
+	getClientResponse<TResponse extends ClientResponse>(message: Message): TResponse {
+		const clientResponse = this.handleBaseResponse(message);
 
 		if (clientResponse.success && !clientResponse.requiresTan) {
-			this.handleResponse(response, clientResponse);
+			this.handleResponse(message, clientResponse);
 		}
 
 		return clientResponse as TResponse;

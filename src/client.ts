@@ -4,11 +4,11 @@ import { StatementResponse, StatementInteraction } from './interactions/statemen
 import { AccountBalanceResponse, BalanceInteraction } from './interactions/balanceInteraction.js';
 import { FinTSConfig } from './config.js';
 import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
-import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 import { TanMediaInteraction, TanMediaResponse } from './interactions/tanMediaInteraction.js';
 import { TanMethod } from './tanMethod.js';
 import { HKSAL } from './segments/HKSAL.js';
 import { HKKAZ } from './segments/HKKAZ.js';
+import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 
 export interface SynchronizeResponse extends InitResponse {}
 
@@ -154,7 +154,7 @@ export class FinTSClient {
 		interaction: CustomerOrderInteraction
 	): Promise<TClientResponse> {
 		const dialog = new Dialog(this.config);
-		const syncResponse = await this.initDialog(dialog);
+		const syncResponse = await this.initDialog(dialog, false, interaction);
 
 		if (!syncResponse.success || syncResponse.requiresTan) {
 			return syncResponse as TClientResponse;
@@ -182,14 +182,43 @@ export class FinTSClient {
 		}
 
 		const dialog = interaction.dialog!;
-		const response = await dialog.sendTanMessage(interaction.segId, tanReference, tan);
-		await dialog.end();
+		let responseMessage = await dialog.sendTanMessage(interaction.segId, tanReference, tan);
+		let clientResponse = interaction.getClientResponse(responseMessage) as TClientResponse;
+
 		this.openCustomerInteractions.delete(tanReference);
-		return interaction.getClientResponse(response) as TClientResponse;
+
+		if (!clientResponse.success) {
+			await dialog.end();
+			return clientResponse;
+		}
+
+		if (clientResponse.requiresTan) {
+			this.openCustomerInteractions.set(clientResponse.tanReference!, interaction);
+			return clientResponse;
+		}
+
+		const initDialogInteraction = interaction as InitDialogInteraction;
+		if (initDialogInteraction.followUpInteraction) {
+			clientResponse = await dialog.startCustomerOrderInteraction<TClientResponse>(
+				initDialogInteraction.followUpInteraction
+			);
+
+			if (clientResponse.requiresTan) {
+				this.openCustomerInteractions.set(clientResponse.tanReference!, initDialogInteraction.followUpInteraction);
+				return clientResponse;
+			}
+		}
+
+		await dialog.end();
+		return clientResponse;
 	}
 
-	private async initDialog(dialog: Dialog, syncSystemId = false): Promise<InitResponse> {
-		const interaction = new InitDialogInteraction(this.config, syncSystemId);
+	private async initDialog(
+		dialog: Dialog,
+		syncSystemId = false,
+		followUpInteraction?: CustomerOrderInteraction
+	): Promise<InitResponse> {
+		const interaction = new InitDialogInteraction(this.config, syncSystemId, followUpInteraction);
 		const initResponse = await dialog.initialize(interaction);
 
 		if (initResponse.requiresTan) {

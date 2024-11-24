@@ -9,9 +9,9 @@ import { HKTAN, HKTANSegment } from './segments/HKTAN.js';
 import { HNHBK, HNHBKSegment } from './segments/HNHBK.js';
 import { decode } from './segment.js';
 import { PARTED, PartedSegment } from './partedSegment.js';
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
-import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
+import { ClientResponse, CustomerOrderInteraction } from './interactions/customerInteraction.js';
 import { HttpClientNode } from './httpClientNode.js';
+import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 
 export class Dialog {
 	dialogId: string = '0';
