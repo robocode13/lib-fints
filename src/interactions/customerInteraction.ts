@@ -53,22 +53,33 @@ export abstract class CustomerInteraction {
 	private handleBaseResponse(response: Message): ClientResponse {
 		const hnhbk = response.findSegment<HNHBKSegment>(HNHBK.Id);
 		const dialogId = hnhbk?.dialogId ?? '';
+		const bankAnswers = response.getBankAnswers();
 
-		if (response.hasReturnCode(30)) {
+		if (
+			response.hasReturnCode(30) ||
+			response.hasReturnCode(3955) ||
+			response.hasReturnCode(3956) ||
+			response.hasReturnCode(3957)
+		) {
 			const hitan = response.findSegment<HITANSegment>(HITAN.Id);
 			if (hitan) {
 				return {
 					dialogId,
 					success: true,
 					bankingInformationUpdated: false,
-					bankAnswers: response.getBankAnswers(),
+					bankAnswers: bankAnswers,
 					requiresTan: true,
 					tanReference: hitan.orderReference,
-					tanChallenge: hitan.challenge,
+					tanChallenge:
+						hitan.challenge ??
+						bankAnswers.find((answer) => answer.code === 3955)?.text ??
+						bankAnswers.find((answer) => answer.code === 3956)?.text ??
+						bankAnswers.find((answer) => answer.code === 3957)?.text ??
+						'',
 					tanMediaName: hitan.tanMedia,
 				};
 			} else {
-				throw new Error('HITAN segment not found in response, despite return code 30');
+				throw new Error('HITAN segment not found in response, despite return code indicating security approval');
 			}
 		}
 
@@ -76,7 +87,7 @@ export abstract class CustomerInteraction {
 			dialogId,
 			success: response.getHighestReturnCode() < 9000,
 			bankingInformationUpdated: false,
-			bankAnswers: response.getBankAnswers(),
+			bankAnswers: bankAnswers,
 			requiresTan: false,
 		};
 	}
