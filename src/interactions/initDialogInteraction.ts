@@ -83,27 +83,30 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 		if (hibpa) {
 			const hitansSegments = response.findAllSegments<HITANSSegment>(HITANS.Id);
+			hitansSegments.sort((a, b) => b.header.version - a.header.version);
 			const supportedTanMethods: TanMethod[] = [];
 			hitansSegments.forEach((hitans) => {
 				supportedTanMethods.push(
-					...(hitans?.params.tanMethods.map((method) => ({
-						id: method.secFunc,
-						name: method.methodName,
-						version: hitans.header.version,
-						isDecoupled: isDecoupledTanMethod(method),
-						activeTanMediaCount: method.activeTanMedia,
-						activeTanMedia: [],
-						tanMediaRequirement: method.tanMediaRequired,
-						decoupled: isDecoupledTanMethod(method)
-							? {
-									maxStatusRequests: method.decoupledMaxStatusRequests!,
-									waitingSecondsBeforeFirstStatusRequest: method.decoupledWaitBeforeFirstStatusRequest!,
-									waitingSecondsBetweenStatusRequests: method.decoupledWaitBetweenStatusRequests!,
-									manualConfirmationAllowed: method.decoupledManualConfirmationAllowed ?? false,
-									autoConfirmationAllowed: method.decoupledAutoConfirmationAllowed ?? false,
-							  }
-							: undefined,
-					})) ?? [])
+					...(hitans?.params.tanMethods
+						.map((method) => ({
+							id: method.secFunc,
+							name: method.methodName,
+							version: hitans.header.version,
+							isDecoupled: isDecoupledTanMethod(method),
+							activeTanMediaCount: method.activeTanMedia,
+							activeTanMedia: [],
+							tanMediaRequirement: method.tanMediaRequired,
+							decoupled: isDecoupledTanMethod(method)
+								? {
+										maxStatusRequests: method.decoupledMaxStatusRequests!,
+										waitingSecondsBeforeFirstStatusRequest: method.decoupledWaitBeforeFirstStatusRequest!,
+										waitingSecondsBetweenStatusRequests: method.decoupledWaitBetweenStatusRequests!,
+										manualConfirmationAllowed: method.decoupledManualConfirmationAllowed ?? false,
+										autoConfirmationAllowed: method.decoupledAutoConfirmationAllowed ?? false,
+								  }
+								: undefined,
+						}))
+						.filter((method) => !supportedTanMethods.some((existing) => existing.id === method.id)) ?? [])
 				);
 			});
 
