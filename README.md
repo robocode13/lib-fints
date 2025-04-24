@@ -15,7 +15,7 @@ In order to communicate with banks via the FinTS protocol you have to register a
 > In order to fulfill the PSD2 requirements regarding transparency about the software used by customers, the German Banking Industry has established a process for registering FinTS products in order to be able to provide customers with information regarding FinTS usage.
 > FinTS product registration is currently offered free of charge by the German Banking Industry.
 
-[ZKA Registration Website](https://www.hbci-zka.de/register/prod_register.htm)
+[ZKA Registration Website](https://www.fints.org/de/hersteller/produktregistrierung)
 
 ### Runtime Environment
 
