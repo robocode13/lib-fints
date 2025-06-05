@@ -34,7 +34,7 @@ const tokens535: { [key in TokenType535]: RegExp } = {
   [TokenType535.DepotValueBlock]: /:16R:ADDINFO(.*?):16S:ADDINFO/ms,
   [TokenType535.DepotValueCurrency]: /EUR(.*)/ms,
   [TokenType535.FinBlock]: /:16R:FIN(.*?):16S:FIN/gms,
-  [TokenType535.SecurityIdentification]: /^:35B:(.*?):/ms,
+  [TokenType535.SecurityIdentification]: /:35B:(.*?):/ms,
   [TokenType535.AcquisitionPrice]:
     /:70E::HOLD\/\/\d*STK2(\d*),(\d*)\+([A-Z]{3})/ms,
   [TokenType535.PriceBlock]: /:90([AB])::(.*?):/ms,
@@ -224,7 +224,7 @@ export class Mt535Parser {
       // Date from characters 6-13 (8 chars: YYYYMMDD)
       const dateMatch = content.match(tokens535[TokenType535.DateString]);
       if (dateMatch) {
-        holding.date = this.parseDate(dateMatch[1]);
+        holding.date = this.parseDate(dateMatch[0]);
 
         const time = new Date();
         if (type === 'C') {
