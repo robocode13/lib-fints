@@ -129,11 +129,8 @@ export class Mt535Parser {
 
     // Calculate value if we have price and amount
     if (holding.amount !== undefined && holding.price !== undefined) {
-      if (holding.currency === '%') {
-        holding.value = holding.price / 100;
-      } else {
-        holding.value = holding.price * holding.amount;
-      }
+      // For all currencies, value is price multiplied by amount
+      holding.value = holding.price * holding.amount;
     }
 
     return holding;
