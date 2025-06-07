@@ -68,13 +68,9 @@ export function segmentToString(segment: Segment): string {
 
 	let texts = segmentDefinition.getElementsForVersion(segment.header.version).map((element) => {
 		if (element.maxCount > 1) {
-			return (
-				keyedSegment[element.name] ??
-				[]
-					.map((value: any) => element.toString(value))
-					.filter((text: string) => !!text)
-					.join('; ')
-			);
+			const array = keyedSegment[element.name] ?? [];
+			const texts = array.map((value: any) => element.toString(value));
+			return texts.filter((text: string) => !!text).join('; ');
 		} else {
 			return element.toString(keyedSegment[element.name]);
 		}
