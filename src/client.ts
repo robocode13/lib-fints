@@ -2,12 +2,14 @@ import { Dialog } from './dialog.js';
 import { HKTAB } from './segments/HKTAB.js';
 import { StatementResponse, StatementInteraction } from './interactions/statementInteraction.js';
 import { AccountBalanceResponse, BalanceInteraction } from './interactions/balanceInteraction.js';
+import { PortfolioResponse, PortfolioInteraction } from './interactions/portfolioInteraction.js';
 import { FinTSConfig } from './config.js';
 import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
 import { TanMediaInteraction, TanMediaResponse } from './interactions/tanMediaInteraction.js';
 import { TanMethod } from './tanMethod.js';
 import { HKSAL } from './segments/HKSAL.js';
 import { HKKAZ } from './segments/HKKAZ.js';
+import { HKWPD } from './segments/HKWPD.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 
 export interface SynchronizeResponse extends InitResponse {}
@@ -147,6 +149,47 @@ export class FinTSClient {
 	 * @returns an account statements response containing an array of statements
 	 */
 	async getAccountStatementsWithTan(tanReference: string, tan?: string): Promise<StatementResponse> {
+		return this.continueCustomerInteractionWithTan(tanReference, tan);
+	}
+
+	/**
+	 * Checks if the bank supports fetching portfolio information in general or for the given account number when provided
+	 * @param accountNumber when the account number is provided, checks if the account supports fetching of portfolio information
+	 * @returns true if the bank (and account) supports fetching portfolio information
+	 */
+	canGetPortfolio(accountNumber?: string): boolean {
+		return accountNumber
+			? this.config.isAccountTransactionSupported(accountNumber, HKWPD.Id)
+			: this.config.isTransactionSupported(HKWPD.Id);
+	}
+
+	/**
+	 * Fetches the portfolio information for the given depot account number
+	 * @param accountNumber - the depot account number to fetch the portfolio for, must be an account available in the config.bankingInformation.UPD.accounts
+	 * @param currency - optional currency filter for the portfolio statement
+	 * @param priceQuality - optional price quality filter ('1' for real-time, '2' for delayed)
+	 * @param maxEntries - optional maximum number of entries to retrieve
+	 * @returns a portfolio response containing holdings and total value
+	 */
+	async getPortfolio(
+		accountNumber: string,
+		currency?: string,
+		priceQuality?: '1' | '2',
+		maxEntries?: number
+	): Promise<PortfolioResponse> {
+		return this.startCustomerOrderInteraction(
+			new PortfolioInteraction(accountNumber, currency, priceQuality, maxEntries)
+		);
+	}
+
+	/**
+	 * Continues the portfolio fetching when a TAN is required
+	 * @param tanReference The TAN reference provided in the first call's response
+
+	 * @param tan The TAN entered by the user, can be omitted if a decoupled TAN method is used
+	 * @returns a portfolio response containing holdings and total value
+	 */
+	async getPortfolioWithTan(tanReference: string, tan?: string): Promise<PortfolioResponse> {
 		return this.continueCustomerInteractionWithTan(tanReference, tan);
 	}
 
