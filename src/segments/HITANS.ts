@@ -48,11 +48,11 @@ export type HitansTanMethod = {
  * Parameters for two-step TAN methods
  */
 export class HITANS extends BusinessTransactionParameter {
-	static Id = this.name;
+	static Id = 'HITANS';
 	version = 7;
 
 	constructor() {
-		super([
+		super(HITANS.Id, [
 			new YesNo('oneStepAllowed', 1, 1),
 			new YesNo('multipleTansactions', 1, 1),
 			new Numeric('hashMethod', 1, 1, 1),

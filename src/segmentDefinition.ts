@@ -4,7 +4,11 @@ import { Segment } from './segment.js';
 import { SegmentHeaderGroup } from './segmentHeader.js';
 
 export abstract class SegmentDefinition {
-	id = this.constructor.name;
+	id: string;
+
+	constructor(id: string) {
+		this.id = id;
+	}
 
 	abstract version: number;
 	static header = new SegmentHeaderGroup();

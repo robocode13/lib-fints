@@ -22,8 +22,11 @@ export type HITANSegment = Segment & {
  * TAN response
  */
 export class HITAN extends SegmentDefinition {
-	static Id = this.name;
+	static Id = 'HITAN';
 	version = 7;
+	constructor() {
+		super(HITAN.Id);
+	}
 	elements = [
 		new AlphaNumeric('tanProcess', 1, 1, 1),
 		new Binary('orderHash', 0, 1, 256),

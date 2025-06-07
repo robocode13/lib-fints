@@ -38,7 +38,10 @@ export type TanMedia = {
  * TAN media response
  */
 export class HITAB extends SegmentDefinition {
-	static Id = this.name;
+	static Id = 'HITAB';
+	constructor() {
+		super(HITAB.Id);
+	}
 	version = 5;
 	elements = [
 		new Numeric('tanUsage', 1, 1, 1),

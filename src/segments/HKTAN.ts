@@ -35,8 +35,11 @@ export type HhducResponse = {
  * Two-Step TAN
  */
 export class HKTAN extends SegmentDefinition {
-	static Id = this.name;
+	static Id = 'HKTAN';
 	static Version = 7;
+	constructor() {
+		super(HKTAN.Id);
+	}
 	version = HKTAN.Version;
 	elements = [
 		new AlphaNumeric('tanProcess', 1, 1, 1),
