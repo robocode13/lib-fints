@@ -3,15 +3,18 @@ import { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HNHBSSegment = Segment & {
-  msgNr: number;
+	msgNr: number;
 };
 
 /**
  * Message end
  */
 export class HNHBS extends SegmentDefinition {
-  static Id = this.name;
-  static Version = 1;
-  version = HNHBS.Version;
-  elements = [new Numeric('msgNr', 1, 1, 4)];
+	static Id = 'HNHBS';
+	static Version = 1;
+	constructor() {
+		super(HNHBS.Id);
+	}
+	version = HNHBS.Version;
+	elements = [new Numeric('msgNr', 1, 1, 4)];
 }

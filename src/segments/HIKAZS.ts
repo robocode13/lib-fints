@@ -5,22 +5,23 @@ import { BusinessTransactionParameter, BusinessTransactionParameterSegment } fro
 export type HKKAZSegment = BusinessTransactionParameterSegment<HIKAZSParameter>;
 
 export type HIKAZSParameter = {
-  maxDays: number;
-  entryCountAllowed: boolean;
-  allAccountsAllowed: boolean;
+	maxDays: number;
+	entryCountAllowed: boolean;
+	allAccountsAllowed: boolean;
 };
 
 /**
  * Parameters for HKKAZ business transaction
  */
 export class HIKAZS extends BusinessTransactionParameter {
-  static Id = this.name;
-  version = 7;
+	static Id = 'HIKAZS';
+	version = 7;
 
-  constructor() {
-    super(
-      [new Numeric('maxDays', 1, 1, 4), new YesNo('entryCountAllowed', 1, 1), new YesNo('allAccountsAllowed', 1, 1, 5)],
-      6
-    );
-  }
+	constructor() {
+		super(
+			HIKAZS.Id,
+			[new Numeric('maxDays', 1, 1, 4), new YesNo('entryCountAllowed', 1, 1), new YesNo('allAccountsAllowed', 1, 1, 5)],
+			6
+		);
+	}
 }
