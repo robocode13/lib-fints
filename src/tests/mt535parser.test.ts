@@ -41,11 +41,7 @@ describe('Mt535Parser', () => {
     expect(bmwHolding.currency).toBe('EUR');
     expect(bmwHolding.amount).toBe(100);
     expect(bmwHolding.value).toBe(10050);
-    expect(bmwHolding.date).toEqual(new Date(2023, 10, 1));
-    expect(bmwHolding.time?.getFullYear()).toBe(new Date().getFullYear());
-    expect(bmwHolding.time?.getHours()).toBe(0);
-    expect(bmwHolding.time?.getMinutes()).toBe(0);
-    expect(bmwHolding.time?.getSeconds()).toBe(0);
+    expect(bmwHolding.date).toEqual(new Date(2023, 10, 1, 0, 0, 0));
 
     // Test second holding (Apple)
     const appleHolding = statement.holdings[1];
@@ -57,11 +53,7 @@ describe('Mt535Parser', () => {
     expect(appleHolding.currency).toBe('%');
     expect(appleHolding.amount).toBe(50);
     expect(appleHolding.value).toBe(42.75);
-    expect(appleHolding.date).toEqual(new Date(2023, 10, 1));
-    expect(appleHolding.time?.getFullYear()).toBe(new Date().getFullYear());
-    expect(appleHolding.time?.getHours()).toBe(14);
-    expect(appleHolding.time?.getMinutes()).toBe(30);
-    expect(appleHolding.time?.getSeconds()).toBe(0);
+    expect(appleHolding.date).toEqual(new Date(2023, 10, 1, 14, 30, 0));
   });
 
   it('parses MT535 with @@ dividers and different data points', () => {
@@ -177,11 +169,7 @@ describe('Mt535Parser', () => {
     const parser = new Mt535Parser(input);
     const statement = parser.parse();
     const holding = statement.holdings[0];
-    expect(holding.date).toEqual(new Date(2024, 0, 15));
-    expect(holding.time?.getFullYear()).toBe(2024);
-    expect(holding.time?.getHours()).toBe(9);
-    expect(holding.time?.getMinutes()).toBe(30);
-    expect(holding.time?.getSeconds()).toBe(45);
+    expect(holding.date).toEqual(new Date(2024, 0, 15, 9, 30, 45));
   });
 
   it('correctly parses date for :98A (time defaults to 00:00:00)', () => {
@@ -193,10 +181,6 @@ describe('Mt535Parser', () => {
     const parser = new Mt535Parser(input);
     const statement = parser.parse();
     const holding = statement.holdings[0];
-    expect(holding.date).toEqual(new Date(2023, 9, 5));
-    expect(holding.time?.getFullYear()).toBe(new Date().getFullYear());
-    expect(holding.time?.getHours()).toBe(0);
-    expect(holding.time?.getMinutes()).toBe(0);
-    expect(holding.time?.getSeconds()).toBe(0);
+    expect(holding.date).toEqual(new Date(2023, 9, 5, 0, 0, 0));
   });
 });

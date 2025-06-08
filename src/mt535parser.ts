@@ -14,7 +14,6 @@ export interface Holding {
   value?: number;
   acquisitionPrice?: number;
   date?: Date;
-  time?: Date;
 }
 
 export enum TokenType535 {
@@ -156,7 +155,7 @@ export class Mt535Parser {
       // Name: everything from character 27 onwards
       const nameMatch = content.match(/^.{27}(.*)/ms);
       if (nameMatch) {
-        holding.name = nameMatch[1];
+        holding.name = nameMatch[1].trim();
       }
     }
   }
@@ -221,23 +220,23 @@ export class Mt535Parser {
       // Date from characters 6-13 (8 chars: YYYYMMDD)
       const dateMatch = content.match(tokens535[TokenType535.DateString]);
       if (dateMatch) {
-        holding.date = this.parseDate(dateMatch[0]);
+        const parsedDate = this.parseDate(dateMatch[0]);
 
-        const time = new Date();
         if (type === 'C') {
           // :98C: has a time component HHMMSS starting at character 14
           const timeMatch = content.match(tokens535[TokenType535.TimeString]);
           if (timeMatch) {
-            time.setHours(
+            parsedDate.setHours(
               parseInt(timeMatch[1]),
               parseInt(timeMatch[2]),
               parseInt(timeMatch[3])
             );
           }
         } else {
-          time.setHours(0, 0, 0);
+          // :98A: time defaults to 00:00:00
+          parsedDate.setHours(0, 0, 0, 0);
         }
-        holding.time = time;
+        holding.date = parsedDate;
       }
     }
   }
