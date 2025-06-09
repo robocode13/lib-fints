@@ -1,0 +1,42 @@
+name: Node.js CI with pnpm
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Define a matrix for different Node.js versions
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4 
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies with pnpm
+        run: pnpm install --frozen-lockfile
+
+      - name: Run build (TypeScript compilation)
+        run: pnpm run build
+
+      - name: Run tests (Vitest)
+        run: pnpm run test -- --run
