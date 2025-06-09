@@ -21,14 +21,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4 # Action to checkout your repository code
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4 # Action to set up Node.js environment
-        with:
-          node-version: ${{ matrix.node-version }}
-          # Configure cache for pnpm. The key uses the pnpm-lock.yaml checksum
-          # to ensure the cache is invalidated when dependencies change.
-          cache: 'pnpm'
-
       - name: Install pnpm
         # Use pnpm's official setup action to ensure the correct version of pnpm is installed
         uses: pnpm/action-setup@v4
@@ -36,6 +28,14 @@ jobs:
           version: latest # Specify the desired pnpm version (e.g., 8, 9, or latest)
           # 'run-install' is set to false as we will run `pnpm install` explicitly later
           run_install: false
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4 # Action to set up Node.js environment
+        with:
+          node-version: ${{ matrix.node-version }}
+          # Configure cache for pnpm. The key uses the pnpm-lock.yaml checksum
+          # to ensure the cache is invalidated when dependencies change.
+          cache: 'pnpm'
 
       - name: Get pnpm store path
         # This step gets the path to the pnpm content-addressable store.
