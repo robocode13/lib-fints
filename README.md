@@ -1,3 +1,4 @@
+[![Node.js CI with pnpm](https://github.com/robocode13/lib-fints/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/robocode13/lib-fints/actions/workflows/build-test.yml)
 # Lib-FinTS
 
 A Typescript/Javascript client library for Online-Banking via the FinTS 3.0 protocol with PIN/TAN, supporting PSD2 and decoupled TAN methods. The library has no dependencies on other libraries
