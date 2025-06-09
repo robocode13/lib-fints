@@ -86,6 +86,9 @@ const balanceResponse = await client.getAccountBalance(account.accountNumber);
 
 // fetch all available statements
 const statementResponse = await client.getAccountStatements(account.accountNumber);
+
+// or fetch portfolio from a securities account
+client.getPortfolio(account.accountNumber);
 ```
 
 These are only the most basic steps needed to retrieve information from the bank. There are still some unanswered questions like "how to handle TANs" or "how to avoid synchronizations every time you start a new session". These are explained in the corresponding sections below.
@@ -191,6 +194,7 @@ This will print out all sent messages and received responses to the console in a
   - Synchronize bank and account information
   - Fetching account balances
   - Fetching account statements
+  - Fetching the portfolio of a securities account
 
 Implementing further transactions should be straight forward and contributions are highly appreciated
 
