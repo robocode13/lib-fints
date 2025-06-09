@@ -19,55 +19,24 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # Action to checkout your repository code
+        uses: actions/checkout@v4
 
       - name: Install pnpm
-        # Use pnpm's official setup action to ensure the correct version of pnpm is installed
         uses: pnpm/action-setup@v4
         with:
-          version: latest # Specify the desired pnpm version (e.g., 8, 9, or latest)
-          # 'run-install' is set to false as we will run `pnpm install` explicitly later
-          run_install: false
+          version: latest
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4 # Action to set up Node.js environment
+        uses: actions/setup-node@v4 
         with:
           node-version: ${{ matrix.node-version }}
-          # Configure cache for pnpm. The key uses the pnpm-lock.yaml checksum
-          # to ensure the cache is invalidated when dependencies change.
           cache: 'pnpm'
 
-      - name: Get pnpm store path
-        # This step gets the path to the pnpm content-addressable store.
-        # This path is used by the cache action to store and restore pnpm's global packages.
-        shell: bash
-        run: |
-          echo "PNPM_STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
-
-      - name: Cache pnpm dependencies
-        uses: actions/cache@v4 # Action to cache files
-        with:
-          # Cache the pnpm store. The key depends on the pnpm-lock.yaml file
-          # and the runner's OS to ensure reproducibility.
-          path: ${{ env.PNPM_STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies with pnpm
-        # `pnpm install --frozen-lockfile` is the equivalent of `npm ci` for pnpm.
-        # It ensures that dependencies are installed exactly as specified in pnpm-lock.yaml
-        # and will fail if the lockfile is out of sync with package.json.
         run: pnpm install --frozen-lockfile
 
       - name: Run build (TypeScript compilation)
-        # Assumes you have a "build" script in your package.json that handles TypeScript compilation.
-        # For example: "scripts": { "build": "tsc" }
         run: pnpm run build
 
       - name: Run tests (Vitest)
-        # Assumes you have a "test" script in your package.json that runs Vitest.
-        # To ensure Vitest runs once and exits in CI, we explicitly pass the `--run` flag.
-        # The `--` is crucial to pass arguments to the underlying `vitest` command.
-        # For example: "scripts": { "test": "vitest" }
         run: pnpm run test -- --run
