@@ -28,6 +28,8 @@ import { HKKAZ } from './HKKAZ.js';
 import { HIKAZ } from './HIKAZ.js';
 import { HIKAZS } from './HIKAZS.js';
 import { HITAB } from './HITAB.js';
+import { HKWPD } from './HKWPD.js';
+import { HIWPD } from './HIWPD.js';
 import { UNKNOW } from '../unknownSegment.js';
 import { PARTED } from '../partedSegment.js';
 
@@ -63,11 +65,15 @@ export function registerSegments() {
   registerSegmentDefinition(new HKKAZ());
   registerSegmentDefinition(new HIKAZ());
   registerSegmentDefinition(new HIKAZS());
+  registerSegmentDefinition(new HKWPD());
+  registerSegmentDefinition(new HIWPD());
   registerSegmentDefinition(new UNKNOW());
   registerSegmentDefinition(new PARTED());
 }
 
-export function getSegmentDefinition(id: string): SegmentDefinition | undefined {
+export function getSegmentDefinition(
+  id: string
+): SegmentDefinition | undefined {
   return registry.get(id);
 }
 
