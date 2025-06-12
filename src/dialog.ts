@@ -10,7 +10,6 @@ import { HNHBK, HNHBKSegment } from './segments/HNHBK.js';
 import { decode } from './segment.js';
 import { PARTED, PartedSegment } from './partedSegment.js';
 import { ClientResponse, CustomerOrderInteraction } from './interactions/customerInteraction.js';
-import { HttpClientNode } from './httpClientNode.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 
 export class Dialog {
@@ -284,10 +283,6 @@ export class Dialog {
 	}
 
 	private getHttpClient(): HttpClient {
-		if (typeof fetch === 'function') {
-			return new HttpClient(this.config.bankingUrl, this.config.debugEnabled);
-		} else {
-			return new HttpClientNode(this.config.bankingUrl, this.config.debugEnabled);
-		}
+		return new HttpClient(this.config.bankingUrl, this.config.debugEnabled);
 	}
 }
