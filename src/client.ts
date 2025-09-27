@@ -10,7 +10,9 @@ import { TanMethod } from './tanMethod.js';
 import { HKSAL } from './segments/HKSAL.js';
 import { HKKAZ } from './segments/HKKAZ.js';
 import { HKWPD } from './segments/HKWPD.js';
+import { DKKKU } from './segments/DKKKU.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
+import {CreditCardStatementInteraction} from "./interactions/creditcardStatementInteraction.js";
 
 export interface SynchronizeResponse extends InitResponse {}
 
@@ -190,6 +192,40 @@ export class FinTSClient {
 	 * @returns a portfolio response containing holdings and total value
 	 */
 	async getPortfolioWithTan(tanReference: string, tan?: string): Promise<PortfolioResponse> {
+		return this.continueCustomerInteractionWithTan(tanReference, tan);
+	}
+
+
+	/**
+	 * Checks if the bank supports fetching credit card statements in general or for the given account number
+	 * @param accountNumber when the account number is provided, checks if the account supports fetching of statements
+	 * @returns true if the bank (and account) supports fetching credit card statements
+	 */
+	canGetCreditCardStatements(accountNumber?: string): boolean {
+		return accountNumber
+			? this.config.isAccountTransactionSupported(accountNumber, DKKKU.Id)
+			: this.config.isTransactionSupported(DKKKU.Id);
+	}
+
+	/**
+	 * Fetches the credit card statements for the given account number
+	 * @param accountNumber - the account number to fetch the statements for, must be a credit card account available
+	 * in the config.baningInformation.UPD.accounts
+	 * @param from - an optional start date of the period to fetch the statements for
+	 * @param to - an optional end date of the period to fetch the statements for
+	 * @returns an account statements response containing an array of statements
+	 */
+	async getCreditCardStatements(accountNumber: string, from?: Date): Promise<StatementResponse> {
+		return this.startCustomerOrderInteraction(new CreditCardStatementInteraction(accountNumber, from));
+	}
+
+	/**
+	 * Continues the credit card statements fetching when a TAN is required
+	 * @param tanReference The TAN reference provided in the first call's response
+	 * @param tan The TAN entered by the user, can be omitted if a decoupled TAN method is used
+	 * @returns a credit card statements response containing an array of statements
+	 */
+	async getCreditCardStatementsWithTan(tanReference: string, tan?: string): Promise<StatementResponse> {
 		return this.continueCustomerInteractionWithTan(tanReference, tan);
 	}
 
