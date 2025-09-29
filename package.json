@@ -22,7 +22,8 @@
   "scripts": {
     "build": "rm -rf ./dist && tsc",
     "pack": "npm run build && npm pack --pack-destination ~/npm-repo",
-    "test": "vitest"
+    "test": "vitest",
+    "preprepare": "npm run build"
   },
   "keywords": [
     "FinTS",
