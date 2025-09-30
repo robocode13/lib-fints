@@ -1,8 +1,6 @@
 import { Dat } from '../dataElements/Dat.js';
-import { YesNo } from '../dataElements/YesNo.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { CreditCardAccountGroup } from "../dataGroups/CreditCardAccount.js";
 import { Account, AccountGroup } from '../dataGroups/Account.js';
 import { SegmentWithContinuationMark } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';

@@ -40,7 +40,7 @@ export class CreditCardStatementInteraction extends CustomerOrderInteraction {
 
   handleResponse(response: Message, clientResponse: CreditCardStatementResponse) {
     function parseGermanFloat(value: string): number {
-      const valueFloatStr = value.replace(new RegExp('\\.', 'g'), '').replace(new RegExp('\\,'), '.');
+      const valueFloatStr = value.replaceAll('.', '').replaceAll(',', '.');
       return parseFloat(valueFloatStr);
     }
 
