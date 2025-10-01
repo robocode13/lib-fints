@@ -61,54 +61,56 @@ export class CreditCardStatementInteraction extends CustomerOrderInteraction {
         currency: balanceCurrency,
       }
       clientResponse.statements = [];
-      for (let i = 0 ; i < dikku.transactions.length; i++) {
-        const parts = dikku.transactions[i].split(':');
-        // const accountNumber = parts[0];
-        const transactionDateStr = parts[1];
-        const valueDateStr = parts[2];
-        const currencyOrig = parts[5];
-        const depositMarkerOrig = parts[6];
-        const amountOrig = parseGermanFloat(parts[4]) * (depositMarkerOrig === 'D' ? -1 : 1);
-        const exchangeRate = parseGermanFloat(parts[7]);
+      if (dikku.transactions) {
+          for (let i = 0; i < dikku.transactions.length; i++) {
+              const parts = dikku.transactions[i].split(':');
+              // const accountNumber = parts[0];
+              const transactionDateStr = parts[1];
+              const valueDateStr = parts[2];
+              const currencyOrig = parts[5];
+              const depositMarkerOrig = parts[6];
+              const amountOrig = parseGermanFloat(parts[4]) * (depositMarkerOrig === 'D' ? -1 : 1);
+              const exchangeRate = parseGermanFloat(parts[7]);
 
-        const currency = parts[9];
-        const depositMarker = parts[10];
-        const amount = parseGermanFloat(parts[8]) * (depositMarker === 'D' ? -1 : 1);
+              const currency = parts[9];
+              const depositMarker = parts[10];
+              const amount = parseGermanFloat(parts[8]) * (depositMarker === 'D' ? -1 : 1);
 
-        const tYear = parseInt(transactionDateStr.substring(0, 4));
-        const tMonth = parseInt(transactionDateStr.substring(4, 6));
-        const tDay = parseInt(transactionDateStr.substring(6, 8));
-        const vYear = parseInt(valueDateStr.substring(0, 4));
-        const vMonth = parseInt(valueDateStr.substring(4, 6));
-        const vDay = parseInt(valueDateStr.substring(6, 8));
-        let purpose = '';
-        let pIdx = 11;
-        do {
-          let partPurpose = parts[pIdx].trim();
-          if (partPurpose === 'J') {
-            break;
+              const tYear = parseInt(transactionDateStr.substring(0, 4));
+              const tMonth = parseInt(transactionDateStr.substring(4, 6));
+              const tDay = parseInt(transactionDateStr.substring(6, 8));
+              const vYear = parseInt(valueDateStr.substring(0, 4));
+              const vMonth = parseInt(valueDateStr.substring(4, 6));
+              const vDay = parseInt(valueDateStr.substring(6, 8));
+              let purpose = '';
+              let pIdx = 11;
+              do {
+                  let partPurpose = parts[pIdx].trim();
+                  if (partPurpose === 'J') {
+                      break;
+                  }
+                  purpose = purpose + partPurpose;
+                  if (purpose.endsWith('Betrag?')) {
+                      purpose = purpose.slice(0, purpose.length - 7) + ' Betrag ';
+                  } else if (purpose[purpose.length - 1] === '?') {
+                      purpose = purpose.slice(0, purpose.length - 1) + ' ';
+                  } else {
+                      break;
+                  }
+                  pIdx += 1;
+              } while (pIdx < 21);
+              const statement: CreditCardStatement = {
+                  transactionDate: new Date(tYear, tMonth - 1, tDay),
+                  valueDate: new Date(vYear, vMonth - 1, vDay),
+                  currency: currency,
+                  amount: amount,
+                  purpose: purpose,
+                  originalCurrency: currencyOrig,
+                  originalAmount: amountOrig,
+                  exchangeRate: exchangeRate,
+              }
+              clientResponse.statements = clientResponse.statements.concat(statement);
           }
-          purpose = purpose + partPurpose;
-          if (purpose.endsWith('Betrag?')) {
-            purpose = purpose.slice(0, purpose.length - 7) + ' Betrag ';
-          } else if (purpose[purpose.length - 1] === '?') {
-            purpose = purpose.slice(0, purpose.length - 1) + ' ';
-          } else {
-            break;
-          }
-          pIdx += 1;
-        } while (pIdx < 21);
-        const statement: CreditCardStatement = {
-          transactionDate: new Date(tYear, tMonth - 1, tDay),
-          valueDate: new Date(vYear, vMonth - 1, vDay),
-          currency: currency,
-          amount: amount,
-          purpose: purpose,
-          originalCurrency: currencyOrig,
-          originalAmount: amountOrig,
-          exchangeRate: exchangeRate,
-        }
-        clientResponse.statements = clientResponse.statements.concat(statement);
       }
     } else {
       clientResponse.statements = [];
