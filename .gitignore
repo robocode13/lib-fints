@@ -4,3 +4,6 @@
 settings.json
 
 .env
+
+# Build artifacts
+*.tgz
