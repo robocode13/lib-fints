@@ -11,8 +11,10 @@ import { HKSAL } from './segments/HKSAL.js';
 import { HKKAZ } from './segments/HKKAZ.js';
 import { HKWPD } from './segments/HKWPD.js';
 import { DKKKU } from './segments/DKKKU.js';
+import { HKCCS } from './segments/HKCCS.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 import {CreditCardStatementInteraction} from "./interactions/creditcardStatementInteraction.js";
+import { TransferInteraction, TransferRequest, TransferResponse } from './interactions/transferInteraction.js';
 
 export interface SynchronizeResponse extends InitResponse {}
 
@@ -226,6 +228,37 @@ export class FinTSClient {
 	 * @returns a credit card statements response containing an array of statements
 	 */
 	async getCreditCardStatementsWithTan(tanReference: string, tan?: string): Promise<StatementResponse> {
+		return this.continueCustomerInteractionWithTan(tanReference, tan);
+	}
+
+	/**
+	 * Checks if the bank supports SEPA credit transfers in general or for the given account number
+	 * @param accountNumber when the account number is provided, checks if the account supports transfers
+	 * @returns true if the bank (and account) supports SEPA credit transfers
+	 */
+	canTransfer(accountNumber?: string): boolean {
+		return accountNumber
+			? this.config.isAccountTransactionSupported(accountNumber, HKCCS.Id)
+			: this.config.isTransactionSupported(HKCCS.Id);
+	}
+
+	/**
+	 * Executes a SEPA credit transfer
+	 * @param accountNumber - the account number to transfer from, must be an account available in the config.bankingInformation.UPD.accounts
+	 * @param transfer - the transfer request details including recipient, amount, and purpose
+	 * @returns a transfer response containing success status and optional reference number
+	 */
+	async transfer(accountNumber: string, transfer: TransferRequest): Promise<TransferResponse> {
+		return this.startCustomerOrderInteraction(new TransferInteraction(accountNumber, transfer));
+	}
+
+	/**
+	 * Continues the transfer when a TAN is required
+	 * @param tanReference The TAN reference provided in the first call's response
+	 * @param tan The TAN entered by the user, can be omitted if a decoupled TAN method is used
+	 * @returns a transfer response containing success status and optional reference number
+	 */
+	async transferWithTan(tanReference: string, tan?: string): Promise<TransferResponse> {
 		return this.continueCustomerInteractionWithTan(tanReference, tan);
 	}
 

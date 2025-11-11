@@ -32,6 +32,8 @@ import { HKWPD } from './HKWPD.js';
 import { HIWPD } from './HIWPD.js';
 import { DIKKU } from "./DIKKU.js";
 import { DKKKU } from "./DKKKU.js";
+import { HKCCS } from './HKCCS.js';
+import { HICCSS } from './HICCSS.js';
 import { UNKNOW } from '../unknownSegment.js';
 import { PARTED } from '../partedSegment.js';
 
@@ -71,6 +73,8 @@ export function registerSegments() {
   registerSegmentDefinition(new HIKAZS());
   registerSegmentDefinition(new HKWPD());
   registerSegmentDefinition(new HIWPD());
+  registerSegmentDefinition(new HKCCS());
+  registerSegmentDefinition(new HICCSS());
   registerSegmentDefinition(new UNKNOW());
   registerSegmentDefinition(new PARTED());
 }

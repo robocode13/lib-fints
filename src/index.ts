@@ -8,6 +8,7 @@ export { ClientResponse } from './interactions/customerInteraction.js';
 export { AccountBalanceResponse } from './interactions/balanceInteraction.js';
 export { StatementResponse } from './interactions/statementInteraction.js';
 export { PortfolioResponse } from './interactions/portfolioInteraction.js';
+export { TransferRequest, TransferResponse } from './interactions/transferInteraction.js';
 export * from './segment.js';
 export * from './message.js';
 export * from './dialog.js';
