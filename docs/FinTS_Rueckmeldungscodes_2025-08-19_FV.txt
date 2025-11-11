@@ -1,0 +1,2926 @@
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+FinTS 
+Financial Transaction 
+Services 
+ 
+Schnittstellenspezifikation 
+ 
+Rückmeldungscodes 
+Ergänzung zum Band „FinTS Formals“ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Herausgeber: 
+Bundesverband deutscher Banken e.V., Berlin 
+Deutscher Sparkassen- und Giroverband e.V., Bonn/Berlin 
+Bundesverband der Deutschen Volksbanken und Raiffeisenbanken e.V., Berlin 
+Bundesverband Öffentlicher Banken Deutschlands e.V., Berlin 
+ 
+Version: 3.0 / 4.x FV  Stand: 19.08.2025           FV 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Die vorliegende Schnittstellenspezifikation für eine automatisiert nutzbare multibankfähige 
+Banking-Schnittstelle (im Folgenden: Schnittstellenspezifikation) wurde im Auftrag der Deut-
+schen Kreditwirtschaft entwickelt. Sie wird hiermit zur Implementation in Kunden- und Kredit-
+institutssysteme freigegeben. 
+Die Schnittstellenspezifikation ist urheberrechtlich geschützt. Zur Implementation in Kunden- 
+und Kreditinstitutssysteme wird interessierten Herstellern unentgeltlich ein einfaches Nut-
+zungsrecht eingeräumt. Im Rahmen des genannten Zwecks darf die Schnittstellenspezifika-
+tion auch - in unveränderter Form - vervielfältigt und zu den nachstehenden Bedingungen 
+verbreitet werden. 
+Umgestaltungen, Bearbeitungen, Übersetzungen und jegliche Änderung der Schnittstellen-
+spezifikation sind untersagt. Kennzeichnungen, Copyright-Vermerke und Eigentumsangaben 
+dürfen in keinem Fall geändert werden. 
+Im Hinblick auf die Unentgeltlichkeit des eingeräumten Nutzungsrechts wird keinerlei Gewähr-
+leistung oder Haftung für Fehler der Schnittstellenspezifikation oder die ordnungsgemäße 
+Funktion der auf ihr beruhenden Produkte übernommen. Die Hersteller sind aufgefordert, Feh-
+ler oder Auslegungsspielräume der Spezifikation, die die ordnungsgemäße Funktion oder Mul-
+tibankfähigkeit von Kundenprodukten behindern, der Deutschen Kreditwirtschaft zu melden. 
+Es wird weiterhin ausdrücklich darauf hingewiesen, dass Änderungen der Schnittstellenspe-
+zifikation durch Die Deutsche Kreditwirtschaft jederzeit und ohne vorherige Ankündigung mög-
+lich sind. 
+Eine Weitergabe der Schnittstellenspezifikation durch den Hersteller an Dritte darf nur unent-
+geltlich, in unveränderter Form und zu den vorstehenden Bedingungen erfolgen. 
+Dieses Dokument kann im Internet abgerufen werden unter http://www.fints.org.
+ 
+ 
+Versionsführung 
+ 
+Das vorliegende Dokument wurde von folgenden Personen erstellt bzw. geändert: 
+Name Orga-
+nisa-
+tion 
+Datum Ver-
+sion 
+Dokumente Anmerkungen 
+Haubner für SIZ 11.04.2013 2.2 
+3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2013-04-
+11 Final Version.doc 
+Initialversion 
+Haubner für SIZ 12.09.2013 2.2 
+3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2013-09-
+12 final version.doc 
+Neue RM-Codes 
+Haubner für SIZ 09.05.2014 2.2 
+3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2014-05-
+09 final version.doc 
+Neue RM-Codes 
+Haubner für SIZ 11.05.2017 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2017-05-
+11_ final_version.doc 
+Neue RM-Codes, spezi-
+ell starke Authentifizie-
+rung und Instant Pay-
+ments 
+Haubner für SIZ 06.10.2017 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2017-10-
+06_ FV.doc 
+Neue RM-Codes und 
+Klarstellungen zur SCA 
+Haubner für SIZ 23.02.2018 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2018-02-
+23_ FV.doc 
+Neue RM-Codes und 
+Klarstellungen zur SCA 
+Haubner für SIZ 26.09.2018 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2018-09-
+26_ FV.doc 
+Neue RM-Codes 
+Mindnich SIZ 22.07.2019 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2019-07-
+22_ FV.doc 
+Neuer RM-Code 
+Mindnich SIZ 07.07.2021 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2021-07-
+07_ FV.doc 
+Neue RM-Codes 
+Mindnich SIZ 27.03.2023 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2023-03-
+27_ FV.doc 
+Neue RM-Codes 
+Mindnich SIZ 19.12.2024 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2024-12-
+19_ FV.doc 
+Neue RM-Codes zu 
+VOP 
+Mindnich SIZ 29.05.2025 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2025-05-
+29_ FV.doc 
+Neue RM-Codes 
+Mindnich SIZ 19.08.2025 3.0 
+4.1 
+FinTS_4.1_Rückmel-
+dungscodes Rel. 2025-08-
+19_ FV.doc 
+Neue RM-Codes 
+ 
+ 
+Änderungen gegenüber der Vorversion: 
+ 
+Hinzufügungen und Änderungen sind im Dokument in dieser Farbe und zusätzlich 
+durch Unterstreichung und einen Randbalken markiert. Löschungen sind aufgrund 
+der besseren Übersichtlichkeit nur durch einen Randbalken markiert. Hypertextlinks 
+ 
+sind in dieser Farbe markiert. Falls sich die Kapitelnummerierung geändert hat, be-
+zieht sich die Kapitelangabe auf die neue Nummerierung. Aufgrund der umfangrei-
+chen Textumstellungen wurden nicht alle Änderungen markiert. 
+ 
+Releasedatum 11.05.2017 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung1 
+Art2 Beschreibung 
+1  Erfolgsmeldungen B.1 0480 E RM=0100: Ausweitung auch auf Kredit-
+institut 
+2  Warnungen B.3 0449 E RM=3051: Zeitüberschreitung bei Auf-
+trag 
+3   B.3 0480 E RM: 3075: Starke Authentifizierung ab 
+dem %1 erforderlich 
+4   B.3 0480 E RM=3076: Keine starke Authentifizie-
+rung erforderlich 
+5   B.3 0482 E RM=3045: SEPA Instant Payment Sta-
+tusabfrage HKIPS veranlassen 
+6   B.3 0482 E RM=3046: Überprüfen Sie Ihre Umsätze 
+7  Fehlermeldungen B.4 0456 E RM=9357: Zertifikat erwartet 
+8   B.4 0480 E RM: 9075: Dialog abgebrochen – starke 
+Authentifizierung erforderlich 
+9   B.4 0481 E RM=9185: HBCI-/FinTS-Version nicht 
+unterstützt 
+ 
+Releasedatum 06.10.2017 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Warnungen B.3 0496 E RM=3077:Verwendung gehärteter Brow-
+ser erforderlich 
+2  Fehlermeldungen B.4 0496 E RM=9077: Dialog abgebrochen - gehär-
+teter Browser erforderlich 
+3  Prozessbeispiele C.2 0496 Ä Generalisieren durch Ersetzen des Be-
+griffes „iTAN“ durch „TANalt“ 
+ 
+ 
+Releasedatum 06.02.2018 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Warnungen B.3    
+2  Fehlermeldungen B.4 0502 Ä RM=9000: Status indifferent 
+Ergänzen der Belegung des Parameters 
+P1 mit der Segmentkennung der nächs-
+ten auszuführenden Bestandsabfrage. 
+3  Prozessbeispiele C.7 0502 E Prozessbeispiel zu RM-Code=9000 
+ 
+Releasedatum 26.09.2018 
+ 
+1 nur zur internen Zuordnung 
+2 F = Fehler; Ä = Änderung; K = Klarstellung; E = Erweiterung 
+ 
+ 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Warnungen B.3 0506 E RM=3078: Unregistriertes FinTS-Pro-
+dukt – nur zugelassen bis %1 
+ 
+2    0506 E RM=3079: Bitte an SW-Hersteller wen-
+den 
+3    0506 E RM=3361: Das verwendete Sicherheits-
+verfahren  darf nur noch bis %1 genutzt 
+werden 
+4  Fehlermeldungen B.4 0506 E RM=9078: Dialog abgebrochen –FinTS-
+Produkt ist nicht registriert  
+5    0506 E RM=9361: Das verwendete Sicherheits-
+verfahren ist nicht mehr zulässig 
+ 
+Releasedatum 22.07.2019 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Warnungen B.3 0510 E RM=3081: Bei der nächsten Dialoginitia-
+lisierung sind vom Kundenprodukt zwin-
+gend die neuen Parameterdaten zu be-
+achten 
+ 
+Releasedatum 07.07.2021 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Erfolgsmeldungen B.2 0512 E RM=0900: Sicherheitsfreigabe gültig 
+2  Warnungen B.3 0512 E RM=3955: Sicherheitsfreigabe erfolgt 
+über anderen Kanal 
+3    0512 E RM=3956: Starke Kundenauthentifizie-
+rung noch ausstehend 
+4    0512 E RM=3957: Auf Push Nachricht warten 
+5    0512 E RM=3958 Freigabe-Anwendung unter-
+stützt das gewählte Verfahren nicht 
+6  Fehlermeldungen B.4 0519 E RM= 9997: Zurzeit Wartungsarbeiten: 
+Bei der nächsten Dialoginitialisierung 
+sind vom Kundenprodukt zwingend die 
+neuen Parameterdaten zu beachten 
+ 
+Releasedatum 27.03.2023 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Erfolgsmeldungen B.1 0533 E RM=0021: Auftrag geändert und freige-
+geben 
+2  Fehlermeldungen B.4 0419 E Nachtrag: RM= 9391: Neue Kundensys-
+tem-ID holen; 
+Der Rückmeldecode wurde bereits am 
+23.03.2012 unter der Nr. P10 in den 
+Changes veröffentlicht, aber bisher nicht 
+in das Dokument aufgenommen. 
+ 
+Releasedatum 19.12.2024 
+ 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Erfolgsmeldungen B.1 0546 E RM=0025: Keine Namensabweichung 
+bzw. 
+RM=0025: Namensabgleich wird noch 
+nicht durchgeführt 
+2  Warnungen B.3 0546 E RM=3090: Ergebnis Namensabgleich 
+prüfen 
+RM=3094: Namensabgleich ist komplett 
+3    0546 E RM=3091: VOP-Ausführungsauftrag 
+nicht benötigt 
+4    0546 E RM=3092: Namensabgleich erforderlich 
+ab dem %1 
+5    0546 E RM=3093: Namensabgleich ist noch in 
+Bearbeitung 
+6    0546 E RM=3094: Namensabgleich ist komplett 
+7    0546 E RM=3945: Freigabe kann nicht erteilt 
+werden 
+8  Fehlermeldungen B.4 0546 E RM=9076: Namensabgleich erforderlich 
+ 
+Releasedatum 29.05.2023 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Warnungen B.3 0549 E Nutzung des VOP-RM-Codes 3090 für 
+Opt-Out: 
+RM=3090: Aufklärungstext beachten 
+2  Fehlermeldungen B.4 0551 E RM=9255: Echtzeitlimit überschritten 
+ 
+Releasedatum 19.08.2023 
+lfd. 
+Nr. 
+Kapitel Kapitel-
+nummer 
+Ken-
+nung 
+Art Beschreibung 
+1  Warnungen B.3 0556 E RM=3042: Es liegt keine Rückmeldung 
+der Empfängerbank vor 
+2  Fehlermeldungen B.4 0555 E RM=9250: Namensabgleich nicht mög-
+lich. Bitte später erneut oder über Opt-
+Out einreichen 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+A 
+Kapitel: Vorbemerkungen 
+Abschnitt: Erfolgsmeldungen  
+Stand: 
+19.08.2025 
+Seite: 
+5 
+ 
+ 
+Inhaltsverzeichnis 
+Versionsführung ................................................................................................. 1 
+Änderungen gegenüber der Vorversion: .......................................................... 1 
+Inhaltsverzeichnis ............................................................................................... 5 
+A. Vorbemerkungen .......................................................................................... 6 
+B. Code-Bedeutungen ....................................................................................... 7 
+B.1 Erfolgsmeldungen ......................................................................................... 8 
+B.2 Hinweise ....................................................................................................... 10 
+B.3 Warnungen ................................................................................................... 10 
+B.4 Fehlermeldungen ......................................................................................... 17 
+C. Prozessbeispiele ......................................................................................... 26 
+C.1 Wechsel des Schlüssels bzw. Sicherheitsprofils des Benutzers ............. 26 
+C.1.1 RM=3340 „Karte erneuern. Benutzerschlüssel noch gültig bis 
+%1“ 26 
+C.1.2 RM=3345 „Profilwechsel Chipkarte (RDHx) durchführen bis %1“ ....... 26 
+C.2 TANalt Selbst- und Zwangsumstellung ...................................................... 26 
+C.2.1 RM=3950 "Änderung auf ein anderes TAN-Verfahren ist im 
+Internet-Banking möglich" .................................................................. 27 
+C.2.2 RM=3951 " Änderung auf ein anderes TAN-Verfahren ist im 
+Internet-Banking erforderlich" ............................................................. 28 
+C.2.3 RM=3952 "Erfolgreicher Prozessschritt bei der Selbstumstellung" ..... 28 
+C.2.3.1 Optionale Anzeige des Datums der TANalt-Abkündigung ...............29 
+C.2.3.2 Handlungsanweisung zur Einschränkung der ausführbaren 
+Geschäftsvorfälle ..............................................................................29 
+C.3 Optimierung des Kartentauschs bei chipTAN ........................................... 30 
+C.3.1 Erinnerung im Rahmen der Dialoginitialisierung ................................. 31 
+C.3.2 Anzeige der Kartennummer bei der Challenge-Anforderung) ............. 31 
+C.4 Entsperren der PIN bei mobile-TAN ........................................................... 31 
+C.5 Verpflichtende Verwendung eines Secoders ............................................. 31 
+C.6 Änderung von Anmeldedaten ..................................................................... 32 
+C.7 RM-Code=9000 – Parameter P1 „Segmentkennung“ ................................ 32 
+ 
+Kapitel: 
+A 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+6 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Vorbemerkungen 
+Abschnitt: Erfolgsmeldungen 
+ 
+ 
+A. VORBEMERKUNGEN 
+Dieses Dokument enthält die Code-Bedeutungen der FinTS Rückmeldungscodes. 
+Das Konzept der Rückmeldungscodes selbst ist in [Formals] für FinTS3 bzw. FinTS4 
+beschrieben.  
+Die hier beschriebenen Code-Bedeutungen spiegeln die am Markt verwendeten 
+Codes wider und werden bei Bedarf fortlaufend ergänzt. Zusätzliche Code-Beispiele 
+finden sich in den Spezifikationen der Geschäftsvorfälle der jeweiligen FinTS-Versio-
+nen 3.0 bzw. 4.1 direkt bei den jeweiligen Geschäftsvorfalldefinitionen.  
+Die Nummernbereiche [0900-0999], [3900-3999] und [9900-9999] stellen Ausnah-
+men zum FinTS Rückmeldungskonzept dar. Diese konnten ursprünglich individuell 
+festgelegt werden. Durch die gemeinsame Verwendung dieser Codes z. B. im Rah-
+men des PIN/TAN Zwei-Schritt-Verfahrens wurden diese Nummernbereiche jedoch 
+auch institutsübergreifend genutzt. Daher werden alle auftretenden Code-Bedeutun-
+gen in diesem Dokument gelistet, auch wenn diese an manchen Stellen unterschied-
+liche Bedeutung haben. 
+Zahlreiche Rückmeldungscodes erfordern eine definierte Reaktion des Kundenpro-
+dukts z. B. durch Ausführen bestimmter FinTS-Geschäftsvorfälle. Für einige komple-
+xere Szenarien, die sich durch die Kombination von Rückmeldungen ergeben, sind 
+in Abschnitt C Prozessbeispiele aufgeführt.   
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Erfolgsmeldungen  
+Stand: 
+19.08.2025 
+Seite: 
+7 
+ 
+ 
+ 
+B. CODE-BEDEUTUNGEN 
+Im Folgenden sind die Bedeutungen der einzelnen Rückmeldungscodes und – wenn 
+möglich – die entsprechenden Reaktionsvorschriften beschrieben.  
+Im Rahmen der Reaktionsvorschriften werden folgende Abkürzungen (Seg-
+mentkennungen verwendet): 
+ 
+FinTS3 FinTS4 Geschäftsvorfallsbezeichnung 
+HKIPS noch offen SEPA Instant Payment Statusabfrage 
+HKMTA ChangeMobilePhoneConnection Mobilfunkverbindung ändern 
+HKMTF ActivateMobilePhoneConnection Mobilfunkverbindung freischalten 
+HKMTR RegisterMobilePhoneConection Mobilfunkverbindung registrieren 
+HKPAE ChangePIN PIN ändern 
+HKPSA RevokePINBlock PIN-Sperre aufheben 
+HKPSP BlockPIN PIN-Sperre 
+HKTAB DisplayTANGeneratorList TAN-Generator anzeigen, Bestand 
+HKTAU ChangeTANGenerator TAN-Generator an- bzw. ummelden 
+HKTSY SynchronizeTANGenerator TAN-Generator Synchronisierung 
+ 
+ 
+ 
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+8 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Erfolgsmeldungen 
+ 
+ 
+B.1 Erfolgsmeldungen 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+0010 Entgegengenommen Nachricht 
+Auftrags-
+liste 
+Auftrag 
+ Umfang der Prüfung 
+ist kreditinstitutsspe-
+zifisch. 
+Mindestanforderung: 
+physisch korrekt 
+empfangen; 
+Status ist nicht 
+rechtsverbindlich. 
+Nachricht entgegen-
+genommen 
+Auftrag entgegenge-
+nommen 
+Auftrag zur Ausfüh-
+rung weitergeleitet  
+0010 Auftrag entgegengenom-
+men 
+Segment    
+0020 Ausgeführt Auftrag  Abschluss der Verar-
+beitung 
+Auftrag ausgeführt 
+0020 TAN-Liste Nr. %1  akti-
+viert 
+Auftrag TAN-
+Listennum-
+mer 
+  
+0020 PIN-Sperre erfolgreich Auftrag    
+0020 PIN-Sperre aufgehoben Auftrag    
+0020 PIN geändert Auftrag    
+0020 TAN-Liste gesperrt Auftrag    
+0021 Auftrag geändert und frei-
+gegeben 
+Auftrag  Eine zusätzliche Frei-
+gabe nach Änderung 
+eines Auftrags ist 
+nicht mehr notwen-
+dig. 
+Das Ausführungsda-
+tum wurde geändert 
+und die SRZ-Datei 
+freigegeben. 
+0025 Keine Namensabwei-
+chung 
+Auftrag    
+0025 Namensabgleich wird 
+noch nicht durchgeführt 
+Auftrag  Gilt nur für Kreditinsti-
+tute, die in der VOP-
+Migrationsphase die 
+VOP-Verarbeitung 
+zwar laut BPD anbie-
+ten, aber noch keine 
+Prüfergebnisse zu-
+rückliefern.  
+Der weitere VOP-
+Ablauf entspricht dem 
+Ablauf bei keiner Na-
+mensabweichung.  
+ 
+0030 Auftrag empfangen-Si-
+cherheitsfreigabe erfor-
+derlich 
+Auftrag    
+0030 Auftrag empfangen-Si-
+cherheitsfreigabe erfor-
+derlich und Auftrags-
+storno möglich 
+Auftrag    
+0031 Auftragsstorno durchge-
+führt 
+Auftrag    
+0040 Letzter Dialog endete am 
+%1 um %2 
+Dialog Datum, 
+Uhrzeit 
+ Letzter Dialog endete 
+am 06.10.2017 um 
+11:21 
+0041 Falls Datum/Uhrzeit nicht 
+korrekt, wenden Sie sich 
+an Ihren Berater unter 
+%1 bzw. %2 
+Dialog eMail-Ad-
+resse, Tele-
+fon 
+ Falls Datum/Uhrzeit 
+nicht korrekt, wenden 
+Sie sich bitte an Ihren 
+Berater unter: 
+030/123456-4444 
+0090 TAN OK (%1) Element TAN   
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Erfolgsmeldungen  
+Stand: 
+19.08.2025 
+Seite: 
+9 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+0100 Beendet Dialog  Bestätigung der Dia-
+logbeendigung des 
+Benutzers oder des 
+Kreditinstituts 
+Dialog beendet 
+0900 TAN gültig Element    
+0900 Sicherheitsfreigabe gültig Auftrag    
+0901 PIN gültig Element    
+0950-
+0999 
+Individuell Alle  Institutsindividuelle 
+Rückmeldung 
+Individuell 
+ 
+ 
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+10 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Hinweise 
+ 
+ 
+B.2 Hinweise 
+Hinweise werden nur in [FinTS4] verwendet.  
+Code Code-Bedeutung Bezug Para-
+meter 
+Anmerkungen Beispiel 
+1010 Es liegen neue Kontoin-
+formationen vor 
+Nachricht    
+1040 BPD nicht mehr aktuell, 
+aktuelle Version enthal-
+ten. 
+Nachricht    
+1050 UPD nicht mehr aktuell, 
+aktuelle Version enthal-
+ten. 
+Nachricht    
+1060 Teilweise liegen Hinweise 
+vor 
+Nachricht 
+Auftragsliste 
+ in einer Nachricht ist 
+mindestens ein Auf-
+trag mit Hinweisen 
+enthalten 
+ 
+1950-
+1999 
+Individuell Alle indivi-
+duell 
+Institutsindividuelle 
+Rückmeldung 
+individuell 
+ 
+B.3 Warnungen 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3000 Auftrag nur teilweise aus-
+geführt 
+Auftrag    
+3010 Nicht verfügbar Auftrag   zurzeit keine Börsen-
+kurse abrufbar 
+Keine neuen Einträge 
+im Statusprotokoll 
+Information wird zur-
+zeit nicht angeboten 
+Wertpapierdatei ist 
+bereits aktuell 
+3020 Korrigiert, da nicht mehr 
+aktuell 
+Element Neuer In-
+halt 
+ BIC veraltet. Der neue 
+BIC lautet... 
+3021 IBAN %1 / BIC %2 für 
+Auftrag 
+Auftrag P1: IBAN 
+P2: BIC 
+Bei Konvertierung 
+Konto/BLZ nach 
+IBAN/BIC im Rahmen 
+der SEPA-Migration 
+ 
+3030 Korrigiert, da ungültig Element Neuer In-
+halt 
+ Datum ist kein Bu-
+chungstag. Der Auf-
+trag wird ausgeführt 
+am... 
+3040 Es liegen weitere Infor-
+mationen vor 
+Auftrag Aufsetz-
+punkt 
+Wiederaufsetzen 
+möglich 
+(z. B. Abholauftrag 
+siehe [Formals]) 
+Auftrag nur teilweise 
+ausgeführt 
+3042 Es liegt keine Rückmel-
+dung der Empfängerbank 
+vor 
+Auftrag  Während der Ausfüh-
+rungsfrist des IP-
+Auftrags trifft keine 
+Antwortnachricht der 
+Bank des Zahlungs-
+empfängers ein. Das 
+Auftraggeberkonto 
+wird in den Ur-
+sprungszustand ver-
+setzt. 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Warnungen  
+Stand: 
+19.08.2025 
+Seite: 
+11 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3045 SEPA Instant Payment 
+Statusabfrage HKIPS 
+veranlassen 
+Auftrag    
+3046 Überprüfen Sie Ihre Um-
+sätze 
+Auftrag    
+3050 Nicht mehr aktuell. 
+Wird noch bis zum %1 
+Tage akzeptiert 
+Auftrag 
+ 
+ 
+ 
+Element 
+Datum  Auftragsversion ist 
+veraltet. Bitte Kunden-
+produkt aktualisieren 
+Öffentlicher Schlüssel 
+des Kreditinstituts ist 
+nicht mehr aktuell 
+3051 Zeitüberschreitung bei 
+außerbörslichem Direkt-
+handel 
+Auftrag    
+3060 Teilweise liegen Warnun-
+gen vor 
+Nachricht 
+Auftrags-
+liste 
+ in einer Nachricht ist 
+mindestens ein Auf-
+trag mit Warnungen 
+enthalten 
+Sammelauftrag 
+konnte nur teilweise 
+verarbeitet werden 
+(auf Auftragsebene 
+sollten die Codes 
+3210 bzw. 3220 ge-
+sendet werden) 
+3070 Neuanlage einer PIN, 
+TAN-Liste oder -Genera-
+tor für Benutzer %1 
+schlug fehl 
+Auftrag Benutzer-
+kennung 
+  
+3071 Die Benachrichtigung des 
+Autorisierungssystems 
+für Benutzer %1 schlug 
+fehl 
+Auftrag Benutzer-
+kennung 
+  
+3072 Neue Anmeldedaten - 
+bitte berücksichtigen 
+Nachricht z. B. P1: 
+Benutzer-
+kennung 
+z. B. P2: 
+Kunden-ID 
+z. B. P3: 
+Anmelde-
+name 
+Im Kundenprodukt 
+müssen bestehende 
+Daten überschrieben 
+werden 
+Einführung einer 
+neuen Benutzerken-
+nung 
+3075 Starke Authentifizierung 
+ab dem %1 erforderlich 
+Nachricht Datum Eine schwache Au-
+thentifizierung ohne 
+TAN wird vom Institut 
+nur noch bis zum %1 
+akzeptiert 
+ 
+3076 Keine starke Authentifi-
+zierung erforderlich 
+Nachricht    
+3077 Verwendung gehärteter 
+Browser erforderlich 
+Nachricht    
+3078 Unregistriertes FinTS-
+Produkt – nur zugelassen 
+bis %1 
+Dialogini-
+tialisie-
+rungs-
+nachricht 
+Datum Das verwendete 
+FinTS-Produkt darf 
+nur noch bis %1 ohne 
+Registrierung genutzt 
+werden 
+ 
+3079 Bitte an SW-Hersteller 
+wenden 
+Dialogini-
+tialisie-
+rungs-
+nachricht 
+ Gemeinsam mit 3078 
+und 9078 
+ 
+3080 Es liegen weitere Infor-
+mationen vor 
+Nachricht 
+Auftrags-
+liste 
+Auftrag 
+   
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+12 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Warnungen 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3081 Aktualisierte Parameter-
+daten beachten 
+Auftrag  Bei der nächsten Dia-
+loginitialisierung sind 
+vom Kundenprodukt 
+zwingend die neuen 
+Parameterdaten zu 
+beachten 
+Auftragsversion wird 
+nicht mehr unterstützt. 
+Andere Version lt. 
+BPD verwenden 
+3090 Ergebnis Namensab-
+gleich prüfen 
+Auftrag  Es sind Namensab-
+weichungen aufgetre-
+ten, die der Kunde 
+vor der Freigabe des 
+Auftrags prüfen soll. 
+ 
+3090 Aufklärungstext beachten Auftrag  Es wird ein Aufklä-
+rungstext hinsichtlich 
+des Verzichts auf 
+eine VOP-Prüfung 
+(Opt-Out) übertragen, 
+die der Kunde vor der 
+Freigabe des Auf-
+trags beachten soll. 
+ 
+3091 VOP-Ausführungsauftrag 
+nicht benötigt 
+Auftrag  Es sind keine Na-
+mensabweichungen 
+aufgetreten. Der 
+Kunde kann den Auf-
+trag im PIN/TAN-
+Verfahren ohne paral-
+lele Einreichung ei-
+nes HKVPA freige-
+ben. 
+ 
+3092 Namensabgleich erfor-
+derlich ab dem %1 
+Nachricht 
+Auftrag 
+Datum Eine Einreichung von 
+Zahlungsverkehrsauf-
+trägen ohne 
+HKVPP/HKVPA bzw. 
+HKVOO wird vom 
+Institut nur noch bis 
+zum %1 akzeptiert 
+ 
+3093 Namensabgleich ist noch 
+in Bearbeitung 
+Auftrag  Bei Polling mit Auf-
+setzpunkt wird dem 
+Kundenprodukt mit-
+geteilt, dass die VOP-
+Prüfung noch nicht 
+vollständig abge-
+schlossen ist 
+ 
+3094 Namensabgleich ist kom-
+plett 
+Auftrag  Bei Polling mit Auf-
+setzpunkt wird dem 
+Kundenprodukt mit-
+geteilt, dass die VOP-
+Prüfung vollständig 
+abgeschlossen ist 
+ 
+3210 Auftrag angenommen, 
+fehlerhafte Einzelpositio-
+nen 
+Auftrag Nummer 
+der Position  
+wird i.d.R. bei Sam-
+melaufträgen (siehe 
+[Messages]) verwen-
+det 
+ 
+3220 Auftrag ausgeführt, feh-
+lerhafte Einzelpositionen 
+Auftrag Nummer 
+der Position  
+wird i.d.R. bei Sam-
+melaufträgen (siehe 
+[Messages]) verwen-
+det 
+ 
+3230 Die Zahlung erfolgt an 
+neue Empfänger-Konto-
+/Bankverbindung 
+Auftrag    
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Warnungen  
+Stand: 
+19.08.2025 
+Seite: 
+13 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3260 Sammler unvollständig 
+verarbeitet. 1 Satz fehler-
+haft. 
+Auftrag    
+3290 Die eingegebene Bank-
+leitzahl ist ungültig 
+Element    
+3290 Der eingegebene BIC ist 
+ungültig 
+Element    
+3310 Mehrfache Unterzeich-
+nung durch identischen 
+Benutzer nicht zulässig 
+Nachricht 
+Auftrags-
+liste 
+   
+3310 Ini-Brief erforderlich Nachricht    
+3320 Ini-Brief nicht erforderlich Nachricht    
+3330 Schlüssel liegen bereits 
+vor 
+Nachricht  Doppelte Schlüsse-
+leinreichung durch 
+den Benutzer 
+ 
+3340 Karte erneuern. Benut-
+zerschlüssel noch gültig 
+bis zum %1. 
+Nachricht Ablaufda-
+tum 
+  
+3340 RDH-2-Kundenschlüssel 
+neu generieren und ein-
+reichen. Wird noch bis 
+zum %1 akzeptiert. 
+Nachricht Datum   
+3345 Profilwechsel Chipkarte 
+(RDHx) durchführen bis 
+%1 
+Nachricht Datum   
+3345 Sicherheitsprofilwechsel 
+auf RDH-x durchführen. 
+RDH-x-Kundenschlüssel 
+neu generieren und ein-
+reichen. RDH-y wird noch 
+bis zum %1 akzeptiert. 
+Nachricht Datum   
+3361 Sicherheitsverfahren nur 
+noch zulässig bis %1 
+Dialogini-
+tialisie-
+rungs-
+nachricht 
+Datum Das verwendete Si-
+cherheitsverfahren  
+darf nur noch bis %1 
+genutzt werden 
+ 
+3390 Doppeleinreichung Sig-
+natur-ID %1 
+Nachricht Signatur-ID   
+3300 Kein Schlüssel verfügbar. 
+Keine Signatur von Kre-
+ditinstitutsnachrichten 
+Nachricht    
+3710 Bei Beträgen > 50.000 
+EUR ist eine AWV-
+Meldung erforderlich 
+Auftrag    
+3810 Zusätzlich Datei %1 ab-
+holen 
+Alle Dateiname  Aktualisierte BLZ-
+Datei liegt bereit 
+3810 Zusätzlich Datei abholen Alle   Aktualisierte BLZ-
+Datei liegt bereit 
+3820 Prüfen Sie zu gegebener 
+Zeit den Orderstatus 
+Auftrag    
+3900 Mitteilung ohne Text er-
+halten. 
+Auftrag    
+3910 TAN wurde nicht ver-
+braucht 
+Element    
+3911 Bitte neue TAN-Liste akti-
+vieren 
+Nachricht 
+Auftrags-
+liste 
+   
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+14 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Warnungen 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3912 neue TAN-Liste wird au-
+tomatisch verschickt 
+Nachricht 
+Auftrags-
+liste  
+   
+3913 TAN wurde verbraucht Element    
+3914 neue TAN-Liste aktivie-
+ren 
+Nachricht 
+Auftrags-
+liste 
+   
+3914 TAN Vorrat kritisch Nachricht 
+Auftrags-
+liste 
+   
+3915 neue TAN-Liste aktiviert Nachricht 
+Auftrags-
+liste 
+   
+3916 PIN muss wegen erstma-
+liger Anmeldung zwangs-
+weise geändert werden 
+Nachricht 
+Auftrags-
+liste 
+   
+3917 Alte TAN-Liste ist infolge 
+der Aktivierung einer 
+neuen TAN-Liste ungültig 
+Nachricht 
+Auftrags-
+liste 
+   
+3918 Kompetenz nicht ausrei-
+chend-weitere TAN erfor-
+derlich 
+Nachricht 
+Auftrags-
+liste 
+   
+3918 Kompetenz nicht ausrei-
+chend-weitere Signatur 
+erforderlich 
+Nachricht 
+Auftrags-
+liste 
+   
+3918 PIN-Entsperren erforder-
+lich 
+Nachricht 
+Auftrags-
+liste 
+   
+3920 Zugelassene Ein- und 
+Zwei-Schritt-Verfahren für 
+den Benutzer (+Rückmel-
+dungsparameter) 
+Nachricht 
+Auftrags-
+liste 
+Sicherheits-
+funktion, 
+kodiert 
+  
+3921 Zugelassene AZS-
+Verfahren für den Benut-
+zer (+Rückmeldungspa-
+rameter) 
+Nachricht 
+Auftrags-
+liste 
+Sicherheits-
+funktion, 
+kodiert 
+  
+3931 PIN gesperrt. Entsperren 
+mit GV “PIN-Sperre auf-
+heben” möglich 
+Nachricht 
+Auftrags-
+liste 
+   
+3931 TAN-Generator %1 ge-
+sperrt. Führen Sie ggf. 
+eine TAN-Gen.-
+Synchronisation durch 
+Nachricht 
+Auftrags-
+liste 
+Kartennum-
+mer (opt.) 
+Es muss ein HKTSY 
+mit der geforderten 
+Kartennummer durch-
+geführt werden. 
+ 
+3932 Bitte führen Sie zunächst 
+eine PIN-Änderung durch 
+Nachricht 
+Auftrags-
+liste 
+ Es ist die Durchfüh-
+rung eines HKPAE 
+bzw. DKPAE erfor-
+derlich. 
+ 
+3933 TAN-Generator gesperrt, 
+Synchronisierung erfor-
+dert Kartennummer %1 
+Nachricht 
+Auftrags-
+liste 
+Kartennum-
+mer (opt.) 
+Es muss ein HKTSY 
+mit der geforderten 
+Kartennummer durch-
+geführt werden. 
+ 
+3933 Bitte verwenden Sie die 
+Karte %1 
+Nachricht 
+Auftrags-
+liste 
+Kartennum-
+mer (opt.) 
+Es muss ein HKTSY 
+mit der geforderten 
+Kartennummer durch-
+geführt werden. 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Warnungen  
+Stand: 
+19.08.2025 
+Seite: 
+15 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3934 Bitte eine Karte zur Ver-
+wendung mit chipTAN zu-
+lassen  
+Nachricht 
+Auftrags-
+liste 
+P1: Karten-
+nummer 
+P2: TAN-
+Medienken-
+nung 
+Es ist eine TAN-
+Generator-Anmel-
+dung mittels HKTAU 
+erforderlich. 
+ 
+3935 Bitte eine Karte zur Ver-
+wendung mit chipTAN zu-
+lassen  
+Nachricht 
+Auftrags-
+liste 
+ Es kann eine TAN-
+Generator-Anmel-
+dung mittels HKTAB 
+und HKTAU durchge-
+führt werden. 
+ 
+3936 Die neuen Funktionen 
+stehen erst nach einer er-
+neuten Anmeldung zur 
+Verfügung 
+Nachricht 
+Auftrags-
+liste 
+   
+3938 Ihr Zugang ist vorläufig 
+gesperrt-bitte PIN-Sperre 
+aufheben 
+Nachricht 
+Auftrags-
+liste 
+ Es ist die Durchfüh-
+rung eines HKPSA 
+erforderlich 
+ 
+3939 mobileTAN-Freischaltung 
+erforderlich. SMS-
+Freischaltcode wurde 
+versendet 
+Nachricht 
+Auftrags-
+liste 
+ Die Freischaltung mit-
+tels HKMTF ist erfor-
+derlich. 
+ 
+3940 Reservierte TAN wurde 
+entwertet 
+Element    
+3940 Zur PIN-Änderung stehen 
+folgende TAN-Medien zur 
+Verfügung: %1 … %5 
+Nachricht 
+Auftrags-
+liste 
+1 bis 5 
+TAN-
+Medien-
+Kennungen 
+Es ist die Durchfüh-
+rung z. B. eines 
+HKPAE/DKPAE bzw. 
+HKPSA/DKPSA erfor-
+derlich 
+ 
+3941 Zur PIN-Änderung stehen  
+folgende Rufnummern  
+zur Verfügung: %1 … %5 
+Nachricht 
+Auftrags-
+liste 
+1 bis 5 x 
+Rufnummer 
+verschleiert 
+Es ist die Durchfüh-
+rung z. B. eines 
+HKPAE/DKPAE bzw. 
+HKPSA/DKPSA erfor-
+derlich 
+ 
+3942 Freischaltung einer Mo-
+bilfunkverbindung zwin-
+gend erforderlich 
+Nachricht 
+Auftrags-
+liste 
+ Die Freischaltung mit-
+tels HKMTF ist erfor-
+derlich. 
+ 
+3944 Bitte benutzen Sie die er-
+haltene Folgekarte %1 
+zur TAN-Erzeugung 
+Nachricht 
+Auftrags-
+liste 
+Kartennum-
+mer (opt) 
+Nach turnusmäßigem 
+Kartentausch 
+ 
+3945 Freigabe kann nicht er-
+teilt werden 
+Auftrag  Bezug HKTAN: Der 
+eingereichte HKTAN 
+ist entwertet Der ZV-
+Auftrag soll erneut mit 
+einem neuen HKTAN 
+in Verbindung mit ei-
+nem HKVPA einge-
+reicht werden. 
+ 
+3950 Die Selbstumstellung auf 
+ein anderes Sicherheits-
+verfahren ist möglich 
+Nachricht 
+Auftrags-
+liste 
+P1 bis P9: 
+Sicherheits-
+funktion  
+Je nach Verfahren 
+Auswahl eines Re-
+gistrierungs-GV. 
+z. B. HKMTF 
+3951 Die Selbstumstellung auf 
+ein anderes Sicherheits-
+verfahren ist erforderlich 
+Nachricht 
+Auftrags-
+liste 
+P1 bis P9: 
+Sicherheits-
+funktion 
+Je nach Verfahren 
+Auswahl eines Re-
+gistrierungs-GV. 
+z. B. HKMTF 
+3952 Erfolgreicher Prozess-
+schritt bei der Selbstum-
+stellung 
+Nachricht 
+Auftrags-
+liste 
+P1 bis P9 
+Text 
+Mitteilungen über 
+Umstellungsprozess 
+Brief mit Registrie-
+rungscode wurde ver-
+schickt 
+3955 Sicherheitsfreigabe er-
+folgt über anderen Kanal 
+Nachricht 
+Auftrags-
+liste 
+   
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+16 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Warnungen 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3956 Starke Kundenauthentifi-
+zierung noch ausstehend 
+Nachricht 
+Auftrags-
+liste 
+   
+3957 Auf Push Nachricht war-
+ten 
+Nachricht 
+Auftrags-
+liste 
+   
+3958 Freigabe-Anwendung un-
+terstützt das gewählte 
+Verfahren nicht 
+Nachricht 
+Auftrags-
+liste 
+   
+3960-
+3999 
+Individuell Alle individuell Institutsindividuelle 
+Rückmeldung 
+individuell 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen  
+Stand: 
+19.08.2025 
+Seite: 
+17 
+ 
+ 
+B.4 Fehlermeldungen 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9000 Status indifferent Nachricht 
+Auftrags-
+liste 
+Auftrag 
+Segment-
+kennung 
+Institutsinterne Verar-
+beitung ist fehlerhaft. 
+Es ist unklar, ob die 
+Nachricht oder der 
+Auftrag verarbeitet 
+wurde 
+Ausführung einer 
+SEPA-Überweisung 
+ungewiss: AUsführen 
+eines HKCAZ, um die 
+aktuellen Umsätze 
+abzurufen. 
+9010 Verarbeitung nicht mög-
+lich 
+Nachricht 
+Auftrags-
+liste 
+Auftrag 
+  Benutzernachricht zu 
+umfangreich 
+Verarbeitungssystem 
+nicht verfügbar 
+Auftrag zurzeit nicht 
+änderbar 
+Löschung eines Auf-
+trags ist nicht mehr 
+möglich, weil dessen 
+Ausführung bereits 
+eingeleitet wurde 
+9010 Auth.-Serveranfrage 
+schlug fehl, bitte wenden 
+Sie sich an Ihren Berater 
+%1 
+Nachricht 
+ 
+Name   
+9010 TAN-Index-Anfrage 
+schlug fehl. Kein TAN-
+Index verfügbar 
+Nachricht 
+Auftrags-
+liste 
+   
+9020 Antwort zu groß Nachricht  Benutzernachricht ok, 
+aber Kreditinstitut-
+santwort kann intern 
+nicht verarbeitet wer-
+den 
+Zu viele Tagesaus-
+züge; Bereich ein-
+grenzen 
+9021 IBAN %1 / BIC %2 
+konnte nicht ermittelt wer-
+den 
+Auftrag P1: IBAN 
+P2: BIC 
+Fehler bei Konvertie-
+rung von Konto/BLZ 
+nach IBAN/BIC im 
+Rahmen der SEPA-
+Migration 
+ 
+9030 Fehler bei Entschlüsse-
+lung 
+Nachricht 
+Auftrags-
+liste 
+  Falsches Verschlüs-
+selungsverfahren 
+oder -version 
+9030 Auftrag abgelehnt. Bitte 
+entsperren Sie zuerst 
+Ihre PIN! 
+Nachricht 
+Auftrags-
+liste 
+   
+9040 Fehler bei Dekomprimie-
+rung 
+Nachricht 
+Auftrags-
+liste 
+  Falsches Komprimie-
+rungsverfahren 
+oder -version 
+9040 Authentifizierung des Ein-
+reichers fehlerhaft - Auf-
+trag abgelehnt 
+Nachricht 
+Auftrags-
+liste 
+   
+9040 Authentifizierung des Ein-
+reichers fehlt - Auftrag 
+abgelehnt 
+Nachricht 
+Auftrags-
+liste 
+   
+9050 Teilweise fehlerhaft Nachricht 
+Auftrags-
+liste 
+ in einer Nachricht ist 
+mindestens ein feh-
+lerhafter Auftrag ent-
+halten 
+ 
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+18 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9075 Dialog abgebrochen - 
+starke Authentifizierung 
+erforderlich 
+Nachricht  Eine schwache Au-
+thentifizierung ohne 
+TAN wird vom Institut 
+nicht mehr zugelas-
+sen 
+ 
+9076 Namensabgleich erfor-
+derlich 
+Nachricht 
+Auftrag 
+ Zahlungsaufträge 
+ohne HKVPP/HKVPA 
+bzw. HKVOO werden 
+vom Institut nicht 
+mehr zugelassen 
+ 
+9077 Dialog abgebrochen – 
+gehärteter Browser erfor-
+derlich 
+Nachricht    
+9078 Dialog abgebrochen –
+FinTS-Produkt ist nicht 
+registriert 
+Dialogini-
+tialisie-
+rungs-
+nachricht 
+ Das verwendete 
+FinTS-Produkt ist 
+nicht registriert und 
+darf nicht mehr ver-
+wendet werden 
+ 
+9110 Unbekannter Aufbau Nachricht 
+Auftrags-
+liste 
+Auftrag 
+ Ungültiger Aufbau der 
+Nachricht, der Auf-
+tragsliste oder des 
+Auftrags 
+ 
+9120 Nicht erwartet Nachricht 
+Auftrags-
+liste 
+Auftrag 
+  Zwei Initialisierungen 
+nacheinander oder 
+Auftragsnachricht 
+ohne Initialisierung 
+9120 Kompressionsverfahren 
+wird nicht unterstützt 
+Nachricht 
+Auftrags-
+liste 
+   
+9130 Inhalt syntaktisch ungültig Element  unerlaubte Zeichen 
+oder falsches Format 
+Betrag ungültig 
+Datum ungültig 
+9140 Inhalt zu lang Element  Länge des Elements 
+entspricht nicht den 
+Formatvorgaben 
+IBAN hat zu viele 
+Stellen 
+9145 Inhalt zu kurz Element  Länge des Elements 
+entspricht nicht den 
+Formatvorgaben 
+IBAN hat zu wenige 
+Stellen 
+9150 Belegung nicht erlaubt Element   Ausführungsdatum 
+bei Einzelüberwei-
+sung belegt 
+9160 Fehlt alle  Bezugs-DE wird nicht 
+belegt, da nicht defi-
+niert 
+Signatur fehlt  
+DE mit Status „Muss“ 
+fehlt 
+9170 Tritt zu oft auf alle   Zu viele Signaturen 
+Zu viele Verwen-
+dungszweckzeilen 
+9180 Wird nicht mehr akzep-
+tiert 
+Auftrag 
+Element 
+  Auftragsversion ist 
+veraltet. Bitte Kunden-
+produkt aktualisieren 
+Öffentlicher Schlüssel 
+des Kreditinstituts ist 
+nicht mehr aktuell 
+9185 HBCI-/FinTS-Version %1 
+wird nicht unterstützt 
+Nachricht HBCI-
+Version 
+(opt.) 
+ HBCI-/FinTS-Version 
+ist veraltet. Bitte Kun-
+denprodukt aktualisie-
+ren 
+9190 Nachricht enthält kein er-
+kennbares Sicherheits-
+merkmal (Signatur) 
+Nachricht 
+Auftrags-
+liste 
+   
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen  
+Stand: 
+19.08.2025 
+Seite: 
+19 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9190 Nachricht mit Sicherheits-
+merkmal (Signatur) nicht 
+erwartet 
+Nachricht 
+Auftrags-
+liste 
+   
+9210 Inhaltlich ungültig Element  Syntax ok, aber Bele-
+gung falsch 
+Mindestzeitraum bis 
+zum Ausführungster-
+min überschritten 
+Datum ist kein Bu-
+chungstag 
+unerlaubter Text-
+schlüssel 
+9210 Auftrag abgelehnt-Auf-
+tragsdaten inkonsistent. 
+Eingereichter Auftrag ge-
+löscht 
+Auftrag    
+9210 Auftrag abgelehnt-Zwei-
+Schritt-TAN inkonsistent. 
+Eingereichter Auftrag ge-
+löscht 
+Auftrag    
+9210 Auftrag abgelehnt-kein 
+eingereichter Auftrag ge-
+funden 
+Auftrag    
+9210 Auftrag abgelehnt-Auf-
+tragsreferenz ist unbe-
+kannt 
+Auftrag    
+9210 Auftrag abgelehnt-Kom-
+petenz nicht ausreichend 
+Auftrag    
+9210 Gewählte Signaturme-
+thode nicht zulässig 
+Nachricht 
+Auftrags-
+liste 
+   
+9210 Neue PIN zu einfach, ent-
+hält ungültige Zeichen 
+oder wurde bereits ver-
+wendet 
+Nachricht 
+Auftrags-
+liste 
+   
+9210 PIN/TAN - Brief bereits 
+angefordert 
+Nachricht 
+Auftrags-
+liste 
+   
+9210 Unbekanntes Kreditinsti-
+tut 
+Element    
+9210 Kundensystem-ID ungül-
+tig 
+Element    
+9210 Änderung des neu einge-
+reichten Dauerauftrages 
+erst am Folgetag möglich 
+Auftrag    
+9210 RSA-Schlüsselerzeugung 
+- Schlüssel bereits vor-
+handen 
+Nachricht 
+Auftrags-
+liste 
+   
+9210 RSA-Schlüsselerzeugung 
+- Code des Sicherheits-
+verfahrens ungültig 
+Nachricht 
+Auftrags-
+liste 
+   
+9210 RSA-Schlüsselerzeugung 
+- Version des Sicherheits-
+verfahrens ungültig 
+Nachricht 
+Auftrags-
+liste 
+   
+9210 PIN/TAN-System gestört Nachricht 
+Auftrags-
+liste 
+   
+9210 Auftragsart für PIN/TAN-
+Verfahren nicht unter-
+stützt 
+Auftrag    
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+20 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9210 Betrag zu groß für Instant 
+Payment Zahlung 
+Auftrag    
+9211 Verwendung eines Seco-
+ders verpflichtend 
+Nachricht 
+Auftrags-
+liste 
+   
+9212 Inhalt zu groß Element Erlaubter 
+Maximal-
+wert 
+Numerisches Feld mit 
+zu hohem Wert be-
+legt 
+Betrag zu groß bei 
+Euroüberweisung 
+Betrag kann technisch 
+nicht verarbeitet wer-
+den 
+9215 Inhalt zu klein Element Erlaubter 
+Minimalwert 
+Numerisches Feld mit 
+zu kleinem Wert be-
+legt 
+0 als Überweisungs-
+betrag nicht erlaubt 
+9219 Schlüsselart falsch. Nachricht 
+Auftrags-
+liste 
+   
+9220 Einzelposition %1 inhalt-
+lich ungültig 
+Auftrag Identifikati-
+onsnr. 
+ Sammelauftrag abge-
+lehnt, da fehlerhafter 
+Einzelauftrag Nr. %1 
+9220 Schlüsselsperre nicht 
+möglich - formaler Fehler 
+Nachricht 
+Auftrags-
+liste 
+   
+9220 Terminierte Schlüssel-
+sperre nicht zulässig 
+Nachricht 
+Auftrags-
+liste 
+   
+9230 Unzureichendes Gutha-
+ben des Kontos 
+Auftrag    
+9250 Namensabgleich nicht 
+möglich. Bitte später er-
+neut oder über Opt-Out 
+einreichen 
+Auftrag  Wenn ein VOP-
+Prüfergebnis über ei-
+nen längeren Zeit-
+raum (z.B. bei sehr 
+großen Sammlern) 
+nicht abschließend 
+erstellt werden kann, 
+kann dies hiermit mit-
+geteilt werden. Der 
+Sammler soll ggf. 
+später oder über 
+HKVOO eingereicht 
+werden. 
+ 
+9255 Echtzeitlimit überschritten Auftrag ggf. Inter-
+net-Link 
+Im Falle der Über-
+schreitung des Echt-
+zeitlimits kann dem 
+Kunden vom Kunden-
+produkt eine Anpas-
+sung des Limits über 
+HKELA, (falls unter-
+stützt) oder über eine 
+Weiterleitung in das 
+Internetbanking ange-
+boten werden. 
+ 
+9310 Elektronische Signatur 
+noch nicht hinterlegt 
+Nachricht 
+Auftrags-
+liste 
+ Benutzer registriert, 
+aber öffentlicher 
+Schlüssel noch nicht 
+an das Kreditinstitut 
+geschickt. 
+ 
+9311 PIN/TAN-System nicht 
+verfügbar 
+Nachricht    
+9315 <Code intern genutzt>   Institutsspezifische 
+Belegung 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen  
+Stand: 
+19.08.2025 
+Seite: 
+21 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9320 Elektronische Signatur 
+noch nicht freigeschaltet 
+Nachricht 
+Auftrags-
+liste 
+ Öffentlicher Schlüssel 
+bereits an das Kredit-
+institut geschickt, "Ini-
+Brief" jedoch noch 
+nicht, oder das Kre-
+ditinstitut hat nach Er-
+halt des "Ini-Briefs" 
+die Signatur noch 
+nicht freigegeben. 
+ 
+9330 Elektronische Signatur 
+gesperrt 
+Nachricht 
+Auftrags-
+liste 
+ Gesamtsperrung  
+9330 TAN-Generator gesperrt. 
+Führen Sie ggf. eine 
+TAN-Gen.-
+Synchronisation durch 
+Nachricht 
+Auftrags-
+liste 
+   
+9330 Schlüsseleigner gesperrt Nachricht 
+Auftrags-
+liste 
+   
+9330 Schlüssel gesperrt Nachricht 
+Auftrags-
+liste 
+   
+9331 Synchronisieren des 
+neuen TAN-Mediums 
+nicht möglich 
+Nachricht 
+Auftrags-
+liste 
+ Die initiale explizite 
+Synchronisierung 
+schlägt fehl 
+ 
+9333 PIN-Zugang (noch) nicht 
+freigeschaltet 
+Nachricht 
+Auftrags-
+liste 
+   
+9340 Elektronische Signatur 
+falsch 
+Nachricht 
+Auftrags-
+liste 
+   
+9340 Signatur fehlerhaft Nachricht 
+Auftrags-
+liste 
+   
+9340 Sicherheitsprofil unbe-
+kannt 
+Nachricht 
+Auftrags-
+liste 
+   
+9350 Zertifikat abgelaufen Nachricht 
+Auftrags-
+liste 
+   
+9350 Sperrung des Schlüssels 
+nach weiteren %1 
+Falschsignaturen 
+Nachricht 
+Auftrags-
+liste 
+Anzahl   
+9351 Zertifikat gesperrt Nachricht 
+Auftrags-
+liste 
+   
+9352 Zertifikatseigner unbe-
+kannt 
+Nachricht 
+Auftrags-
+liste 
+   
+9353 Zertifikatssignatur falsch Nachricht 
+Auftrags-
+liste 
+   
+9354 Bitte Einreichung der 
+Zweitkennung wiederho-
+len mit RDHx 
+Nachricht 
+Auftrags-
+liste 
+   
+9355 Fehler im Zertifikatsauf-
+bau 
+Element    
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+22 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9356 Zertifikatstyp nicht akzep-
+tiert 
+Element    
+9357 Zertifikat erwartet Nachricht   Die Nachricht enthält 
+kein Zertifikat, obwohl 
+verpflichtend 
+9359 OCSP-Anfrage nicht be-
+endet 
+Nachricht 
+Auftrags-
+liste 
+   
+9360 Sperrung der Signatur 
+nach weiteren %1 
+Falschsignaturen 
+Nachricht 
+Auftrags-
+liste 
+Anzahl   
+9360 Sperrung der TAN-Liste 
+nach weiteren %1 Fehl-
+versuchen 
+Nachricht 
+Auftrags-
+liste 
+Anzahl   
+9360 Schlüssel wurde gesperrt Nachricht 
+Auftrags-
+liste 
+   
+9361 Dialog abgebrochen - Si-
+cherheitsverfahren nicht 
+mehr zulässig 
+Dialogini-
+tialisie-
+rungs-
+nachricht 
+ Das verwendete Si-
+cherheitsverfahren  
+ist nicht mehr zuläs-
+sig 
+ 
+9370 Signaturberechtigung 
+reicht nicht aus 
+Auftrag  Zwei "B-Unterschrif-
+ten" für "Und-Kon-
+ten", die mindestens 
+eine "A-Unterschrift" 
+erfordern 
+Anzahl Signaturen 
+nicht ausreichend 
+9380 Benutzer hat keine Auf-
+tragsberechtigung 
+Auftrag  Signatur der Initiali-
+sierung reicht nicht 
+zum Versenden des 
+Auftrages aus 
+ 
+9380 Gewähltes Zwei-Schritt-
+TAN-Verfahren nicht zu-
+lässig 
+Nachricht 
+Auftrags-
+liste 
+   
+9380 Gewähltes DK-Signatur-
+Verfahren nicht zulässig 
+Nachricht 
+Auftrags-
+liste 
+   
+9380 Administrator hat keine 
+Berechtigung für Institut 
+Nachricht Institut   
+9380 Signatur Herausgeber 
+falsch -  Nachricht abge-
+lehnt 
+Nachricht 
+Auftrags-
+liste 
+   
+9380 Benutzer hat keine Auf-
+tragsberechtigung 
+Auftrag    
+9390 Doppeleinreichung Auftrag    
+9391 Neue Kundensystem-ID 
+holen 
+Dialogini-
+tialisie-
+rungs-
+nachricht 
+   
+9400 Allgemeiner Fehler des 
+Sicherheitsmediums 
+Nachricht 
+Auftrags-
+liste 
+  Sicherheitsmedium 
+unbekannt 
+Sicherheitsmedium 
+ungültig 
+9420 Challenge-Betrag passt 
+nicht zum Auftrag 
+Element    
+9800 Abgebrochen Dialog  Kreditinstitutsseitige 
+Beendigung des Dia-
+loges 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen  
+Stand: 
+19.08.2025 
+Seite: 
+23 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9901 Fehler Kryptomodul Sig-
+naturverifizierung 
+Nachricht 
+Auftrags-
+liste 
+   
+9910 PIN ungültig, bitte richtige 
+PIN eingeben 
+Nachricht 
+Auftrags-
+liste 
+   
+9910 Ihre PIN ist gesperrt. Mit 
+korrekter PIN und TAN 
+können Sie die Sperre 
+aufheben 
+Nachricht 
+Auftrags-
+liste 
+   
+9910 TAN-Reihe gesperrt. Bitte 
+wenden Sie sich an Ihr 
+kontoführendes Institut 
+Nachricht 
+Auftrags-
+liste 
+   
+9910 Chipkarte gesperrt, kein 
+chipTAN mehr möglich 
+Nachricht 
+Auftrags-
+liste 
+   
+9920 Reservierung nicht mög-
+lich, keine freien TANs 
+mehr vorhanden 
+Nachricht 
+Auftrags-
+liste 
+   
+9930 Ihre PIN ist gesperrt. Nachricht 
+Auftrags-
+liste 
+   
+9931 Sperrung des Kontos 
+nach %1 Fehlversuchen 
+Nachricht 
+Auftrags-
+liste 
+Anzahl   
+9931 Teilnehmersperre durch-
+geführt 
+Nachricht 
+Auftrag 
+   
+9931 Teilnehmersperre durch-
+geführt, Entsperren nur 
+durch Kreditinstitut 
+Nachricht 
+Auftrag 
+   
+9939 Freischalten der Mobil-
+funknummer für mobi-
+leTAN nicht möglich 
+Nachricht 
+Auftrags-
+liste 
+   
+9941 TAN ungültig Element    
+9941 Signatur ungültig Element    
+9942 PIN ungültig Element    
+9942 neue PIN ungültig Element    
+9942 Neue PIN zu kurz Element    
+9942 Neue PIN zu lang Element    
+9943 TAN bereits verbraucht Element    
+9951 Zeitüberschreitung im 
+Zwei-Schritt-Verfahren-
+TAN ungültig 
+Nachricht 
+Auftrags-
+liste 
+   
+9951 Zeitüberschreitung im 
+Zwei-Schritt-Verfahren-
+Signatur ungültig 
+Nachricht 
+Auftrags-
+liste 
+   
+9953 Nur ein TAN-pflichtiger 
+Auftrag pro Nachricht er-
+laubt 
+Nachricht 
+Auftrags-
+liste 
+   
+9953 Nur ein Signatur-pflichti-
+ger Auftrag pro Nachricht 
+erlaubt 
+Nachricht 
+Auftrags-
+liste 
+   
+9954 Mehrfach-TANs nicht er-
+laubt 
+Nachricht 
+Auftrags-
+liste 
+   
+Kapitel: 
+B 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+24 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9954 Mehrfach-Signaturen 
+nicht erlaubt 
+Nachricht 
+Auftrags-
+liste 
+   
+9955 Ein-Schritt-TAN-
+Verfahren nicht zugelas-
+sen 
+Nachricht 
+Auftrags-
+liste 
+   
+9956 Zeitversetzte Eingabe 
+von Mehrfach-TANs nicht 
+erlaubt 
+Nachricht 
+Auftrags-
+liste 
+   
+9956 Zeitversetzte Eingabe 
+von Mehrfach-Signaturen 
+nicht erlaubt 
+Nachricht 
+Auftrags-
+liste 
+   
+9957 Wechsel des Signatur-
+Prozesses bei Mehrfach-
+Signaturen nicht erlaubt 
+Nachricht 
+Auftrags-
+liste 
+   
+9957 Wechsel des TAN-
+Prozesses bei Mehrfach-
+TANs nicht erlaubt 
+Nachricht 
+Auftrags-
+liste 
+   
+9958 Das genutzte Legitimati-
+onsverfahren wird nicht 
+mehr unterstützt 
+Nachricht 
+Auftrags-
+liste 
+   
+9959 SMS konnte nicht gesen-
+det werden – bitte Vor-
+gang wiederholen 
+Nachricht 
+Auftrags-
+liste 
+   
+9960 Es kann kein TAN-
+pflichtiger Auftrag durch-
+geführt werden. 
+Nachricht 
+Auftrags-
+liste 
+   
+9961 Bitte schalten Sie die Mo-
+bilfunkverbindung für mo-
+bileTAN frei 
+Nachricht 
+Auftrags-
+liste 
+ Die Freischaltung mit-
+tels HKMTF ist erfor-
+derlich. 
+ 
+9962 Auftrag nicht ausgeführt – 
+die Telefonbezeichnung 
+ist unbekannt 
+Nachricht 
+Auftrags-
+liste 
+   
+9963 Auftrag nicht ausgeführt – 
+Rufnummer für SMS feh-
+lerhaft 
+Nachricht 
+Auftrags-
+liste 
+   
+9964 Auftrag nicht ausgeführt – 
+keine gültige Karte für 
+chipTAN 
+Nachricht 
+Auftrags-
+liste 
+   
+9980 Abgebrochen-Zweischritt-
+dialog 
+Dialog    
+9980 Änderung des TAN-
+Verfahrens über Internet-
+banking erforderlich 
+Nachricht 
+Auftrags-
+liste 
+   
+9991 chipTAN nicht zulässig 
+bei Benutzerkennung für 
+TANalt 
+Nachricht 
+Auftrags-
+liste 
+   
+9992 Eine neue TAN-Liste 
+wurde bereits erstellt 
+Nachricht 
+Auftrags-
+liste 
+   
+9997 Zurzeit Wartungsarbeiten Dialog    
+9998 Daten sind nicht zu ent-
+schlüsseln. 
+Nachricht 
+Auftrags-
+liste 
+   
+9998 Kein Auszug für Konto 
+möglich, da keine Aus-
+zugserstellung 
+Auftrag    
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+B 
+Kapitel: Code-Bedeutungen 
+Abschnitt: Fehlermeldungen  
+Stand: 
+19.08.2025 
+Seite: 
+25 
+ 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+9999 Auftrag konnte aus tech-
+nischen Gründen nicht 
+verarbeitet werden. 
+Auftrag    
+ 
+ 
+ 
+Kapitel: 
+C 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+26 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Prozessbeispiele 
+Abschnitt: Wechsel des Schlüssels bzw. Sicherheitsprofils des Benutzers 
+ 
+ 
+C. PROZESSBEISPIELE 
+Dieser Abschnitt enthält exemplarische Prozesse zur Verwendung spezieller Rück-
+meldungscodes, die das Verständnis für die Zusammenhänge erleichtern sollen. Es 
+ist nicht davon auszugehen, dass die Prozesse bei jedem Kreditinstitut in exakt der 
+gleichen Weise implementiert sind. Jedoch sind die grundsätzlichen Verhaltenswei-
+sen bei der Verwendung spezifischer Rückmeldungscodes ähnlich. 
+C.1 Wechsel des Schlüssels bzw. Sicherheitsprofils des Benutzers 
+C.1.1 RM=3340 „Karte erneuern. Benutzerschlüssel noch gültig bis %1“  
+Mit dem Rückmeldungscode 3340 kann das Kreditinstitut dem Kundensystem signa-
+lisieren, dass es die RDH-x-Benutzerschlüssel neu generieren soll. Dies kann z. B. 
+bei einer Aufhebung der Einschränkungen bezüglich der maximalen Schlüssellängen 
+des Sicherheitsprofils (s. [HBCI], Kap. B.1.1) erforderlich sein. Die neu generierten 
+öffentlichen RDH-x-Schlüssel des Kunden müssen anschließend mit dem Geschäfts-
+vorfall "Änderung eines öffentlichen Schlüssels des Kunden einreichen" (s. [HBCI], 
+Kap. B.6.2.1) an das Kreditinstitut übermittelt werden. 
+ 
+C.1.2 RM=3345 „Profilwechsel Chipkarte (RDHx) durchführen bis %1“ 
+Mit dem Rückmeldungscode 3345 kann das Kreditinstitut dem Kundensystem signa-
+lisieren, dass es einen Sicherheitsprofilwechsel von RDH-x auf RDH-y durchführen 
+soll. Dazu muss das Kundensystem ein neues RDH-x-Sicherheitsmedium erzeugen 
+und die RDH-x-Benutzerschlüssel neu generieren. Die neu generierten öffentlichen 
+RDH-x-Schlüssel des Benutzers müssen anschließend mit dem Geschäftsvorfall "Än-
+derung eines öffentlichen Schlüssels des Kunden einreichen" (s. [HBCI], Kap. 
+B.6.2.1) an das Kreditinstitut übermittelt werden. 
+ 
+C.2 TANalt Selbst- und Zwangsumstellung 
+Das folgende Szenario tritt bei der Umstellung eines TAN-Listen-Verfahrens wie z. B. 
+iTAN auf die neuen, kontext-basierten DK-Verfahren chipTAN1 (bzw. Sm@rtTAN-plus 
+oder Sm@rtTAN-optic) und mobileTAN (bzw. smsTAN) auf. Als Beispiel dient der 
+Prozess wie er in der Sparkassen-Finanzgruppe von beinahe allen Instituten ange-
+boten wird. Dabei wird davon ausgegangen, dass zumindest bei einigen Kundengrup-
+pen die Umstellung selbstständig, d. h. ohne Mitwirkung des Kreditinstituts erfolgen 
+soll. Hierfür sollen automatisierte Prozesse vorgesehen werden, die über entspre-
+chende Rückmeldungscodes angestoßen werden. 
+Grundsätzlich ist die Umstellung auf die neuen Sicherungsverfahren auch über 
+FinTS-Geschäftsvorfälle wie z. B. HKMTR, HKMTF, HKTAB, HKTAU möglich. Da die 
+Umstellungsprozesse selbst jedoch sehr institutsspezifisch sind, spielen FinTS Kun-
+denprodukte dabei eine untergeordnete Rolle – die Prozesse laufen gängigerweise 
+in den Internet-Banking Applikationen des Instituts ab. Trotzdem muss ein FinTS-
+Kundenprodukt in geeigneter Weise auf bestimmte Rückmeldungscodes reagieren, 
+um sicherzustellen, dass z. B. je nach Umstellungsstatus nur die dafür zugelassenen 
+Geschäftsvorfälle ausgeführt werden dürfen. Auch können dem Kunden auf Basis der 
+ 
+1 Im Folgenden werden die DK-Begriffe chipTAN (manuell / optisch) und mobileTAN verwendet.   
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+C 
+Kapitel: Prozessbeispiele 
+Abschnitt: TANalt Selbst- und Zwangsumstellung  
+Stand: 
+19.08.2025 
+Seite: 
+27 
+ 
+ 
+Rückmeldungsparameter detaillierte Informationen über den Umstellungsstatus mit-
+geteilt werden. Somit greifen die Prozesse in der Internet-Banking-Applikation und im 
+FinTS-Kundenprodukt ineinander, um dem Kunden ein konsistentes Gesamtbild zu 
+vermitteln. Dies ist speziell für Kunden wichtig, die normalerweise ihre Bankgeschäfte 
+mit dem FinTS-Kundenprodukt erledigen und somit auf geschaltete Kampagnen in 
+der Internet-Banking-Applikation nicht aufmerksam würden. 
+In der folgenden Darstellung werden die Prozesse im FinTS-Kundenprodukt inklusive 
+möglicher Schnittstellen zur Internet-Banking-Applikation dargestellt. Das Verhalten 
+des Internet-Banking selbst ist aufgrund der unterschiedlichen Ausprägungen nicht 
+Inhalt dieser Betrachtung. 
+Im Zusammenhang mit der Umstellung der Sicherheitsverfahren werden folgende 
+Rückmeldungscodes inklusive diverser Rückmeldungsparameter verwendet: 
+ 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3950 Änderung auf ein ande-
+res TAN-Verfahren ist im 
+Internet-Banking möglich 
+Segment P1 bis P9: 
+Sicherheits-
+funktion  
+Je nach Verfahren 
+Auswahl eines Re-
+gistrierungs-GV. 
+ 
+3951 Änderung auf ein ande-
+res TAN-Verfahren ist im 
+Internet-Banking erforder-
+lich 
+Segment P1 bis P9: 
+Sicherheits-
+funktion 
+Je nach Verfahren 
+Auswahl eines Re-
+gistrierungs-GV. 
+ 
+3952 Erfolgreicher Prozess-
+schritt bei der Selbstum-
+stellung 
+Segment P1 bis P9 Mitteilungen über 
+Umstellungsprozess 
+ 
+ 
+Beim Umstellungsprozess wird von zwei unterschiedlichen Migrationsstufen ausge-
+gangen: 
+ Selbstumstellung 
+In diesem Stadium wird der Kunde darauf hingewiesen, dass die Möglichkeit besteht, 
+auf andere Sicherungsverfahren umzustellen. Dies wird durch den FinTS-Rückmel-
+dungscode 3950 „Änderung auf ein anderes TAN-Verfahren ist im In-
+ternet-Banking möglich“ signalisiert. Auf welche anderen Verfahren der Kunde 
+wechseln kann, wird ihm in den Rückmeldungsparametern mitgeteilt. 
+ Zwangsumstellung 
+In diesem Zustand kann der Kunden zunächst keine Geschäftsvorfälle außer den zur 
+Umstellung benötigten mehr ausführen. Dies wird durch den FinTS-Rückmeldungs-
+code 3951 „Änderung auf ein anderes TAN-Verfahren ist im Internet-
+Banking erforderlich“ signalisiert. Der Kunde muss nun eines der angebotenen 
+Verfahren für den Wechsel auswählen. Einzelheiten dazu werden ihm in den Rück-
+meldungsparametern mitgeteilt.  
+Im Folgenden werden die drei Rückmeldungscodes und die speziellen Reaktionsvor-
+schriften detailliert dargestellt.  
+C.2.1 RM=3950 "Änderung auf ein anderes TAN-Verfahren ist im Internet-Ban-
+king möglich" 
+Dieser Rückmeldungscode wird zusammen mit dem RM-Code 3952 im Rahmen der 
+Selbstumstellung verwendet.  
+Kapitel: 
+C 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+28 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Prozessbeispiele 
+Abschnitt: TANalt Selbst- und Zwangsumstellung 
+ 
+ 
+ Übergebene Rückmeldungsparameter: 
+Parameter Bedeutung Inhalt 
+P1 Zielverfahren (Sicherheits-
+funktion, kodiert) 
+z. B. {chipTAN optisch}, {chipTAN manuell} oder {mobi-
+leTAN} bzw. Kombinationen davon.  
+ 
+Zahlenbeispiel für das Zielverfahren:  {910:911 , 920 , 910:911:920} 
+ Reaktion des FinTS-Kundenproduktes  
+Außer der Anzeige des Rückmeldungstextes ist keine Aktion erforderlich. Optional 
+kann darauf hingewiesen werden, dass die Umstellung des Sicherungsverfahrens in 
+der Internet-Banking-Applikation möglich ist, z. B. 
+Sie können Ihr TANalt-Verfahren über unser Internet-
+Banking auf ein neues Sicherungsverfahren umstellen. 
+C.2.2 RM=3951 " Änderung auf ein anderes TAN-Verfahren ist im Internet-Ban-
+king erforderlich" 
+Dieser Rückmeldungscode wird zusammen mit dem RM-Code 3952 im Rahmen der 
+Selbstumstellung verwendet.  
+ Übergebene Rückmeldungsparameter: 
+Parameter Bedeutung Inhalt 
+P1 Zielverfahren (Sicherheits-
+funktion, kodiert) 
+z. B. {chipTAN optisch}, {chipTAN manuell} oder {mobi-
+leTAN} bzw. Kombinationen davon.  
+ 
+Zahlenbeispiel für das Zielverfahren:  {910:911 , 920 , 910:911:920} 
+ Reaktion des FinTS-Kundenproduktes  
+Außer der verpflichtenden Anzeige des Rückmeldungstextes ist keine Aktion erfor-
+derlich. Optional kann darauf hingewiesen werden, dass die Umstellung des Siche-
+rungsverfahrens in der Internet-Banking-Applikation möglich ist, z. B. 
+Sie müssen Ihr TANalt-Verfahren über unser Internet-
+Banking auf ein neues Sicherungsverfahren umstellen. 
+ 
+Zusätzlich müssen die ausführbaren Geschäftsvorfälle über den in der UPD definier-
+ten Umfang hinaus eingeschränkt werden. Die Details hierzu werden mit dem Rück-
+meldungscode 3952 übermittelt. 
+ 
+C.2.3 RM=3952 "Erfolgreicher Prozessschritt bei der Selbstumstellung" 
+Dieser Rückmeldungscode wird zusammen mit dem RM-Code=3950 / 3951 im Rah-
+men der Selbstumstellung verwendet.  
+ Übergebene Rückmeldungsparameter: 
+Parameter Bedeutung Inhalt 
+P1 Umstellungsfortschritt z. B. {0, 1, 2, 3, 11} 
+P2 Vertragsstatus z. B. {1, 9} 
+P3 Datum TANalt-Abkündigung z. B. 31.12.2011 
+ 
+Hierbei haben die einzelnen Parameter folgende Bedeutung: 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+C 
+Kapitel: Prozessbeispiele 
+Abschnitt: TANalt Selbst- und Zwangsumstellung  
+Stand: 
+19.08.2025 
+Seite: 
+29 
+ 
+ 
+Umstellungsfortschritt 
+P1 Bedeutung 
+0 Bitte beginnen Sie mit der Änderung des TAN-Verfahrens 
+1 Mobilfunkverbindung wurde erfolgreich für mobileTAN erfasst 
+2 Bitte geben Sie den Registrierungscode aus dem Brief ein 
+3 Bitte geben Sie den Freischaltcode aus der SMS ein 
+11 Bitte schließen Sie die chipTAN-Umstellung ab 
+ 
+Vertragsstatus 
+P2 Bedeutung 
+0 Bitte beginnen Sie mit der Änderung des TAN-Verfahrens 
+0 Kunde befindet sich in der Selbstumstellung, ist aber für eine zukünftige Zwangsumstellung se-
+lektiert 
+1 Kunde befindet sich in der Zwangsumstellung 
+9 Kunde hat die Zwangsumstellung nicht bis zum <Datum TANalt-Abkündigung> abgeschlossen 
+ 
+  Reaktion des FinTS-Kundenproduktes  
+ 
+In Verbindung mit RM-Code=3950: 
+Unabhängig von der Belegung der Rückmeldungsparameter P1 bis P3 ist außer der 
+verpflichtenden Anzeige des Rückmeldungstextes keine weitere Aktion erforderlich. 
+Insbesondere sind weiterhin alle in der UPD definierten Geschäftsvorfälle zugelas-
+sen.   
+In Verbindung mit RM-Code=3951: 
+Sind die Rückmeldungsparameter P1 bis P3 für RM-Code=3952 belegt, müssen 
+darüber hinaus folgende Aktivitäten erfolgen: 
+(1) Optionale Anzeige des Datums der TANalt-Abkündigung 
+(2) Einschränkung der erlaubten Geschäftsvorfälle abhängig von P1 bis P3 
+C.2.3.1 Optionale Anzeige des Datums der TANalt-Abkündigung 
+Ist P3 belegt, kann optional auf das TANalt-Abkündigungsdatum hingewiesen wer-
+den, z. B. 
+Das TANalt-Verfahren steht Ihnen nur noch bis <Datum der 
+TANalt-Abkündigung> zur Verfügung. 
+ 
+C.2.3.2 Handlungsanweisung zur Einschränkung der ausführbaren Geschäftsvorfälle 
+Im Rahmen der Verpflichtung zur Umstellung auf ein neues Sicherungsverfahren 
+müssen bei RM-Code=3951 und Belegung der Parameter P1 bis P3 drei Zustände 
+unterschieden werden, in denen unterschiedliche Arten von Geschäftsvorfällen aus-
+geführt werden dürfen: 
+ 
+ Zeitraum A: Kunde hat noch kein neues Verfahren gewählt   
+Kennzeichen für diesen Zustand: 
+P1 <Umstellungsfortschritt> = 0 
+P2 <Vertragsstatus> = beliebig 
+Kapitel: 
+C 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+30 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Prozessbeispiele 
+Abschnitt: Optimierung des Kartentauschs bei chipTAN 
+ 
+ 
+P3 <Datum TANalt-Abkündigung> = beliebig 
+Mit Ausnahme der Geschäftsvorfälle zur Aufhebung von Zwangszuständen sind in 
+Zeitraum A keine TAN-pflichtigen GVs per TANalt zugelassen.  
+Außer der Dialoginitialisierung sind somit nur folgende Geschäftsvorfälle erlaubt: 
+HKPAE / DKPAE: PIN ändern 
+HKPSA / DKPSA: PIN-Sperre aufheben 
+HKPSP / DKPSP: PIN-Sperre 
+ 
+ Zeitraum B: Kunde hat ein neues Verfahren gewählt, ist aber noch nicht freige-
+schaltet   
+Kennzeichen für diesen Zustand: 
+P1 <Umstellungsfortschritt> = ungleich 0 
+P2 <Vertragsstatus> = 1 
+P3 <Datum TANalt-Abkündigung> = noch nicht erreicht 
+Im Zeitraum B sind wieder alle in der UPD zugelassenen TAN-pflichtigen Geschäfts-
+vorfälle mit dem TANalt-Verfahren erlaubt. Zeitraum B gilt bis das <Datum TANalt-
+Abkündigung> erreicht ist.   
+ 
+ Zeitraum C: Kunde möchte TANalt nach dem <TANalt-Abschaltdatum> verwen-
+den   
+Kennzeichen für diesen Zustand: 
+P1 <Umstellungsfortschritt> = ungleich 0 
+P2 <Vertragsstatus> = 9 
+P3 <Datum TANalt-Abkündigung> ist erreicht 
+Im Zeitraum C sind wie in Zeitraum A mit Ausnahme der Geschäftsvorfälle zur Auf-
+hebung von Zwangszuständen keine TAN-pflichtigen GVs per TANalt zugelassen.  
+Außer der Dialoginitialisierung sind somit nur folgende Geschäftsvorfälle erlaubt: 
+HKPAE / DKPAE: PIN ändern 
+HKPSA / DKPSA: PIN-Sperre aufheben 
+HKPSP / DKPSP: PIN-Sperre 
+C.3 Optimierung des Kartentauschs bei chipTAN 
+Die folgenden beiden Prozesse dienen der Verbesserung der Benutzerfreundlichkeit 
+im Zusammenhang mit dem turnusmäßigen Tausch von Chipkarten im chipTAN-Ver-
+fahren. Das Problem dabei besteht darin, dass der Versand der Folgekarten i. A. 
+selbstständig durch die Verlage erfolgt und im Online-Banking-System der Institute 
+nicht bekannt ist, wann exakt der Kunde im Besitz der Karte ist. 
+Die folgenden beiden Prozessoptimierungen sollen den Kunden beim Kartenwechsel 
+unterstützen.  
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Version: 
+3.0 / 4.x FV 
+Kapitel: 
+C 
+Kapitel: Prozessbeispiele 
+Abschnitt: Entsperren der PIN bei mobile-TAN  
+Stand: 
+19.08.2025 
+Seite: 
+31 
+ 
+ 
+C.3.1 Erinnerung im Rahmen der Dialoginitialisierung 
+Im Rahmen der Dialoginitialisierungsantwort wird der folgende neue Rückmeldungs-
+parameter ausgegeben: 
+Code Code-Bedeutung Bezug Parame-
+ter 
+Anmerkungen Beispiel 
+3944 Bitte benutzen Sie die er-
+haltene Folgekarte %1 
+zur TAN-Erzeugung 
+Segment Kartennum-
+mer (opt.)  
+  
+ 
+Die Meldung wird ausgegeben, wenn der Kunde eine Folgekarte erhalten hat (erfolgt 
+üblicherweise im 3. Quartal), diese aber nach dem 01.12. immer noch nicht für chip-
+TAN einsetzt. Die Meldung soll den Kunden dann dazu animieren, die TAN mit der 
+neuen Karte zu generieren. Bei manchen Instituten wird die Nummer der Folgekarte 
+automatisch in den Stammdaten hinterlegt, eine manuelle Zuordnung der neuen 
+Karte ist dort nicht mehr notwendig.  
+C.3.2 Anzeige der Kartennummer bei der Challenge-Anforderung) 
+Bei einigen Instituten wird beim Geschäftsvorfall HITAN (ab Segmentversion #3) im 
+Datenelement „Bezeichnung des TAN-Mediums“ die Nummer der zu verwendenden 
+Karte übermittelt. Die Übermittlung des Parameters erfolgt im Format „Kartennum-
+mer xyyzzzzzzz“. 
+Diese Nummer sollte Kundenproduktseitig dargestellt werden, um dem Kunden die 
+Verwendung der korrekten Karte zu erleichtern, z. B.: 
+Zur Bestätigung des Auftrags bitte die im TAN-Generator 
+angezeigte TAN eingeben und absenden (Kartennummer 
+xyyzzzzzzz). 
+ 
+C.4 Entsperren der PIN bei mobile-TAN 
+Die Rückmeldungscodes 3940 und 3941 zur Übertragung der Mobilfunkverbindung 
+werden von Kreditinstituten auch bei der Entsperrung der PIN verwendet.  
+C.5 Verpflichtende Verwendung eines Secoders 
+Zur Erhöhung der Sicherheit kann ein Kreditinstitut beim Einsatz des Sicherheitsver-
+fahrens HBCI die Verwendung eines Secoders nach Sicherheitsfunktion = 811 zwin-
+gend fordern, wenn dies mit dem Kunden entsprechend vereinbart wurde. 
+Voraussetzung hierfür ist, dass das Kundenprodukt im Rahmen der  
+(Dialog-)Initialisierung das Verfahren gemäß Sicherheitsfunktion = 811 ausgewählt 
+und eine zusätzliche Visualisierungsbestätigungssignatur mit Hilfe des Secoders er-
+zeugt hat. 
+Das Kreditinstitut muss die Information, ob der Einsatz eines Secoders zwingend er-
+forderlich ist in den Anwendungs-Stammdaten des Benutzers bzw. Kunden vorhalten, 
+um eine entsprechende Entscheidung treffen zu können.  
+Wird der Einsatz eines Secoders vorausgesetzt und versucht das Kundenprodukt 
+eine (Dialog-)Initialisierung mit einem anderen Sicherheitsverfahren durchzuführen, 
+so kann das Kreditinstitut den Dialog mit dem Rückmeldungscode 9211 beenden.  
+Kapitel: 
+C 
+Version: 
+3.0 / 4.x FV 
+Financial Transaction Services (FinTS) 
+Dokument: Rückmeldungscodes 
+Seite: 
+32 
+ 
+Stand: 
+19.08.2025 
+Kapitel: Prozessbeispiele 
+Abschnitt: Änderung von Anmeldedaten 
+ 
+ 
+C.6 Änderung von Anmeldedaten 
+In manchen Anwendungssituationen werden kreditinstitutsseitig die Anmeldedaten 
+eines Benutzers geändert oder erweitert. Ein konkretes Beispiel ist die Einführung 
+von Anmeldenamen anstatt von Benutzerkennung und Kunden-ID bei der Anmeldung 
+im Rahmen der (Dialog-)Initialisierung. 
+Für eine komfortable Migration auf die neuen Anmeldedaten kann ein Kreditinstitut im 
+Rahmen eines bestehenden personalisierten Dialogs direkt als Antwort auf die (Dia-
+log-)Initialisierung – und nur dann – unter Verwendung des Rückmeldungscodes 
+3072 neue Anmeldedaten an das Kundenprodukt übermitteln.  
+Bei [FinTS-V4] wird in der Initialisierungsantwort ggf. nach Durchführung / Ablehnung 
+zusätzlich enthaltener Aufträge direkt das Endekennzeichen gesetzt und damit der 
+Dialog beendet.   
+Bei [FinTS-V3] muss das Kundenprodukt nach Erhalt des Rückmeldungscode 3072 
+selbst eine Dialogendenachricht senden, um seinerseits den Dialog zu beenden. 
+Anschließend muss das Kundenprodukt die neu erhaltenen Anmeldedaten in seine 
+Kundenverwaltung integrieren und diese ab dann verwenden. 
+Folgende Informationen können mit Hilfe des Rückmeldungscode 3072 und den zu-
+gehörigen Rückmeldungsparametern übermittelt werden: 
+ 
+P1: Benutzerkennung 
+P2: Kunden-ID 
+P3: Anmeldename 
+C.7 RM-Code=9000 – Parameter P1 „Segmentkennung“ 
+Bei Auftreten des Rückmeldungscode 9000 „Status indifferent“ soll bei Abbrüchen 
+wenn möglich der Parameter P1 mit der Segmentkennung z. B. eines Bestandsabrufs 
+(z. B. HKCAZ oder auch HKSAL …) belegt werden, die vom Kundenprodukt als 
+nächstes ausgeführt werden muss, um ggf. nähere Informationen zum Abbruch zu 
+erhalten. 
+    
+ 

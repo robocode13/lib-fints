@@ -1,0 +1,2245 @@
+ 
+ 
+ 
+ 
+ 
+FinTS 
+Financial Transaction 
+Services 
+ 
+Schnittstellenspezifikation 
+ 
+Messages 
+Multibankfähige Geschäftsvorfälle 
+ 
+Verification of Payee 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Herausgeber: 
+Bundesverband deutscher Banken e.V., Berlin 
+Deutscher Sparkassen- und Giroverband e.V., Bonn/Berlin 
+Bundesverband der Deutschen Volksbanken und Raiffeisenbanken e.V., Berlin 
+Bundesverband Öffentlicher Banken Deutschlands e.V., Berlin 
+ 
+ 
+Version: V1.01 Stand: 27.06.2025  FV 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: Versionsführung Stand: 
+27.06.2025 
+Seite: 
+2 
+ 
+ 
+Versionsführung 
+ 
+Das vorliegende Dokument wurde von folgenden Personen erstellt bzw. geändert: 
+Name Organi-
+sation 
+Datum Ver-
+sion 
+Dokumente Anmerkungen 
+Mindnich SIZ 01.07.2024 V0.3,
+D1 
+FinTS_3.0_Verification of 
+Payee_V03.docx 
+Initialversion 
+Mindnich SIZ 20.10.2024 V0.6,
+D2 
+FinTS_3.0_Verification of 
+Payee_V06.docx 
+Einarbeitung sämtlicher 
+Ergebnisse der stattge-
+fundenen DK-FinTS-
+Taskforce Sitzungen 
+Mindnich SIZ 20.11.2024 V0.7,
+D3 
+FinTS_3.0_Verification of 
+Payee_V07.docx 
+Einarbeitung der Rück-
+meldungen zur Version 
+V0.6, D2 
+Mindnich SIZ 27.11.2024 V0.8,
+D4 
+FinTS_3.0_Verification of 
+Payee_V08.docx 
+Einarbeitung der Rück-
+meldungen zur Version 
+V0.7, D3 und Ergeb-
+nisse der stattgefunde-
+nen DK-FinTS-Taskforce 
+Sitzung 
+Mindnich SIZ 09.12.2024 V0.9,
+FD 
+CR0546_Anl1_FinTS_3.0
+_Verific-
+tion_of_Payee_FD.docx 
+Redaktionelle Fehlerkor-
+rekturen 
+Einarbeitung der Rück-
+meldung zur Version 
+V0.8, D4  
+Mindnich SIZ 19.12.2024 V1.0,
+FV 
+CR0546_Anl1_FinTS_3.0
+_Verific-
+tion_of_Payee_FV.docx 
+Final Version 
+Mindnich SIZ 27.06.2025 V1.01
+,FV 
+FinTS_3.0_Messa-
+ges_Geschaeftsvorfa-
+elle_VOP 
+1.01_2025_06_27_FV.do
+cx 
+Redaktionelle Anpas-
+sungen, Beschreibung 
+SRZ-Verfahren, Klarstel-
+lungen 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: Versionsführung Stand: 
+27.06.2025 
+Seite: 
+3 
+ 
+ 
+Änderungen gegenüber der Vorversion: 
+Hypertextlinks sind in dieser Farbe markiert. Falls sich die Kapitelnummerierung ge-
+ändert hat, bezieht sich die Kapitelangabe auf die neue Nummerierung.  
+ 
+ 
+1 nur zur internen Zuordnung 
+2 F = Fehler; Ä = Änderung; K = Klarstellung; E = Erweiterung 
+lfd. 
+Nr. 
+Kapitel Kapitelnum-
+mer 
+Ken-
+nung1 
+Art2 Beschreibung 
+ Diverse Diverse  Ä Redaktionelle Anpassungen 
+ C C.10.7  F, K Missverständliche Darstellung in Bezug 
+auf erneute Einreichung des ZV-Auftrags 
+im PIN/TAN-Verfahren bei Opt-In und 
+Match bei Einfachsignatur sowie der 
+Zweitsignatur bei Mehrfachsignatur im 
+Vergleich zu den Abläufen in Kapitel 
+E.8.1 beseitigt. Grobskizze Opt-In mit 
+Fußnote versehen. Hinweis auf eventu-
+elle Ausnahmen bei Match hinzugefügt. 
+ 
+Missverständliche Darstellung in Bezug 
+auf erneute Einreichung des ZV-Auftrags 
+im PIN/TAN-Verfahren bei Opt-Out im 
+Vergleich zu den Abläufen in Kapitel 
+E.8.1 beseitigt. GrobskizzeOpt-Out mit 
+Fußnote versehen, Klarstellung zur 
+Zweitsignatur hinzugefügt. 
+Hinweis auf eventuelle Ausnahmen bei 
+Match hinzugefügt. 
+ C.10.7.1.1  K Klarstellung zum Verhalten bei Einrei-
+chung von nicht VOP-pflichtigen Ge-
+schäftsvorfällen in Verbindung mit 
+HKVPP 
+ C.10.7.2  K Klarstellung zum Verhalten bei Einrei-
+chung von nicht VOP-pflichtigen Ge-
+schäftsvorfällen in Verbindung mit 
+HKVOO 
+ E E.8.1  K,F Austausch aller Grafiken: 
+• Hinweis auf eventuelle Ausnahmen 
+im Ablauf bei Match im PIN/TAN-
+Verfahren hinzugefügt. 
+• Redaktionelle Fehlerkorrekturen 
+• Vereinheitlichung der Segmentfolge 
+• Ergänzende Beschreibungen beim 
+HKTAN und HITAN 
+ E.8.3  E Neues Kapitel zu VOP im SRZ-
+Verfahren 
+Grauer Kasten zum Beispielablauf Opt-
+Out bei SRZ-Einreichung, Kunden-
+wunsch bei Freigabe: Opt-In 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: Inhaltsverzeichnis Stand: 
+27.06.2025 
+Seite: 
+4 
+ 
+Inhaltsverzeichnis 
+C. Geschäftsvorfälle ....................................................................... 6 
+C.10 SEPA-Zahlungsverkehr ................................................................................. 6 
+C.10.7 Namensabgleich (Verification of Payee) ............................................... 6 
+C.10.7.1 Opt-In-Geschäftsvorfälle ..................................................................... 9 
+C.10.7.1.1 Namensabgleich Prüfauftrag ............................................ 9 
+C.10.7.1.2 Namensabgleich Ausführungsauftrag ............................13 
+C.10.7.2 Namensabgleich Opt-Out .................................................................15 
+D. Data Dictionary ........................................................................... 1 
+E. Anlagen ....................................................................................... 1 
+E.8 Beispielabläufe für den Namensabgleich (VOP) ......................................... 1 
+E.8.1 VOP mit HKTAN ................................................................................... 1 
+E.8.1.1 Einfachsignatur ................................................................................... 3 
+E.8.1.1.1 Match 3 
+E.8.1.1.2 Close-/No-Match bzw. Not Applicable .............................. 4 
+E.8.1.1.3 Opt-Out ............................................................................. 5 
+E.8.1.2 Mehrfachsignatur ................................................................................ 6 
+E.8.1.2.1 Match ein Dialog ............................................................... 6 
+E.8.1.2.2 Close-/No-Match Not Applicable ein Dialog ..................... 7 
+E.8.1.2.3 Match mehrere Dialoge .................................................... 8 
+E.8.1.2.4 Close-/No-Match Not Applicable mehrere Dialoge ........... 9 
+E.8.2 VOP mit Kryptographie und ggf. Secoder ........................................... 10 
+E.8.2.1 Einfachsignatur .................................................................................11 
+E.8.2.2 Mehrfachsignatur ..............................................................................12 
+E.8.3 VOP beim SRZ-Verfahren .................................................................. 13 
+E.8.3.1 VOP-Prüfung aufgrund der Vereinbarung zwischen SRZ und 
+Kunden 13 
+E.8.3.1.1 Beispielablauf DSRZ Opt-In ...........................................14 
+E.8.3.1.2 Beispielablauf DSRZ Opt-Out .........................................15 
+E.8.3.2 VOP-Prüfung unabhängig von der Vereinbarung zwischen 
+SRZ und Kunden ..............................................................................15 
+E.8.3.2.1 Beispielablauf Opt-In bei SRZ-Einreichung, 
+Kundenwunsch bei Freigabe: Opt-In ..............................16 
+E.8.3.2.2 Beispielablauf Opt-In bei SRZ-Einreichung, 
+Kundenwunsch bei Freigabe: Opt-Out ...........................17 
+E.8.3.2.3 Beispielablauf Opt-Out bei SRZ-Einreichung, 
+Kundenwunsch bei Freigabe: Opt-Out ...........................18 
+E.8.3.2.4 Beispielablauf Opt-Out bei SRZ-Einreichung, 
+Kundenwunsch bei Freigabe: Opt-In ..............................19 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: Abbildungsverzeichnis Stand: 
+27.06.2025 
+Seite: 
+5 
+ 
+ 
+Abbildungsverzeichnis 
+ 
+Abbildung 1 Grobskizze des Ablaufs und Zusammenspiels von HKVPP und HKVPA bei 
+Opt-In (ohne detaillierte Berücksichtigung eines Sicherheitsverfahrens) ...... 7 
+Abbildung 2: Grobskizze des Ablauf ohne Namensabgleich mit HKVOO bei Opt-Out 
+(ohne detaillierte Berücksichtigung eines Sicherheitsverfahrens) ................. 8 
+Abbildung 3: Ablauf Namensabgleich VOP mit Einfachsignatur und Match .................. 3 
+Abbildung 4: Ablauf Namensabgleich VOP mit Einfachsignatur und Close-/No-Match 
+bzw. Not Applicable ...................................................................................... 4 
+Abbildung 5: Ablauf Opt-Out mit Einfachsignatur .......................................................... 5 
+Abbildung 6: Ablauf Namensabgleich VOP mit Mehrfachsignatur und Match in einem 
+Dialog ........................................................................................................... 6 
+Abbildung 7: Ablauf Namensabgleich VOP mit Mehrfachsignatur und Close-/No-Match 
+bzw. Not Applicable in einem Dialog............................................................. 7 
+Abbildung 8: Ablauf Namensabgleich VOP mit Mehrfachsignatur und Match in 
+mehreren Dialogen ....................................................................................... 8 
+Abbildung 9: Ablauf Namensabgleich VOP mit Mehrfachsignatur und Close-/No-Match 
+bzw. Not Applicable in mehreren Dialogen ................................................... 9 
+Abbildung 10: Ablauf Namensabgleich VOP mit Kryptographie und ggf. Secoder mit 
+Mehrfachsignatur in einem Dialog ...............................................................11 
+Abbildung 11: Ablauf Namensabgleich VOP mit Kryptographie und ggf. Secoder mit 
+Mehrfachsignatur in mehreren Dialogen ......................................................12 
+Abbildung 12: Ablauf bei Einreichung durch das SRZ als Opt-In .................................14 
+Abbildung 13: Ablauf bei Einreichung durch das SRZ als Opt-Out ..............................15 
+Abbildung 14 Ablauf bei Einreichung durch das SRZ als Opt-In, Kundenwunsch bei 
+Freigabe: Opt-In ..........................................................................................16 
+Abbildung 15: Ablauf bei Einreichung durch das SRZ als Opt-In, Kundenwunsch bei 
+Freigabe: Opt-Out .......................................................................................17 
+Abbildung 16: Ablauf bei Einreichung durch das SRZ als Opt-Out, Kundenwunsch bei 
+Freigabe: Opt-Out .......................................................................................18 
+Abbildung 17: Ablauf bei Einreichung durch das SRZ als Opt-Out, Kundenwunsch bei 
+Freigabe: Opt-In ..........................................................................................19 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+6 
+ 
+C.  GESCHÄFTSVORFÄLLE 
+C.10 SEPA-Zahlungsverkehr 
+C.10.7 Namensabgleich (Verification of Payee) 
+Die Verification of Payee (VOP) basiert auf der europäischen Instant-Payment-Regu-
+lierung, die Teil der breiteren Bemühungen der Europäischen Union ist, den digitalen 
+Zahlungsverkehr zu standardisieren und sicherer zu gestalten. Mittels der Verification 
+of Payee (VOP) wird überprüft, ob der Name des Zahlungsempfängers bzw. andere 
+Merkmale mit dem Namen des Kontoinhabers bzw. den anderen Merkmalen überein-
+stimmt. Diese Prüfung soll helfen, Betrug und Fehlüberweisungen zu reduzieren. 
+Inhalt und Funktion: 
+• Überprüfung: Im Rahmen eines Zahlungsvorgangs übermittelt der Kunde den 
+Namen des Empfängers sowie die IBAN an sein Kreditinstitut. 
+• Vergleich: Das Kreditinstitut vergleicht diese Angaben im Rahmen der VOP-
+Prüfung mit den Informationen des Kontoinhabers, die bei der Empfängerbank 
+registriert sind. 
+• Rückmeldung: Der Zahler erhält eine Rückmeldung durch sein Kreditinstitut 
+darüber, ob die Angaben übereinstimmen, nicht übereinstimmen oder nur teil-
+weise übereinstimmen. Der Kunde kann sich in jedem Fall entscheiden, ob er 
+die Zahlung fortsetzen möchte: 
+o Übereinstimmung (Match): Die Zahlung kann ohne Probleme fortge-
+setzt werden. 
+o Keine Übereinstimmung (No-Match): Es wird empfohlen, die Angaben 
+zu überprüfen, da das Risiko einer Fehlüberweisung besteht. 
+o Teilweise Übereinstimmung (Close-Match): Der Zahler wird über die 
+Abweichungen informiert. 
+o Prüfung nicht möglich („Verification Check Not Possible“): Der Zah-
+lungsdienstleister des Zahlungsempfängers konnte die Prüfung nicht 
+durchführen. 
+Darüber hinaus sind weitere Rückmeldungen aus Gründen möglich, die nicht 
+primär mit der VOP-Prüfung zu tun haben (z.B. bei Time-Outs beim Zahlungs-
+dienstleister des Zahlers).  
+Opt-In und Opt-Out: 
+• Opt-In (Default): Bei Verbrauchern und Einzeltransaktionen wird immer eine 
+VOP-Prüfung durchgeführt. 
+• Opt-Out: Nicht-Verbraucher können sich bei Sammelaufträgen entscheiden, 
+VOP nicht zu verwenden. In diesem Fall werden Zahlungen ohne die zusätz-
+liche Überprüfung des Empfängernamens durchgeführt. Opt-Out kann sinn-
+voll sein in Szenarien, in denen die zusätzliche Prüfung als unnötig oder hin-
+derlich empfunden wird.  
+Ein Verzicht auf die VOP-Prüfung bei Sammelaufträgen mit nur einem einzi-
+gen Auftrag ist nicht möglich. Ein solcher Sammler ist immer als Opt-In zu 
+behandeln. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+7 
+ 
+ 
+Im Rahmen von FinTS werden folgende Geschäftsvorfälle und Abläufe zur Unterstüt-
+zung der Verification of Payee implementiert: 
+Opt-In: 
+• Namensabgleich Prüfauftrag (HKVPP) 
+• Namensabgleich Ausführungsauftrag (HKVPA) 
+   
+Abbildung 1 Grobskizze des Ablaufs und Zusammenspiels von HKVPP und HKVPA 
+bei Opt-In (ohne detaillierte Berücksichtigung eines Sicherheitsverfahrens) 
+Der Kunde reicht bei Opt-In einen Zahlungsverkehrsauftrag zusammen mit dem Prüf-
+auftrag für den Namensabgleich (HKVPP) ein. Nach erfolgter VOP-Prüfung durch das 
+Kreditinstitut wird dem Kunden von diesem das Prüfergebnis übermittelt und er wird 
+über die Folgen einer Autorisierung trotz einer eventuellen Abweichung aufgeklärt 
+(HIVPP). Nach Kenntnisnahme des VOP-Ergebnisses und der eventuellen rechtli-
+chen Folgen zeigt der Kunde mit der erneuten Einreichung desselben Zahlungsver-
+kehrsauftrags in Verbindung mit dem Ausführungsauftrag (HKVPA) an, dass er der 
+Ausführung des Auftrags unter diesen Voraussetzungen zustimmt. Im PIN/TAN-
+Verfahren mit Einfach- und Mehrfachsignatur und dem Prüfergebnis-Match sowie 
+beim Zweitsignierenden bei Mehrfachsignatur entfällt die erneute Einreichung des 
+Zahlungsverkehrsauftrags1. Bei Kryptografie und ggf. Secoder ist die erneute Einrei-
+chung des Zahlungsverkehrsauftrags hingegen verpflichtend. 
+ 
+ 
+ Wird im PIN/TAN-Verfahren nur bei Close-Match/No-Match bzw. Not Applicable bei Einfachsignatur 
+bzw. der Erstsignatur der Mehrfachsignatur gesendet (zu eventuellen Ausnahmen bei Match siehe 
+Kapitel E.8.1). 
+ Wird immer bei Kryptografie und ggf. Secoder gesendet 
+ 
+1 Zu eventuellen Ausnahmen bei Match siehe Kapitel E.8.1 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+8 
+ 
+ 
+Detaillierte Beispiele für Abläufe bei Opt-In für die verschiedenen Sicherheits-
+verfahren sowie Einfach- und Mehrfachsignatur finden sich in den Anlagen im 
+Kapitel E.8. 
+ 
+Opt-Out: 
+• Namensabgleich Opt-Out (HKVOO) 
+   
+Abbildung 2: Grobskizze des Ablauf ohne Namensabgleich mit HKVOO bei Opt-Out 
+(ohne detaillierte Berücksichtigung eines Sicherheitsverfahrens) 
+Ein Nicht-Verbraucher reicht einen Zahlungsverkehrsauftrag, der für Opt-Out zuge-
+lassen ist, zusammen mit dem Auftrag für den Verzicht auf den Namensabgleich 
+(HKVOO) ein. Der Kunde wird über die Folgen einer Autorisierung ohne Namensab-
+gleich aufgeklärt (HIVOO). Nach Kenntnisnahme der eventuellen rechtlichen Folgen 
+zeigt der Kunde mit der Einreichung des Ausführungsauftrags (HKVPA) an, dass er 
+der Ausführung des Auftrags unter diesen Voraussetzungen zustimmt. Im PIN/TAN-
+Verfahren entfällt die erneute Einreichung des Zahlungsverkehrsauftrags bei der Ein-
+fachsignatur und ebenfalls bei der Mehrfachsignatur sowohl für den Erst- als auch 
+Zweitsignierenden2. Bei Kryptografie und ggf. Secoder ist die erneute Einreichung 
+des Zahlungsverkehrsauftrags hingegen verpflichtend. 
+ 
+Detaillierte Beispiele für Abläufe bei Opt-Out für die verschiedenen Sicherheits-
+verfahren sowie Einfach- und Mehrfachsignatur finden sich in den Anlagen im 
+Kapitel E.8. insbesondere in Kapitel E.8.1.1.3. 
+ 
+ Wird nur bei Kryptografie und ggf. Secoder gesendet (zu eventuellen Ausnahmen beim PIN/TAN-
+Verfahren siehe Kapitel E.8.1). 
+ 
+2 Zu eventuellen Ausnahmen bei Match siehe Kapitel E.8.1 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+9 
+ 
+ 
+C.10.7.1  Opt-In-Geschäftsvorfälle 
+C.10.7.1.1 Namensabgleich Prüfauftrag 
+Dieser Geschäftsvorfall wird parallel mit dem Zahlungsverkehrsauftrag, für den ein 
+Namensabgleich (VOP-Prüfung) durchgeführt werden muss, an das Kreditinstitut ge-
+schickt. Das Kreditinstitut führt den Namensabgleich durch und liefert das Ergebnis 
+zurück.  
+
+ 
+ 
+Die Liste der Zahlungsverkehrsaufträge, für die eine VOP-Prüfung 
+notwendig ist, wird in der BPD im Parametersegment zum HKVPP 
+übermittelt. Eine Zuordnung in der UPD zu einzelnen Konten findet 
+nicht statt. Der HKVPP ist nicht TAN-pflichtig. 
+ 
+
+ 
+ 
+Während der Migrationsphase:  
+Dem Kundenprodukt wird durch das Vorhandensein der Parame-
+tersegmente von HKVPP, HKVPA und HKVOO in der BPD mitge-
+teilt, dass das Kreditinstitut die VOP-Verarbeitung bereits unter-
+stützt. Dem Kundenprodukt wird zusätzlich mit dem Rückmeldungs-
+code: 
+ 
+3092 „Namensabgleich erforderlich ab dem …“ 
+ 
+mitgeteilt, ab wann eine Einreichung der Aufträge ohne Namensprü-
+fung nicht mehr zulässig ist, sofern es weiterhin Aufträge ohne 
+HKVPP/HKVPA und HKVOO einreicht.  
+ 
+Kreditinstitute, die den Ablauf der VOP-Verarbeitung laut BPD 
+grundsätzlich unterstützen, aber noch keine Prüfergebnisse mit da-
+zugehöriger VOP-ID zurückliefern, können in der Migrationsphase 
+die VOP-ID mit dem Füllwert „notprovided“ befüllen und vom Kun-
+denprodukt wieder entgegennehmen, sofern es im Ablauf gefordert 
+ist. Damit ist gewährleistet, dass Institut und Kundenprodukt bereits 
+vor dem kommunizierten Stichtag den Protokollablauf im Grundsatz 
+praktizieren können. Der Kunde soll diese Änderungen auf Protokoll-
+ebene dabei nicht bemerken. 
+ 
+Sollte ein Kundenprodukt nach dem kommunizierten Stichtag versu-
+chen einen Zahlungsverkehrsauftrag weiterhin ohne die entspre-
+chenden Geschäftsvorfälle für die Namensprüfung einzureichen, 
+kann es durch den Rückmeldungscode: 
+ 
+9076 „Namensabgleich erforderlich“  
+ 
+abgewiesen werden. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+10 
+ 
+ 
+
+ 
+ 
+Es bleibt dem Kreditinstitut überlassen, ob es Geschäftsvorfälle, die 
+in HIVPPS nicht aufgeführt sind und zusammen mit HKVPP einge-
+reicht werden, abweist oder so ausführt, als wäre kein HKVPP ein-
+gereicht worden. 
+ 
+Realisierung Bank: optional; verpflichtend, wenn Zahlungsverkehrsgeschäftsvor-
+fälle angeboten werden 
+Realisierung Kunde: optional; verpflichtend, wenn Zahlungsverkehrsgeschäftsvor-
+fälle genutzt werden 
+ Kundenauftrag 
+ Format 
+Name: Namensabgleich Prüfauftrag 
+Typ: Segment 
+Segmentart: Geschäftsvorfall 
+Kennung: HKVPP 
+Bezugssegment: - 
+Version: 1 
+Sender: Kunde 
+ 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län
+ge 
+Sta-
+tus 
+An-
+zahl 
+Restriktionen 
+1 Segmentkopf 1 DEG   M 1  
+2 Unterstützte Pay-
+ment Status Re-
+ports 
+1 DEG   M 1  
+3 Polling-ID 1 DE bin .. C 1 M: „Aufsetzpunkt“ belegt 
+und vom Institut wurde eine 
+Polling-ID geliefert 
+N: sonst 
+4 Maximale Anzahl 
+Einträge 
+1 DE num ..4 C 1 >0 
+O: „Eingabe Anzahl Ein- 
+träge erlaubt“ (BPD) = „J“  
+N: sonst 
+5 Aufsetzpunkt 1 DE an ..35 C 1 M: vom Institut wurde ein 
+Aufsetzpunkt rückgemeldet 
+N: sonst 
+ Belegungsrichtlinien 
+
+ 
+Insbesondere bei sehr großen Sammlern kann das Kundenprodukt 
+aufgefordert werden das Ergebnis der VOP-Prüfung mit Hilfe des 
+Aufsetzpunkt-Mechanismus so lange neu anzufordern, bis eine voll-
+ständige Antwort des Kreditinstituts (pain.002) vorliegt. Dazu wird 
+der HKVPP alleine solange erneut eingereicht, bis eine abschlie-
+ßende Antwort (HIVPP mit VOP-ID) vorliegt. 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+11 
+ 
+ 
+ Kreditinstitutsrückmeldung 
+ Format 
+Name: Namensabgleich Prüfergebnis  
+Typ: Segment 
+Segmentart: Geschäftsvorfall 
+Kennung: HIVPP 
+Bezugssegment: HKVPP 
+Version: 1 
+Anzahl: 1 
+Sender: Kreditinstitut 
+ 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län-
+ge 
+Sta
+tus 
+An-
+zahl 
+Restriktionen 
+1 Segmentkopf 1 DEG   M 1  
+2 VOP-ID 1 DE bin .. C 1 M: „Payment Status Report“ 
+bzw. „Ergebnis der VOP-
+Prüfung Einzeltransaktion“ ist 
+vollständig an Kunden über-
+mittelt  
+N: sonst 
+3 VOP-ID gültig bis 1 DEG tsp # C 1 O: „VOP-ID“ belegt  
+N: sonst 
+4 Polling-ID 1 DE bin .. O 1  
+5 Payment Status 
+Report Descriptor 
+1 DE an ..256 C 1 M: „Payment Status Report“ 
+belegt  
+N: sonst 
+6 Payment Status 
+Report 
+1 DE bin .. C 1 O: „Ergebnis VOP-Prüfung 
+Einzeltransaktion“ nicht be-
+legt  
+N: sonst 
+7 Ergebnis VOP-
+Prüfung Ein-
+zeltransaktion 
+1 DEG   C 1 O: „Payment Status Report“ 
+nicht belegt  
+N: sonst 
+8 Aufklärungstext Au-
+torisierung trotz Ab-
+weichung 
+1 DE an ..655
+35 
+O 1  
+9 Wartezeit vor 
+nächster Abfrage 
+1 DE num 1 O 1  
+ Belegungsrichtlinien 
+VOP-ID und VOP-ID gültig bis 
+Bei Aufsetzpunktbehandlung ist das jeweilige Feld erst im abschließend gelieferten 
+HIVPP einzustellen. 
+Payment Status Report 
+„Payment Status Report“-Schema lt. HIVPPS. Mögliche pain.002 messages sind der 
+Anlage 3 des DFÜ-Abkommens zu entnehmen (vgl. [DFÜ-Abkommen]). Enthält das 
+Ergebnis der VOP-Prüfung. 
+Ergebnis VOP-Prüfung Einzeltransaktion 
+Die DE kann bei Einzelaufträgen alternativ zur pain.002 belegt werden.  
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+12 
+ 
+ 
+ 
+ 
+ 
+Die Entscheidung über die Verwendung dieser DEG als Alternative 
+zur pain.002 obliegt dem Institut.  
+In bestimmten Konstellationen kann es vorkommen, dass Institute, 
+die die Ergebnisse der VOP-Prüfung für Einzelaufträge üblicherweise 
+in dieser DEG übermitteln, die Ergebnisse trotzdem in einer pain.002 
+in der DE „Payment Status Report“ übertragen. 
+ 
+ 
+Aufklärungstext Autorisierung trotz Abweichung 
+Der Aufklärungstext ist dem Kunden zwingend anzuzeigen. 
+ 
+ 
+ 
+Der vom Kreditinstitut übermittelten Payment Status Report sollte 
+vom Kundenprodukt nach verschiedenen Kriterien sortierbar darge-
+stellt werden können (z. B. No-Match, Close-Match etc.).  
+ 
+ 
+ 
+ 
+Das Ergebnis der VOP-Prüfung und der Aufklärungstext müssen je-
+dem Unterzeichnenden vor der jeweiligen Freigabe angezeigt wer-
+den können. D.h. bis einschließlich zur Signatur des letzten Unter-
+zeichnenden muss die pain.002 mindestens vorgehalten werden. 
+ 
+ 
+ 
+ 
+Eine Korrektur eines oder mehrerer Empfängernamen in einem be-
+reits eingereichten Zahlungsauftrag ist nur mit Hilfe eines Abbruchs 
+möglich. Der geänderte Auftrag muss dann in jedem Fall neu einge-
+reicht werden und durchläuft die VOP-Prüfung erneut.  
+Die in der Instant Payment-Regulierung extra eingeführten Mecha-
+nismen zur Freigabe von VOP-geprüften Zahlungsverkehrsaufträgen 
+ohne Anpassung des Empfängernamens, sind bevorzugt anzubieten. 
+Das Kundenprodukt ist allerdings aufgefordert, dem Kunden eine 
+Übernahme der Empfängernamen aus der pain.002 zur Verbesse-
+rung des vorhandenen internen Datenbestandes für zukünftige Zah-
+lungsaufträge anzubieten. 
+ 
+ 
+ Ausgewählte Beispiele für Rückmeldungscodes 
+Es ist dem Kreditinstitut überlassen, ob es die eingereichten Aufträge ungeprüft ver-
+arbeitet oder bankfachlich prüft. Falls eine fachliche Prüfung stattfindet, gelten die 
+Rückmeldungscodes des jeweiligen Zahlungsverkehrsauftrags.  
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+13 
+ 
+ 
+Code Beispiel für Rückmeldungstext 
+0020 Auftrag ausgeführt 
+0025 Keine Namensabweichung 
+3040 Auftrag nur teilweise ausgeführt 
+3090 Ergebnis Namensabgleich prüfen 
+3091 VOP-Ausführungsauftrag nicht benötigt 
+3093 Namensabgleich ist noch in Bearbeitung 
+3094 Namensabgleich ist komplett 
+9210 IBAN auf Zahlungsempfängerseite existiert nicht 
+9210 Auftrag kann so nicht ausgeführt werden 
+ Bankparameterdaten 
+ Format 
+Name: Namensabgleich Prüfauftrag Parameter 
+Typ: Segment 
+Segmentart: Geschäftsvorfall 
+Kennung: HIVPPS 
+Bezugssegment: HKVVB 
+Version: 1 
+Sender: Kreditinstitut 
+ 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län
+ge 
+Sta
+tus 
+An-
+zahl 
+Restriktionen 
+1  Segmentkopf 1 DEG   M 1  
+2  Maximale Anzahl 
+Aufträge 
+1 DE num ..3 M 1  
+3  
+ 
+Anzahl Signaturen 
+mindestens 
+1 DE num 1 M 1 0, 1, 2, 3 
+4  Sicherheitsklasse 1 DE code 1 M 1 0, 1, 2, 3, 4 
+5  Parameter Na-
+mensabgleich Prüf-
+auftrag 
+1 DEG   M 1  
+ 
+C.10.7.1.2 Namensabgleich Ausführungsauftrag 
+Mit diesem Geschäftsvorfall bestätigt der Kunde, dass er die Ergebnisse des Na-
+mensabgleichs und die Legal-Notices aus der pain.002 sowie den Aufklärungstext 
+zur Autorisierung bei Namensabweichung bzw. Opt-Out zur Kenntnis genommen hat. 
+Der Geschäftsvorfall wird parallel mit dem ursprünglichen Auftrag aus „Zahlungsver-
+kehrsauftrag“ aus dem HKVPP eingereicht. 
+ 
+ 
+Der Zahlungsverkehrsauftrag der parallel zum HKVPA geschickt wird 
+muss mit dem Zahlungsverkehrsauftrag, der im ersten Schritt parallel 
+mit dem HKVPP übermittelt wurde, übereinstimmen. Die ursprüngli-
+che pain-Nachricht muss dabei erneut eingereicht werden. 
+ 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+14 
+ 
+ 
+
+ 
+Falls das Ergebnis der VOP-Prüfung Match ist, kann im PIN/TAN-
+Verfahren ggf. auf die Einreichung des HKVPA seitens des Kreditin-
+stituts verzichtet werden. Dies wird dem Kundenprodukt durch den 
+Rückmeldungscode 3091 angezeigt. In diesem Fall ist lediglich die 
+Challenge im HITAN durch einen HKTAN zu beantworten. (siehe 
+Beispiele in den Kapiteln E.8.1.1.1 und E.8.1.2.1) 
+ 
+Realisierung Bank: optional; verpflichtend, wenn Zahlungsverkehrsgeschäftsvor-
+fälle angeboten werden 
+Realisierung Kunde: optional; verpflichtend, wenn Zahlungsverkehrsgeschäftsvor-
+fälle genutzt werden 
+ Kundenauftrag 
+ Format 
+Name: Namensabgleich Ausführungsauftrag 
+Typ: Segment 
+Segmentart: Geschäftsvorfall 
+Kennung: HKVPA 
+Bezugssegment: - 
+Version: 1 
+Sender: Kunde 
+ 
+Nr. Name Ver-
+sion 
+Typ For
+mat 
+Län
+ge 
+Sta
+tus 
+An-
+zahl 
+Restriktionen 
+1  Segmentkopf 1 DEG   M 1  
+2  VOP-ID 1 DEG bin .. M 1  
+ Belegungsrichtlinien 
+VOP-ID  
+Es ist der entsprechende Wert aus HIVPP einzustellen. 
+ Kreditinstitutsrückmeldung 
+ Beschreibung 
+Es werden keine Datensegmente zurückgemeldet. 
+ Ausgewählte Beispiele für Rückmeldungscodes 
+Code Beispiel für Rückmeldungstext 
+0010 Auftrag entgegengenommen 
+0020 Auftrag ausgeführt 
+9010 VOP-ID stimmt nicht überein 
+9010 Bestätigungscode stimmt nicht mit HKVPP überein 
+9010 VOP-ID unbekannt 
+9010 Auftrag weicht vom Ursprungsauftrag ab 
+9210 Auftrag existiert nicht bzw. wurde bereits ausgeführt 
+ Bankparameterdaten 
+ Beschreibung 
+Geschäftsvorfallspezifische Parameter existieren nicht. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+15 
+ 
+ 
+ Format 
+Name: Namensabgleich Ausführungsauftrag Parameter 
+Typ: Segment 
+Segmentart: Geschäftsvorfall 
+Kennung: HIVPAS 
+Bezugssegment: HKVVB 
+Version: 1 
+Sender: Kreditinstitut 
+ 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län
+ge 
+Sta
+tus 
+An-
+zahl 
+Restriktionen 
+1  Segmentkopf 1 DEG   M 1  
+2  Maximale Anzahl 
+Aufträge 
+1 DE num ..3 M 1  
+3  
+ 
+Anzahl Signaturen 
+mindestens 
+1 DE num 1 M 1 0, 1, 2, 3 
+4  Sicherheitsklasse 1 DE code 1 M 1 0, 1, 2, 3, 4 
+C.10.7.2 Namensabgleich Opt-Out 
+Mit diesem Geschäftsvorfall erklärt der Kunde, dass er auf einen Namensabgleich für 
+den aktuellen Auftrag verzichtet. Der Geschäftsvorfall wird parallel mit dem ge-
+wünschten Zahlungsverkehrsauftrag eingereicht.  
+
+ 
+ 
+Dieser Geschäftsvorfall darf nur Nicht-Verbrauchern und für deren 
+Kontoverbindungen für Sammelaufträge angeboten werden. Die 
+Steuerung für welche Kontoverbindungen Opt-Out erlaubt ist, erfolgt 
+über HIUPD in der DEG „erlaubte Geschäftsvorfälle“. 
+Der HKVOO ist nicht TAN-pflichtig 
+ 
+ 
+
+ 
+ 
+Die Liste der Zahlungsverkehrsaufträge, für die eine VOP-Prüfung 
+auf Kundenwunsch verzichtet werden darf (Sammelaufträge), wird 
+in der BPD im HIVOOS übermittelt.  
+ 
+
+ 
+ 
+Es bleibt dem Kreditinstitut überlassen, ob es Geschäftsvorfälle, die 
+in HIVOOS nicht aufgeführt sind und zusammen mit HKVOO einge-
+reicht werden, abweist oder so ausführt, als wäre kein HKVOO ein-
+gereicht worden. 
+ 
+ 
+Bei Sammelaufträge mit nur einer einzigen Transaktion darf nicht auf 
+den Namensabgleich verzichtet werden. Ein solcher Auftrag ist ent-
+weder als Einzelzahlung oder Sammelzahlung jeweils zwingend in 
+Verbindung mit HKVPP einzureichen. 
+ 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+16 
+ 
+ 
+Realisierung Bank: optional; verpflichtend, wenn Zahlungsverkehrsgeschäftsvor-
+fälle angeboten werden 
+Realisierung Kunde: optional; verpflichtend, wenn Zahlungsverkehrsgeschäftsvor-
+fälle genutzt werden 
+ Kundenauftrag 
+ Format 
+Name: Namensabgleich Opt-Out 
+Typ: Segment 
+Segmentart: Geschäftsvorfall 
+Kennung: HKVOO 
+Bezugssegment: - 
+Version: 1 
+Sender: Kunde 
+ 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län
+ge 
+Sta-
+tus 
+An-
+zahl 
+Restriktionen 
+1 Segmentkopf 1 DEG   M 1  
+ Kreditinstitutsrückmeldung 
+ Beschreibung 
+ Format 
+Name: Namensabgleich Opt-Out rückmelden 
+Typ: Segment 
+Segmentart: Geschäftsvorfall 
+Kennung: HIVOO 
+Bezugssegment: HKVOO 
+Version: 1 
+Anzahl: 1 
+Sender: Kreditinstitut 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+ 
+Kapitel: SEPA-Zahlungsverkehr 
+Abschnitt: Namensabgleich (Verification of Payee) 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+17 
+ 
+ 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län-
+ge 
+Sta
+tus 
+An-
+zahl 
+Restriktionen 
+1 Segmentkopf 1 DEG   M 1  
+2 VOP-ID 1 DE bin .. M 1  
+3 Aufklärungstext 
+Opt-Out 
+1 DE an ..655
+35 
+O 1  
+ Ausgewählte Beispiele für Rückmeldungscodes 
+Code Beispiel für Rückmeldungstext 
+0020 Auftrag ausgeführt 
+9010 Opt-Out für Sammelzahlungen mit nur einem Auftrag sind nicht zulässig 
+ Bankparameterdaten 
+ Format 
+Name: Namensabgleich Opt-Out Parameter 
+Typ: Segment 
+Segmentart: Geschäftsvorfall 
+Kennung: HIVOOS 
+Bezugssegment: HKVVB 
+Version: 1 
+Sender: Kreditinstitut 
+ 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län
+ge 
+Sta
+tus 
+An-
+zahl 
+Restriktionen 
+1  Segmentkopf 1 DEG   M 1  
+2  Maximale Anzahl 
+Aufträge 
+1 DE num ..3 M 1  
+3  
+ 
+Anzahl Signaturen 
+mindestens 
+1 DE num 1 M 1 0, 1, 2, 3 
+4  Sicherheitsklasse 1 DE code 1 M 1 0, 1, 2, 3, 4 
+5  Parameter Na-
+mensabgleich Opt-
+Out 
+1 DEG   M 1  
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+1 
+ 
+ 
+D. DATA DICTIONARY 
+Die FinTS Segmentkennungen und Elementbezeichnungen dienen ausschließlich 
+zur technischen Bezeichnung von Protokolleinheiten wie z. B. Geschäftsvorfällen. 
+Diese technischen Bezeichnungen sind jedoch in der Kommunikation gegenüber dem 
+Kunden durch die im ZKG definierten Begriffe zu ersetzen. 
+ 
+Abweichender Empfängername 
+Abweichender Name bzw. Firmenname, der im kontoführenden Systems des 
+Zahlungsempfängers hinterlegt ist. Dieser wird dem Auftraggeber als Ent-
+scheidungshilfe angezeigt, wenn der ursprünglich angefragte Name teilweise 
+übereinstimmt (Close Match). 
+Typ: DE 
+Format: an 
+Länge: ..140 
+Version: 1 
+Anderes Identifikationsmerkmal 
+Neben dem Namensabgleich ist es möglich andere Identifikationsmerkmale 
+per VOP prüfen zu lassen. Dieses Feld enthält die Bezeichnung der geprüften 
+ID (z.B. LEI etc.). 
+Typ: DE 
+Format: an 
+Länge: ..256 
+Version: 1 
+ 
+Art der Lieferung Payment Status Report 
+Der BPD-Parameter gibt an, ob die pain.002-Nachricht bei einer Aufsetzpunkt-
+behandlung vollständig oder schrittweise übertragen wird.  
+Vollständig bedeutet in diesem Zusammenhang, dass immer alle bis zur Lie-
+ferung aufgelaufenen Daten in der pain.002 fortgeschrieben und übertragen 
+werden. Die abschließend übertragene pain.002 beinhaltet somit alle Daten 
+aller vorhergehender Übertragungen.  
+Bei schrittweiser Übertragung werden nur die jeweils neu verfügbaren Daten 
+übermittelt. Nach Übertragung der abschließenden pain.002 muss diese im 
+Kundenprodukt mit den vorhergehenden pain.002-Nachrichten zu einer Ge-
+samt-pain.002 zusammengesetzt werden. 
+Bei schrittweiser Lieferung der VOP-Prüfergebnisse mittels einer pain.002 
+(Deltalieferung) werden nach der ersten Lieferung immer nur die Transaktio-
+nen neu unter <TxInfAndSts> reported, die in der vorherigen Lieferung als 
+Pending (PNDG) angezeigt wurden und in der aktuellen Lieferung nicht den 
+Status Match (RCVC) erhalten haben.  
+In „Original Group Information And Status“ <OrgnlGrpInfAndSts> werden die 
+„OriginalNumberOfTransactions“ <OrgnlNbOfTxs> nach jeder neuen schritt-
+weisen Teillieferung für die gesamte pain.001-Nachricht je Status fortgeschrie-
+ben, d.h. hier kann die Anzahl aller bisher erhaltener einzelnen Statusmeldun-
+gen im Überblick in „NumberOfTransactionsPerStatus“ <NbOfTxsPerSts> ab-
+gelesen werden. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+2 
+ 
+ 
+Aufgrund der Tatsache, dass in FinTS nur ein Payment Information Block zu-
+gelassen ist, werden diese Angaben in „Original Payment Information And 
+Status“ <OrgnlPmtInfAndSts> wiederholt. 
+Bei jeder schrittweisen Teillieferung werden auf der Ebene „TransactionInfor-
+mation and Status“ (<TxInfAndSts>) immer nur die Transaktionen geliefert, die 
+zuvor den Status Pending (PNDG) hatten und in der aktuellen Lieferung nicht 
+den Status Match (RCVC) erhalten haben. Dies wird so lange fortgeführt, bis 
+keine Transaktion mehr im Status Pending ist. Anhand der einzelnen schritt-
+weisen Teillieferungen hat das Kundenprodukt letztendlich zu allen Transakti-
+onen, welche nicht den Status Match (RCVC) haben, detaillierte Infos zum 
+Status (RVNM, RVMC, RVNA) sowie einigen Kernelementen der Transaktion 
+(insbesondere die urspr. EndToEndId) erhalten.  
+ 
+Die pain.002-Nachricht ist bei jeder schrittweisen bzw. vollständigen Teilliefe-
+rung immer ein fachlich vollständiges Format. Wird das Datenvolumen einer 
+pain.002-Nachricht sehr groß, so muss sie an geeigneter Stelle durchge-
+schnitten und in Teilstücken übertragen werden. Die Teilstücke ergeben durch 
+einfaches Zusammensetzen in der Reihenfolge der Übertragung wieder die 
+ursprüngliche pain-Nachricht. 
+ 
+Beispiel: Sammler mit 500 Transaktionen bei schrittweiser Lieferung (stark vereinfachte Dar-
+stellung): 
+1.Teillieferung 
+OrgnlGrpInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 300 RCVC, 50 RVMC, 10 RVNM, 5 RVNA, 135 PNDG 
+OrgnlPmtInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 300 RCVC, 50 RVMC, 10 RVNM, 5 RVNA, 135 PNDG 
+TxInfAndSts: 200 Vorkommen (jeweils mit Status; EndToEndId, Name und IBAN 
+aus der pain.001; bei RVMC zusätzlich: Namen hinterlegt beim ZDL des ZE)… 
+2.Teillieferung 
+OrgnlGrpInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 350 RCVC, 55 RVMC, 10 RVNM, 5 RVNA, 80 PNDG 
+OrgnlPmtInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 350 RCVC, 55 RVMC, 10 RVNM, 5 RVNA, 80 PNDG 
+TxInfAndSts: 85 Vorkommen (jeweils mit Status; EndToEndId, Name und IBAN 
+aus der pain.001; bei RVMC zusätzlich: Namen hinterlegt beim ZDL des ZE)… 
+3.Teillieferung 
+OrgnlGrpInfAndSts 
+OrgnlNbOfTxs: 500 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+3 
+ 
+ 
+NbOfTxsPerSts: 420 RCVC, 60 RVMC, 10 RVNM, 10 RVNA 
+OrgnlPmtInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 420 RCVC, 60 RVMC, 10 RVNM, 10 RVNA 
+TxInfAndSts: 10 Vorkommen (jeweils mit Status; EndToEndId, Name und IBAN 
+aus der pain.001; bei RVMC zusätzlich: Namen hinterlegt beim ZDL des ZE)… 
+ 
+Im Vergleich dazu: 
+Beispiel: Der gleiche Sammler mit 500 Transaktionen bei vollständiger Lieferung (stark ver-
+einfachte Darstellung): 
+1.Teillieferung 
+OrgnlGrpInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 300 RCVC, 50 RVMC, 10 RVNM, 5 RVNA, 135 PNDG 
+OrgnlPmtInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 300 RCVC, 50 RVMC, 10 RVNM, 5 RVNA, 135 PNDG 
+TxInfAndSts: 200 Vorkommen (jeweils mit Status; EndToEndId, Name und IBAN 
+aus der pain.001; bei RVMC zusätzlich: Namen hinterlegt beim ZDL des ZE)…  
+2.Teillieferung 
+OrgnlGrpInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 350 RCVC, 55 RVMC, 10 RVNM, 5 RVNA, 80 PNDG 
+OrgnlPmtInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 350 RCVC, 55 RVMC, 10 RVNM, 5 RVNA, 80 PNDG 
+TxInfAndSts: 150 Vorkommen (jeweils mit Status; EndToEndId, Name und IBAN 
+aus der pain.001; bei RVMC zusätzlich: Namen hinterlegt beim ZDL des ZE)… 
+3.Teillieferung 
+OrgnlGrpInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 420 RCVC, 60 RVMC, 10 RVNM, 10 RVNA 
+OrgnlPmtInfAndSts 
+OrgnlNbOfTxs: 500 
+NbOfTxsPerSts: 420 RCVC, 60 RVMC, 10 RVNM, 10 RVNA 
+TxInfAndSts: 80 Vorkommen (jeweils mit Status; EndToEndId, Name und IBAN 
+aus der pain.001; bei RVMC zusätzlich: Namen hinterlegt beim ZDL des ZE)… 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+4 
+ 
+ 
+Codierung: 
+S: schrittweise Lieferung 
+V: vollständige Lieferung 
+Typ: DE 
+Format: code 
+Länge: 1 
+Version: 1 
+ 
+Aufklärungstext Autorisierung trotz Abweichung 
+Enthält den Text, der mit Hilfe des Geschäftsvorfalls „Namensabgleich Aus-
+führungsauftrag (HKVPA)“ bestätigt werden soll. 
+Ist der BPD-Parameter „Aufklärungsstext strukturiert“ mit „J“ belegt, so können 
+im Text folgende Formatsteuerzeichen enthalten sein, die kundenseitig ent-
+sprechend zu interpretieren sind. Eine Kaskadierung von Steuerzeichen ist 
+nicht erlaubt (Ausnahme Listendarstellung). 
+<br> Zeilenumbruch 
+<p>  Neuer Absatz 
+<b>  …  </b> Fettdruck 
+<i>  …  </i> Kursivdruck 
+<u>  …  </u> Unterstreichen 
+<ul> …  </ul> Beginn / Ende Aufzählung 
+<ol> …  </ol> Beginn / Ende Nummerierte Liste 
+<li> … </li> Listenelement einer Aufzählung bzw. einer 
+nummerierten Liste 
+<a href="…"> Text </a> Link 
+ 
+Ist der BPD-Parameter „Aufklärungstext strukturiert“ mit „N“ belegt, so wird der 
+Aufklärungstext als Fließtext dargestellt und etwa enthaltene Steuerzeichen 
+werden nicht interpretiert. 
+ 
+Typ: DE 
+Format: an 
+Länge: ..65535 
+Version: 1 
+Aufklärungstext Opt-Out 
+Enthält den Text, der mit Hilfe des Geschäftsvorfalls „Namensabgleich Aus-
+führungsauftrag (HKVPA)“ bestätigt werden soll. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+5 
+ 
+ 
+Ist der BPD-Parameter „Aufklärungsstext strukturiert“ mit „J“ belegt, so können 
+im Text folgende Formatsteuerzeichen enthalten sein, die kundenseitig ent-
+sprechend zu interpretieren sind. Eine Kaskadierung von Steuerzeichen ist 
+nicht erlaubt (Ausnahme Listendarstellung). 
+<br> Zeilenumbruch 
+<p>  Neuer Absatz 
+<b>  …  </b> Fettdruck 
+<i>  …  </i> Kursivdruck 
+<u>  …  </u> Unterstreichen 
+<ul> …  </ul> Beginn / Ende Aufzählung 
+<ol> …  </ol> Beginn / Ende Nummerierte Liste 
+<li> … </li> Listenelement einer Aufzählung bzw. einer 
+nummerierten Liste 
+<a href="…"> Text </a> Link 
+Ist der BPD-Parameter „Aufklärungstext strukturiert“ mit „N“ belegt, so wird der 
+Aufklärungstext als Fließtext dargestellt und etwa enthaltene Steuerzeichen 
+werden nicht interpretiert. 
+ 
+Typ: DE 
+Format: an 
+Länge: ..65535 
+Version: 1 
+Aufklärungstext strukturiert 
+Der BPD-Parameter gibt an, ob eine strukturierte Darstellung des Aufklä-
+rungstextes (Formatsteuerzeichen siehe dort) erlaubt ist, oder der Inhalt der 
+Datenelemente „Aufklärungstext Autorisierung trotz Abweichung“ bzw. „Auf-
+klärungstext Opt-Out“ als Fließtext dargestellt werden soll. 
+Typ: DE 
+Format: jn 
+Länge: 1 
+Version: 1 
+ 
+Ergebnis VOP-Prüfung Einzeltransaktion 
+Liefert die Ergebnisse der VOP-Prüfung an den Kunden im Falle einer Ein-
+zeltransaktion zurück. Diese DEG stellt lediglich eine Alternative zur Lieferung 
+in einer pain.002 dar. 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län-
+ge 
+Sta-
+tus 
+An-
+zahl 
+Restriktionen 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+6 
+ 
+ 
+1 IBAN Empfän-
+ger 
+1 DE an ..34 M 1  
+2 IBAN-
+Zusatzinformati-
+onen 
+1 DE an ..140 O 1  
+3 Abweichender 
+Empfänger-
+name 
+1 DE an ..140 C 1 M: „Anderes Identifikati-
+onmerkmal“ nicht belegt 
+und „VOP-
+Prüfergebnis“= RVMC 
+N: sonst 
+4 Anderes Identi-
+fikationmerkmal 
+1 DE an ..256 C 1 O: „Abweichender Emp-
+fängername“ nicht belegt 
+N: sonst 
+5 VOP-
+Prüfergebnis 
+1 DE code 4 M 1 RVMC, RCVC, RVNM, 
+RVNA, PDNG 
+6 Grund RVNA 1 DE an ..256 C 1 O: „VOP-
+Prüfergebnis“=RVNA 
+N: sonst 
+ 
+Typ: DEG 
+Format:  
+Länge:  
+Version: 1 
+ 
+Grund RVNA 
+Im Falle, dass das VOP-Prüfergebnis den Wert RVNA liefert, kann in diesem 
+Feld der Grund dazu näher erläutert werden. Dies kann z.B. in folgenden Fäl-
+len geschehen: 
+• Der Zahlungsdienstleister des Zahlungsempfängers kann keinen Ab-
+gleich durchführen, z.B. weil das Konto kein Zahlungskonto ist oder 
+der Identifikationscode des Zahlungsempfängers nicht unterstützt 
+wird. 
+• Keine Antwort vom Zahlungsdienstleisters des Zahlungsempfängers 
+auf die VOP-Anfrage erhalten / Timeout. 
+• Es wurde keine VOP-Anfrage seitens des Zahlungsdienstleisters des 
+Zahlers gestellt, z.B. weil der Zahlungsdienstleister des Zahlungsemp-
+fängers seinen Sitz außerhalb der Europäischen Union hat. 
+Typ: DE 
+Format: an 
+Länge: ..256 
+Version: 1 
+IBAN-Zusatzinformationen 
+Zusatzinformationen, um den Zahlungsempfänger genauer zu spezifizieren 
+(z. B. Unterkontonummer). 
+Typ: DE 
+Format: an 
+Länge: ..140 
+Version: 1 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+7 
+ 
+ 
+Maximale Anzahl CreditTransferTransactionInformation Opt-In 
+Information darüber, wie viele Einzeltransaktionen in einer SEPA-
+Sammelüberweisung für einen Namensabgleich eingestellt werden dürfen. 
+Für eine unbegrenzte Anzahl ist der Wert „0“ einzustellen. 
+Typ: DE 
+Format: num 
+Länge: ..7 
+Version: 1 
+Maximale Anzahl Einträge für Namensabgleich 
+Information darüber, wie viele IBAN/Name-Kombinationen für einen Namens-
+abgleich eingestellt werden dürfen. Für eine unbegrenzte Anzahl ist der Wert 
+„0“ einzustellen. Eventuelle zusätzliche Abgleichsparameter (z.B. LEI etc.) 
+sind zulässig, wenn eine entsprechende Vereinbarung zwischen dem Kunden 
+und dem Kreditinstitut existiert. 
+Typ: DE 
+Format: num 
+Länge: ..7 
+Version: 1 
+ 
+Opt-Out Zahlungsverkehrsauftrag 
+
+ 
+ 
+Nicht-Verbrauchern dürfen bei Sammelzahlungsaufträge auf eine 
+VOP-Prüfung verzichten (Opt-Out). In diesem Falle sind die Ge-
+schäftsvorfälle im Zusammenhang mit einem HKVOO auszuführen.  
+ 
+Segmentspezifische Kennung, die jedem Segment bzw. Auftrag zugeordnet 
+ist (z.B. "HKCCM" für " SEPA Sammelüberweisung"). Die Angabe hat in Groß-
+schreibung zu erfolgen. Da Opt-Out nur für Sammelzahlungen zulässig ist, 
+dürfen hier nur die entsprechenden Segmentkennungen eingetragen werden. 
+Typ: DE 
+Format: an 
+Länge: ..6 
+Version: 1 
+ 
+Parameter Namensabgleich Opt-Out 
+Auftragsspezifische Bankparameterdaten für den Geschäftsvorfall „Namens-
+abgleich Opt-Out“. 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län-
+ge 
+Sta-
+tus 
+An-
+zahl 
+Restriktionen 
+1 Aufklärungstext 
+strukturiert 
+1 DE jn # M 1  
+2 Opt-Out Zah-
+lungsverkehrs-
+auftrag 
+1 DE an ..6 M n  
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+8 
+ 
+ 
+Typ: DEG 
+Format:  
+Länge:  
+Version: 1 
+Parameter Namensabgleich Prüfauftrag 
+Auftragsspezifische Bankparameterdaten für den Geschäftsvorfall „Namens-
+abgleich Prüfauftrag“. 
+Nr. Name Ver-
+sion 
+Typ For-
+mat 
+Län-
+ge 
+Sta-
+tus 
+An-
+zahl 
+Restriktionen 
+1 Maximale An-
+zahl Cre-
+ditTransfer-
+TransactionIn-
+formation Opt-
+In 
+1 DE num ..7 M 1  
+2 Aufklärungstext 
+strukturiert 
+1 DE jn # M 1  
+3 Art der Liefe-
+rung Payment 
+Status Report 
+1 DE code 1 M 1 S, V 
+4 Sammelzahlun-
+gen mit einem 
+Auftrag erlaubt 
+1 DE jn # M 1  
+5 Eingabe Anzahl  
+Einträge erlaubt 
+1 DE jn # M 1  
+6 Unterstützte 
+Payment Status 
+Report Daten-
+formate  
+1 DE  an  ..102
+4 
+M 1  
+7 VOP-pflichtiger 
+Zahlungsver-
+kehrsauftrag 
+1 DE an ..6 M n  
+ 
+Typ: DEG 
+Format:  
+Länge:  
+Version: 1 
+Polling-ID 
+Enthält eine eindeutige ID, die für die Übermittlung des VOP-Ergebnisses in 
+mehreren Abrufen mit Aufsetzpunkten zusätzlich notwendig ist. 
+Die Polling-ID wird vom Kreditinstitut vorgegeben. 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+9 
+ 
+ 
+Typ: DE 
+Format: bin 
+Länge: .. 
+Version: 1 
+ 
+Sammelzahlungen mit einem Auftrag erlaubt 
+Gibt an, ob das Kreditinstitut Sammelzahlungen mit einem einzigen Auftrag 
+zulässt, oder ob solche Aufträge nur mit den entsprechenden Einzelzahlungs-
+Geschäftsvorfällen eingereicht werden dürfen. 
+
+ 
+ 
+Lässt das Kreditinstitut Sammelzahlungen mit nur einem Auftrag zu, 
+dann dürfen diese nicht in Verbindung mit einem HKVOO eingereicht 
+werden. Die Einreichung muss immer zusammen mit einem HKVPP 
+erfolgen, da eine VOP-Prüfung in diesem Fall obligatorisch ist.  
+ 
+Typ: DE 
+Format: jn 
+Länge: 1 
+Version: 1 
+ 
+VOP-ID 
+Enthält eine zum Zahlungsverkehrsauftrag gehörige eindeutige ID. 
+Die VOP-ID wird vom Kreditinstitut vorgegeben und kann z. B. ein Hashwert 
+oder aber auch eine Zufallszahl sein. Er dient als eindeutiger Bezeichner des 
+Original-Zahlungsauftrag. 
+ 
+Typ: DE 
+Format: bin 
+Länge: .. 
+Version: 1 
+ 
+VOP-ID gültig bis 
+Information darüber, wie lange eine VOP-ID auf Institutsseite vorgehalten 
+wird. Bis zu diesem Zeitpunkt sind z.B. Mehrfachsignaturen zum eingereichten 
+Auftrag und der darauf basierenden erfolgten VOP-Prüfung möglich. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+10 
+ 
+ 
+Typ: DE 
+Format: tsp 
+Länge: # 
+Version: 1 
+ 
+VOP-pflichtiger Zahlungsverkehrsauftrag 
+Segmentspezifische Kennung, die jedem Segment bzw. Auftrag zugeordnet 
+ist (z.B. "HKCCS" für " SEPA Einzelüberweisung"). Die Angabe hat in Groß-
+schreibung zu erfolgen. Für den Zahlungsauftrag sind zwingend die Ge-
+schäftsvorfälle HKVPP/HKVPA bzw. HKVOO auszuführen. 
+Typ: DE 
+Format: an 
+Länge: ..6 
+Version: 1 
+ 
+VOP-Prüfergebnis 
+Ergebnis der VOP-Prüfung. 
+Match: Übereinstimmung des angefragten Namens/der angefragten Identifi-
+kationsnummer mit den im kontoführenden System des Zahlungsdienstleis-
+ters des Zahlungsempfängers hinterlegten Daten. 
+No Match: Keine Übereinstimmung des angefragten Namens/der angefragten 
+Identifikationsnummer mit den im kontoführenden System des Zahlungs-
+dienstleisters des Zahlungsempfängers hinterlegten Daten. 
+Close Match: Teilweise Übereinstimmung des angefragten Namens mit dem 
+im kontoführenden System des Zahlungsempfängers hinterlegten Namen. 
+Not Applicable: Dieser Code wird in folgenden Fällen verwendet: 
+• Zahlungsdienstleister des Zahlungsempfängers kann keinen Abgleich 
+durchführen, z.B. weil das Konto kein Zahlungskonto ist oder der Iden-
+tifikationscode des Zahlungsempfängers nicht unterstützt wird. 
+• Keine Antwort vom Zahlungsdienstleisters des Zahlungsempfängers 
+auf die VOP-Anfrage erhalten / Timeout. In diesem Fall kann zusätzlich 
+der Grund im Feld „Grund RVNA“ angegeben werden. 
+• Es wurde keine VOP-Anfrage seitens des Zahlungsdienstleisters des 
+Zahlers gestellt, z.B. weil der Zahlungsdienstleister des Zahlungsemp-
+fängers seinen Sitz außerhalb der Europäischen Union hat. In diesem 
+Fall kann zusätzlich der Grund im Feld „Grund RVNA“ angegeben wer-
+den. 
+Pending: 
+Die Antwort des Zahlungsdienstleisters des Zahlungsempfängers auf die 
+VOP-Anfrage steht noch aus. Dieser Code könnte vom Zahlungsdienstleisters 
+des Zahlers als Zwischenstand gesetzt werden.  
+ 
+Codierung 
+RCVC:  Match 
+RVNM:  No Match 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+D 
+Kapitel: Data Dictionary 
+Abschnitt: Data Dictionary 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+11 
+ 
+ 
+RVMC:  Close Match 
+RVNA:  Not Applicable 
+PDNG:  Pending 
+Typ: DE 
+Format: code 
+Länge: 4 
+Version: 1 
+ 
+Wartezeit vor nächster Abfrage 
+Gibt bei der Verarbeitung von Aufsetzpunkten an, wann das Kundenprodukt 
+einen HKVPP erneut einreichen darf, da vorher voraussichtlich keine neuen 
+Informationen bzw. Ergebnisse zur Verfügung stehen (z.B. bei VOP-
+Prüfungen großer Sammler). Die Angabe erfolgt in Sekunden. 
+Typ: DE 
+Format: num 
+Länge: 1 
+Version: 1 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+1 
+ 
+ 
+E. ANLAGEN 
+E.8 Beispielabläufe für den Namensabgleich (VOP) 
+E.8.1 VOP mit HKTAN  
+Beim Namensabgleich unter Verwendung des PIN/TAN-Verfahrens sind folgende 
+Punkte zu beachten: 
+1. HKVPP, HKTAN und der Zahlungsauftrag werden immer zusammen ge-
+schickt. 
+2. Für den Fall, dass ein Institut (z.B. bei Bagatellfällen) auf eine VOP-Prüfung 
+verzichten und das Risiko von daraus möglicherweise entstehenden Schäden 
+übernehmen möchte, muss vom Kundenprodukt damit gerechnet werden, 
+dass ein Auftrag - trotz gesendetem HKVPP - vom Institut eventuell direkt 
+ohne weitere Challenge ausgeführt wird. In diesem Falle wird das Kundenpro-
+dukt mit dem Rückmeldungscode 3091 darüber informiert, dass kein HKVPA 
+gesendet werden soll und gleichzeitig wird ein Rückmeldungscode 3076 ge-
+sendet, dass keine SCA erforderlich ist. 
+3. Bei Namensübereinstimmung ist es möglich, dass auf eine Einreichung des 
+HKVPA verzichtet werden kann und nur die Challenge beantwortet werden 
+muss. In diesem Falle wird das Kundenprodukt mit dem Rückmeldungscode 
+3091 darüber informiert, dass kein HKVPA gesendet werden soll. 
+ 
+Beim Decoupled-Verfahren, sollte das positive Prüfergebnis dem 
+Kunden im Kundenprodukt parallel zur Freigabeaufforderung ange-
+zeigt werden. 
+ 
+4. Bei Namensabweichungen werden HKVPA, HKTAN und der Zahlungsauftrag 
+immer zusammen eingereicht. Der HKVPA gilt hier als die Bestätigung, dass 
+der Auftrag trotz Abweichungen ausgeführt werden soll. 
+5. Bei Namensabweichungen wird dem Kundenprodukt über den Rückmel-
+dungscode zum HKTAN: 
+ 
+3945 „Freigabe kann nicht erteilt werden“ 
+ 
+mitgeteilt, dass der eingereichte HKTAN entwertet ist und der Auftrag (nach 
+vollständiger Übermittlung des Prüfergebnisses) erneut mit einem neuen 
+HKTAN in Verbindung mit einem HKVPA eingereicht werden soll, sofern der 
+Kunde die Ausführung weiterhin wünscht. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+2 
+ 
+ 
+
+ 
+Der Ablauf wird grundsätzlich nur durch die Rückmeldungscodes ge-
+steuert und nicht durch das Prüfergebnis im HIVPP.  
+Es kann also vorkommen, dass der Rückmeldungscode 3945 „Frei-
+gabe kann nicht erteilt werden“ auch bei einem VOP-Prüfergebnis 
+RCVC (Match) gesendet wird. Dies gilt insbesondere für das Polling 
+oder aber bei Opt-Out mit Decoupled-Verfahren. Das Kundenpro-
+dukt hat dann den Ablauf analog zum Close-/No-Match/Not Appli-
+cable-Ablauf (d.h. Neueinreichung des ZV-Auftrags und HKTAN in 
+Verbindung mit HKVPA) fortzusetzen (s. Punkt 4. und Ablaufdia-
+gramme E.8.1.1.2 bzw. E.8.1.2.2 und E.8.1.2.4). 
+ 
+Implementierungsbedingt kann es vorkommen, dass auch im Match-
+Fall einen Rückmeldungscode 3090 gesendet wird. 
+ 
+Implementierungsbedingt kann es vorkommen, dass ein Institut 
+auch bei einem Match-Ergebnis immer mit einem Rückmeldungs-
+code 3945 „Freigabe kann nicht erteilt werden“ antwortet und grund-
+sätzlich eine erneute Einreichung des ZV-Auftrags und HKTAN in 
+Verbindung mit HKVPA erwartet. 
+ 
+6. Für die Übermittlung des vollständigen Prüfungsergebnisses ist ein Aufsetz-
+punktmechanismus im HKVPP vorhanden. Der HKVPP muss dann so lange 
+erneut eingereicht werden, bis alle Informationen in den entsprechend häufi-
+gen Antworten (HIVPP) übertragen wurden. Erst nach der abschließenden 
+Übermittlung des Prüfungsergebnisses darf die VOP-ID vom Kreditinstitut ver-
+sendet werden. 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+3 
+ 
+ 
+E.8.1.1 Einfachsignatur 
+E.8.1.1.1 Match 
+  
+Abbildung 3: Ablauf Namensabgleich VOP mit Einfachsignatur und Match 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+4 
+ 
+ 
+E.8.1.1.2  Close-/No-Match bzw. Not Applicable 
+ 
+ 
+Abbildung 4: Ablauf Namensabgleich VOP mit Einfachsignatur und Close-/No-Match 
+bzw. Not Applicable 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+5 
+ 
+ 
+E.8.1.1.3 Opt-Out 
+ 
+ 
+Abbildung 5: Ablauf Opt-Out mit Einfachsignatur 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+6 
+ 
+ 
+E.8.1.2 Mehrfachsignatur 
+E.8.1.2.1 Match ein Dialog 
+  
+Abbildung 6: Ablauf Namensabgleich VOP mit Mehrfachsignatur und Match in einem 
+Dialog 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+7 
+ 
+ 
+E.8.1.2.2 Close-/No-Match Not Applicable ein Dialog 
+ 
+Abbildung 7: Ablauf Namensabgleich VOP mit Mehrfachsignatur und Close-/No-
+Match bzw. Not Applicable in einem Dialog 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+8 
+ 
+ 
+E.8.1.2.3 Match mehrere Dialoge 
+  
+Abbildung 8: Ablauf Namensabgleich VOP mit Mehrfachsignatur und Match in meh-
+reren Dialogen 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit HKTAN 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+9 
+ 
+ 
+E.8.1.2.4 Close-/No-Match Not Applicable mehrere Dialoge 
+ 
+ 
+Abbildung 9: Ablauf Namensabgleich VOP mit Mehrfachsignatur und Close-/No-
+Match bzw. Not Applicable in mehreren Dialogen 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit Kryptographie und ggf. Secoder 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+10 
+ 
+ 
+E.8.2 VOP mit Kryptographie und ggf. Secoder   
+Beim Namensabgleich bei der Verwendung von Kryptographie und ggf. Secoder sind 
+folgende Punkte zu beachten: 
+1. HKVPP und der Zahlungsauftrag werden immer zusammen geschickt. 
+2. Auch bei Namensübereinstimmung ist es nicht möglich, dass auf eine Einrei-
+chung des HKVPA verzichtet werden kann. 
+3. Die Abläufe für Match, Close-, No-Match bzw. Not Applicable sind gleich: 
+o Bei Namensgleichheit werden HKVPA und der Zahlungsauftrag und 
+die (Secoder-)Signatur immer zusammen eingereicht. Der HKVPA gilt 
+hier als die Bestätigung, dass der Auftrag ausgeführt werden soll. 
+o Bei Namensabweichungen werden HKVPA und der Zahlungsauftrag 
+immer zusammen eingereicht. Der HKVPA gilt hier als die Bestäti-
+gung, dass der Auftrag trotz Abweichungen ausgeführt werden soll. 
+4. Für die Übermittlung des Prüfungsergebnisses ist ein Aufsetzpunktmechanis-
+mus im HKVPP vorhanden. Der HKVPP muss dann so lange erneut einge-
+reicht werden, bis alle Informationen in den entsprechend häufigen Antworten 
+(HIVPP) übertragen wurden. Er abschließenden Übermittlung des Prüfungs-
+ergebnisses darf die VOP-ID vom Kreditinstitut versendet werden. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit Kryptographie und ggf. Secoder 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+11 
+ 
+ 
+E.8.2.1 Einfachsignatur 
+ 
+Abbildung 10: Ablauf Namensabgleich VOP mit Kryptographie und ggf. Secoder mit 
+Mehrfachsignatur in einem Dialog 
+ 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP mit Kryptographie und ggf. Secoder 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+12 
+ 
+ 
+E.8.2.2 Mehrfachsignatur 
+ 
+Abbildung 11: Ablauf Namensabgleich VOP mit Kryptographie und ggf. Secoder mit 
+Mehrfachsignatur in mehreren Dialogen 
+  
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP beim SRZ-Verfahren 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+13 
+ 
+ 
+E.8.3 VOP beim SRZ-Verfahren 
+Beim SRZ-Verfahren besteht zwischen dem Service-Rechenzentrum (SRZ) und dem 
+Kunden eine Vereinbarung, inwieweit Zahlungsaufträge als Opt-In oder Opt-Out ein-
+gereicht werden.  
+Das SRZ reicht die Zahlungsverkehrsdatei beim Kreditinstitut ein, welches im Falle 
+von Opt-In unmittelbar eine VOP-Prüfung ausführt und das Ergebnis zwischenspei-
+chert. Bei Opt-Out erfolgt keine VOP-Prüfung bei Einreichung. 
+Möchte der Kunde die Zahlungsverkehrsdatei freigeben, wird ihm bei Opt-In das Er-
+gebnis der vorhandenen VOP-Prüfung und die ggf. vorhandenen Aufklärungstexte 
+angezeigt. Bei Opt-Out erhält er den Aufklärungstext übermittelt. 
+Allgemeine Festlegungen: 
+1. Es gelten die Standardabläufe für die verschiedenen Sicherheitsverfahren, 
+wie sie in den Kapiteln E.8.1 bzw. E.8.2 beschrieben sind. 
+2. Das VOP-Prüfungsergebnis kann auch bei Einzelaufträgen als pain.002 zu-
+rückgeliefert werden. 
+3. Es handelt sich FinTS-seitig immer um eine Einfachsignatur. Sollte die Zah-
+lungsverkehrsdatei mehrfach signiert werden müssen, so wird dies auf Seiten 
+des Kreditinstituts gesteuert. 
+Es gibt zwei Standardabläufe für die Freigabe des SRZ-Verfahrens, die in Kapitel 
+E.8.3.1 bzw. E.8.3.2 näher beschrieben werden: 
+E.8.3.1 VOP-Prüfung aufgrund der Vereinbarung zwischen SRZ und Kunden 
+Der Kunde hat mit seinem Service-Rechenzentrum vereinbart, ob die Zahlungsauf-
+träge als Opt-Out oder Opt-In ausgeführt werden sollen. Das SRZ liefert die Zahlungs-
+verkehrsdateien mit der entsprechenden EBICS-Auftragsart ein. Das Kreditinstitut 
+führt bei Einlieferung der Zahlungsverkehrsdatei bei Opt-In eine VOP-Prüfung aus 
+und hält diese für die Freigabe durch den Kunden vor.  
+Im Gegensatz zur direkten Einreichung eines Zahlungsverkehrsauftrags durch den 
+Kunden ist eine eventuelle VOP-Prüfung oder Verzicht darauf bereits vorab erfolgt. 
+Insofern ist eine Steuerung in dieser Ablaufvariante (im Gegensatz zur Variante, die 
+in Kapitel E.8.3.2 beschrieben wird) in Hinblick auf Opt-In oder Opt-Out durch die 
+Einreichung von HKVPP oder HKVOO nicht mehr möglich, sie ist aber auch nicht 
+mehr notwendig.  
+Festlegungen:  
+1. Die Übermittlung eines möglichen VOP-Ergebnisses wird im VOP-
+Standardablauf mit dem Geschäftsvorfall „Zahlungsverkehrsdatei freigeben“ 
+(HKZDF) ausgelöst. Sollten neben dem HKZDF andere Geschäftsvorfälle eine 
+freigebende Wirkung von Zahlungsverkehrsdateien haben (z.B. HKZDA), so 
+sind diese neben dem HKZDF in „Parameter Namensabgleich Prüfauftrag“ 
+(HIVPPS) als „VOP-pflichtiger Zahlungsverkehrsauftrag“ einzutragen und ent-
+sprechend zu behandeln. 
+2. Die unter 1. in HIVPPS eingetragenen SRZ-Geschäftsvorfälle werden jedoch 
+nicht in „Parameter Namensabgleich Opt-Out“ (HIVOOS) als „Opt-Out Zah-
+lungsverkehrsauftrag“ eingetragen. Ein Kundenprodukt erkennt hieran, dass 
+die Vereinbarung des Kunden mit dem SRZ seine Gültigkeit behält und die 
+unten beschriebenen Beispielabläufe gelten. 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP beim SRZ-Verfahren 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+14 
+ 
+ 
+3. Die Lieferung sowohl des VOP-Prüfungsergebnisses mit einem eventuell vor-
+handenen Aufklärungstext (Einreichung durch das SRZ als Opt-In), als auch 
+des „Aufklärungstextes Opt-Out“ (Einreichung durch das SRZ als Opt-Out) er-
+folgt in beiden Fällen im „Namensabgleich Prüfergebnis“ (HIVPP).  
+4. Im Falle von Opt-Out ist HIVPP vom Kreditinstitut wie HIVOO zu belegen und 
+vom Kundenprodukt entsprechend zu interpretieren. Die vorhandenen Polling-
+Mechanismen des HIVPP sind auch im Opt-Out-Fall einsetzbar. 
+5. Möchte ein Kunde, dass seine Zahlungsverkehrsdatei bzgl. des Namensab-
+gleichs vom Kreditinstitut anders behandelt werden soll, als es die Auftragsart 
+des SRZ vorgibt, so kann er die Datei lediglich mit „Zahlungsverkehrsdatei 
+löschen“ (HKZDL) löschen und neu einreichen (lassen).  
+E.8.3.1.1 Beispielablauf DSRZ Opt-In 
+ 
+Abbildung 12: Ablauf bei Einreichung durch das SRZ als Opt-In1 
+ 
+1 Es gelten sinngemäß die Fußnoten zu Abbildung 1 in Kapitel C.10.7 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP beim SRZ-Verfahren 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+15 
+ 
+ 
+E.8.3.1.2 Beispielablauf DSRZ Opt-Out 
+ 
+Abbildung 13: Ablauf bei Einreichung durch das SRZ als Opt-Out2 
+E.8.3.2 VOP-Prüfung unabhängig von der Vereinbarung zwischen SRZ und Kunden 
+Der Kunde hat mit seinem Service-Rechenzentrum zwar vereinbart, ob die Zahlungs-
+aufträge als Opt-Out oder Opt-In ausgeführt werden sollen, dem Kunden soll aber 
+ermöglicht werden, unabhängig von dieser Vereinbarung nachträglich zu entschei-
+den, ob er die Zahlungsverkehrsdatei als Opt-In oder Opt-Out ausführen möchte.   
+Eine Steuerung in Hinblick auf Opt-In oder Opt-Out erfolgt in dieser Ablaufvariante 
+(im Gegensatz zur Variante, die in Kapitel E.8.3.1 bzw. E.8.3.2 beschrieben wird) 
+durch die Einreichung von HKVPP oder HKVOO.  
+Festlegungen:  
+1. Die VOP-Prüfung bzw. der Verzicht darauf werden mit dem Geschäftsvorfall 
+„Zahlungsverkehrsdatei freigeben“ (HKZDF) ausgelöst. Dieser wird zusam-
+men mit HKVPP bzw. HKVOO eingereicht.  
+2. Sollten neben dem HKZDF andere Geschäftsvorfälle eine freigebende Wir-
+kung von Zahlungsverkehrsdateien haben (z.B. HKZDA), so sind diese neben 
+dem HKZDF in „Parameter Namensabgleich Prüfauftrag“ (HIVPPS) ebenfalls 
+als „VOP-pflichtiger Zahlungsverkehrsauftrag“ einzutragen und entsprechend 
+zu behandeln.  
+3. Die unter 2. in HIVPPS eingetragenen SRZ-Geschäftsvorfälle werden eben-
+falls in „Parameter Namensabgleich Opt-Out“ (HIVOOS) als „Opt-Out Zah-
+lungsverkehrsauftrag“ eingetragen. Ein Kundenprodukt erkennt hieran, dass 
+die Vereinbarung des Kunden mit dem SRZ vom Kunden bei der Freigabe 
+abgeändert werden kann und die unten beschriebenen Beispielabläufe gelten. 
+  
+ 
+2 Es gilt sinngemäß die Fußnote zu Abbildung 2 in Kapitel C.10.7 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP beim SRZ-Verfahren 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+16 
+ 
+ 
+ 
+E.8.3.2.1 Beispielablauf Opt-In bei SRZ-Einreichung, Kundenwunsch bei 
+Freigabe: Opt-In 
+ 
+ 
+Abbildung 14 Ablauf bei Einreichung durch das SRZ als Opt-In, Kundenwunsch bei 
+Freigabe: Opt-In3 
+ 
+3 Es gelten sinngemäß die Fußnoten zu Abbildung 1 in Kapitel in Kapitel C.10.7 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP beim SRZ-Verfahren 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+17 
+ 
+ 
+E.8.3.2.2 Beispielablauf Opt-In bei SRZ-Einreichung, Kundenwunsch bei 
+Freigabe: Opt-Out 
+ 
+Abbildung 15: Ablauf bei Einreichung durch das SRZ als Opt-In, Kundenwunsch bei 
+Freigabe: Opt-Out4 
+ 
+4 Es gilt sinngemäß die Fußnote zu Abbildung 2 in Kapitel C.10.7 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP beim SRZ-Verfahren 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+18 
+ 
+ 
+E.8.3.2.3 Beispielablauf Opt-Out bei SRZ-Einreichung, Kundenwunsch bei 
+Freigabe: Opt-Out 
+ 
+Abbildung 16: Ablauf bei Einreichung durch das SRZ als Opt-Out, Kundenwunsch bei 
+Freigabe: Opt-Out5 
+  
+ 
+5 Es gilt sinngemäß die Fußnote zu Abbildung 2 in Kapitel C.10.7 
+Financial Transaction Services (FinTS) 
+Dokument: Verification of Payee 
+Version: 
+V1.01, FV 
+Kapitel: 
+E 
+Kapitel: Anlagen 
+Abschnitt: VOP beim SRZ-Verfahren 
+ 
+Stand: 
+27.06.2025 
+Seite: 
+19 
+ 
+ 
+E.8.3.2.4 Beispielablauf Opt-Out bei SRZ-Einreichung, Kundenwunsch bei 
+Freigabe: Opt-In 
+
+ 
+ 
+Implementierungsbedingt kann es vorkommen, dass eine VOP-
+Prüfung für eine mit Opt-Out eingereichten Zahlungsverkehrsdatei 
+nicht mehr nachträglich durch das Institut erfolgen kann. In diesem 
+Falle wird das Institut den Kundenwunsch einer Ausführung mit Opt-
+In abweisen. Dem Kunden bleibt es dann überlassen, die Zahlungs-
+verkehrsdatei mit Opt-Out auszuführen oder sie mit „Zahlungsver-
+kehrsdatei löschen“ (HKZDL) zu löschen und neu einzureichen bzw. 
+einreichen zu lassen.  
+ 
+ 
+Abbildung 17: Ablauf bei Einreichung durch das SRZ als Opt-Out, Kundenwunsch 
+bei Freigabe: Opt-In6 
+ 
+6 Es gelten sinngemäß die Fußnoten zu Abbildung 1 in Kapitel in Kapitel C.10.7 
