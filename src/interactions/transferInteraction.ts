@@ -23,7 +23,7 @@ export interface TransferRequest {
 	purpose: string;
 	/** End-to-end ID for tracking (optional) */
 	endToEndId?: string;
-	/** Debtor name (optional, will use account holder if not provided) */
+	/** Debtor name (optional, defaults to registered account holder for name verification) */
 	debtorName?: string;
 }
 
@@ -89,7 +89,8 @@ export class TransferInteraction extends CustomerOrderInteraction {
 		const messageId = `MSG-${now.getTime()}`;
 		const endToEndId = transfer.endToEndId || 'NOTPROVIDED';
 		const creationDateTime = now.toISOString();
-		const debtorName = transfer.debtorName || 'Account Holder';
+		// Use account holder name from account for name verification (Namensabgleich)
+		const debtorName = transfer.debtorName || account.holder1;
 
 		// Format amount with 2 decimal places
 		const formattedAmount = transfer.amount.toFixed(2);
