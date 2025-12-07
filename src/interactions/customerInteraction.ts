@@ -3,6 +3,7 @@ import { Dialog } from '../dialog.js';
 import { FinTSConfig } from '../config.js';
 import { Message } from '../message.js';
 import { Segment } from '../segment.js';
+import { Statement } from '../statement.js';
 import { HITAN, HITANSegment } from '../segments/HITAN.js';
 import { HNHBK, HNHBKSegment } from '../segments/HNHBK.js';
 
@@ -26,6 +27,10 @@ export interface ClientResponse {
 	tanReference?: string;
 	tanChallenge?: string;
 	tanMediaName?: string;
+}
+
+export interface StatementResponse extends ClientResponse {
+	statements: Statement[];
 }
 
 export abstract class CustomerInteraction {

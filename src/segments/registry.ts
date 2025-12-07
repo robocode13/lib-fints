@@ -27,60 +27,64 @@ import { HISAL } from './HISAL.js';
 import { HKKAZ } from './HKKAZ.js';
 import { HIKAZ } from './HIKAZ.js';
 import { HIKAZS } from './HIKAZS.js';
+import { HKCAZ } from './HKCAZ.js';
+import { HICAZ } from './HICAZ.js';
+import { HICAZS } from './HICAZS.js';
 import { HITAB } from './HITAB.js';
 import { HKWPD } from './HKWPD.js';
 import { HIWPD } from './HIWPD.js';
-import { DIKKU } from "./DIKKU.js";
-import { DKKKU } from "./DKKKU.js";
+import { DIKKU } from './DIKKU.js';
+import { DKKKU } from './DKKKU.js';
 import { UNKNOW } from '../unknownSegment.js';
 import { PARTED } from '../partedSegment.js';
 
 const registry = new Map<string, SegmentDefinition>();
 
 export function registerSegments() {
-  registerSegmentDefinition(new HNHBK());
-  registerSegmentDefinition(new HNHBS());
-  registerSegmentDefinition(new HNVSK());
-  registerSegmentDefinition(new HNVSD());
-  registerSegmentDefinition(new HNSHK());
-  registerSegmentDefinition(new HNSHA());
-  registerSegmentDefinition(new HKIDN());
-  registerSegmentDefinition(new HKVVB());
-  registerSegmentDefinition(new HKSYN());
-  registerSegmentDefinition(new HKTAN());
-  registerSegmentDefinition(new HKTAB());
-  registerSegmentDefinition(new HIRMG());
-  registerSegmentDefinition(new HIRMS());
-  registerSegmentDefinition(new HIBPA());
-  registerSegmentDefinition(new HIKOM());
-  registerSegmentDefinition(new HIKIM());
-  registerSegmentDefinition(new HISYN());
-  registerSegmentDefinition(new HITAB());
-  registerSegmentDefinition(new HIPINS());
-  registerSegmentDefinition(new HITAN());
-  registerSegmentDefinition(new HITANS());
-  registerSegmentDefinition(new HIUPA());
-  registerSegmentDefinition(new HIUPD());
-  registerSegmentDefinition(new HKEND());
-  registerSegmentDefinition(new HKSAL());
-  registerSegmentDefinition(new HISAL());
-  registerSegmentDefinition(new HKKAZ());
-  registerSegmentDefinition(new DKKKU());
-  registerSegmentDefinition(new DIKKU());
-  registerSegmentDefinition(new HIKAZ());
-  registerSegmentDefinition(new HIKAZS());
-  registerSegmentDefinition(new HKWPD());
-  registerSegmentDefinition(new HIWPD());
-  registerSegmentDefinition(new UNKNOW());
-  registerSegmentDefinition(new PARTED());
+	registerSegmentDefinition(new HNHBK());
+	registerSegmentDefinition(new HNHBS());
+	registerSegmentDefinition(new HNVSK());
+	registerSegmentDefinition(new HNVSD());
+	registerSegmentDefinition(new HNSHK());
+	registerSegmentDefinition(new HNSHA());
+	registerSegmentDefinition(new HKIDN());
+	registerSegmentDefinition(new HKVVB());
+	registerSegmentDefinition(new HKSYN());
+	registerSegmentDefinition(new HKTAN());
+	registerSegmentDefinition(new HKTAB());
+	registerSegmentDefinition(new HIRMG());
+	registerSegmentDefinition(new HIRMS());
+	registerSegmentDefinition(new HIBPA());
+	registerSegmentDefinition(new HIKOM());
+	registerSegmentDefinition(new HIKIM());
+	registerSegmentDefinition(new HISYN());
+	registerSegmentDefinition(new HITAB());
+	registerSegmentDefinition(new HIPINS());
+	registerSegmentDefinition(new HITAN());
+	registerSegmentDefinition(new HITANS());
+	registerSegmentDefinition(new HIUPA());
+	registerSegmentDefinition(new HIUPD());
+	registerSegmentDefinition(new HKEND());
+	registerSegmentDefinition(new HKSAL());
+	registerSegmentDefinition(new HISAL());
+	registerSegmentDefinition(new HKKAZ());
+	registerSegmentDefinition(new DKKKU());
+	registerSegmentDefinition(new DIKKU());
+	registerSegmentDefinition(new HIKAZ());
+	registerSegmentDefinition(new HIKAZS());
+	registerSegmentDefinition(new HKCAZ());
+	registerSegmentDefinition(new HICAZ());
+	registerSegmentDefinition(new HICAZS());
+	registerSegmentDefinition(new HKWPD());
+	registerSegmentDefinition(new HIWPD());
+	registerSegmentDefinition(new UNKNOW());
+	registerSegmentDefinition(new PARTED());
 }
 
-export function getSegmentDefinition(
-  id: string
-): SegmentDefinition | undefined {
-  return registry.get(id);
+export function getSegmentDefinition(id: string): SegmentDefinition | undefined {
+	return registry.get(id);
 }
 
 function registerSegmentDefinition(definition: SegmentDefinition) {
-  registry.set(definition.id, definition);
+	registry.set(definition.id, definition);
 }

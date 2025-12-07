@@ -1,6 +1,8 @@
 import { Dialog } from './dialog.js';
 import { HKTAB } from './segments/HKTAB.js';
-import { StatementResponse, StatementInteraction } from './interactions/statementInteraction.js';
+import { StatementResponse } from './interactions/customerInteraction.js';
+import { StatementInteractionMT940 } from './interactions/statementInteractionMT940.js';
+import { StatementInteractionCAMT } from './interactions/statementInteractionCAMT.js';
 import { AccountBalanceResponse, BalanceInteraction } from './interactions/balanceInteraction.js';
 import { PortfolioResponse, PortfolioInteraction } from './interactions/portfolioInteraction.js';
 import { FinTSConfig } from './config.js';
@@ -9,10 +11,11 @@ import { TanMediaInteraction, TanMediaResponse } from './interactions/tanMediaIn
 import { TanMethod } from './tanMethod.js';
 import { HKSAL } from './segments/HKSAL.js';
 import { HKKAZ } from './segments/HKKAZ.js';
+import { HKCAZ } from './segments/HKCAZ.js';
 import { HKWPD } from './segments/HKWPD.js';
 import { DKKKU } from './segments/DKKKU.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
-import {CreditCardStatementInteraction} from "./interactions/creditcardStatementInteraction.js";
+import { CreditCardStatementInteraction } from './interactions/creditcardStatementInteraction.js';
 
 export interface SynchronizeResponse extends InitResponse {}
 
@@ -128,9 +131,16 @@ export class FinTSClient {
 	 * @returns true if the bank (and account) supports fetching account statements
 	 */
 	canGetAccountStatements(accountNumber?: string): boolean {
-		return accountNumber
-			? this.config.isAccountTransactionSupported(accountNumber, HKKAZ.Id)
-			: this.config.isTransactionSupported(HKKAZ.Id);
+		if (accountNumber) {
+			// Check if either CAMT or MT940 is supported for this account
+			return (
+				this.config.isAccountTransactionSupported(accountNumber, HKCAZ.Id) ||
+				this.config.isAccountTransactionSupported(accountNumber, HKKAZ.Id)
+			);
+		} else {
+			// Check if either CAMT or MT940 is supported by the bank
+			return this.config.isTransactionSupported(HKCAZ.Id) || this.config.isTransactionSupported(HKKAZ.Id);
+		}
 	}
 
 	/**
@@ -138,10 +148,31 @@ export class FinTSClient {
 	 * @param accountNumber - the account number to fetch the statements for, must be an account available in the config.baningInformation.UPD.accounts
 	 * @param from - an optional start date of the period to fetch the statements for
 	 * @param to - an optional end date of the period to fetch the statements for
+	 * @param preferCamt - whether to prefer CAMT format over MT940 when both are supported (default: true)
 	 * @returns an account statements response containing an array of statements
 	 */
-	async getAccountStatements(accountNumber: string, from?: Date, to?: Date): Promise<StatementResponse> {
-		return this.startCustomerOrderInteraction(new StatementInteraction(accountNumber, from, to));
+	async getAccountStatements(
+		accountNumber: string,
+		from?: Date,
+		to?: Date,
+		preferCamt: boolean = true
+	): Promise<StatementResponse> {
+		// Check what formats the bank supports
+		const camtSupported = this.config.isAccountTransactionSupported(accountNumber, 'HKCAZ');
+		const mt940Supported = this.config.isAccountTransactionSupported(accountNumber, 'HKKAZ');
+
+		if (!camtSupported && !mt940Supported) {
+			throw Error(`Account ${accountNumber} does not support account statements`);
+		}
+
+		// Choose format based on support and preference
+		const useCAMT = (preferCamt && camtSupported) || (!mt940Supported && camtSupported);
+
+		if (useCAMT) {
+			return this.startCustomerOrderInteraction(new StatementInteractionCAMT(accountNumber, from, to));
+		} else {
+			return this.startCustomerOrderInteraction(new StatementInteractionMT940(accountNumber, from, to));
+		}
 	}
 
 	/**
@@ -194,7 +225,6 @@ export class FinTSClient {
 	async getPortfolioWithTan(tanReference: string, tan?: string): Promise<PortfolioResponse> {
 		return this.continueCustomerInteractionWithTan(tanReference, tan);
 	}
-
 
 	/**
 	 * Checks if the bank supports fetching credit card statements in general or for the given account number

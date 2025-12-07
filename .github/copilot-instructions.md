@@ -37,6 +37,33 @@ if (response.requiresTan) {
 
 All segments must be registered in `src/segments/registry.ts` - the `registerSegments()` call in `index.ts` is critical for protocol functionality.
 
+### DataElement maxCount Rules
+
+**Critical encoding constraint**: DataElements with `maxCount > 1` can only be the **last element** in a DataGroup or segment. This is a FinTS protocol requirement for proper parsing.
+
+**Correct patterns**:
+
+```typescript
+// ✅ DataGroup with maxCount=1, internal element has maxCount>1 and is last
+new DataGroup('acceptedFormats', [new Text('format', 1, 99)], 1, 1);
+
+// ✅ Direct element with maxCount>1 as last element in segment
+elements = [
+	new Text('someField', 1, 1),
+	new Binary('transactions', 0, 10000), // Last element can have maxCount>1
+];
+```
+
+**Incorrect patterns**:
+
+```typescript
+// ❌ DataElement with maxCount>1 not as last element
+elements = [
+	new Text('formats', 1, 99), // maxCount>1 but not last!
+	new YesNo('someFlag', 1, 1), // This breaks parsing
+];
+```
+
 ### Testing Approach
 
 - Use Vitest with mock patterns for `Dialog.prototype` methods
