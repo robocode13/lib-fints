@@ -9,12 +9,13 @@ import { HKTAN, HKTANSegment } from './segments/HKTAN.js';
 import { HNHBK, HNHBKSegment } from './segments/HNHBK.js';
 import { decode } from './segment.js';
 import { PARTED, PartedSegment } from './partedSegment.js';
-import { ClientResponse, CustomerOrderInteraction } from './interactions/customerInteraction.js';
+import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 
 export class Dialog {
 	dialogId: string = '0';
 	lastMessageNumber = 0;
+	interactions: CustomerInteraction[] = [];
 	isInitialized = false;
 	hasEnded = false;
 	httpClient: HttpClient;
@@ -25,6 +26,13 @@ export class Dialog {
 		}
 
 		this.httpClient = this.getHttpClient();
+	}
+
+	get lastInteraction(): CustomerInteraction | undefined {
+		if (this.interactions.length === 0) {
+			return undefined;
+		}
+		return this.interactions[this.interactions.length - 1];
 	}
 
 	async initialize(interaction: InitDialogInteraction): Promise<InitResponse> {
@@ -41,6 +49,7 @@ export class Dialog {
 		}
 
 		interaction.dialog = this;
+		this.interactions.push(interaction);
 		this.lastMessageNumber++;
 		const message = new CustomerMessage(this.dialogId, this.lastMessageNumber);
 
@@ -144,6 +153,7 @@ export class Dialog {
 		}
 
 		interaction.dialog = this;
+		this.interactions.push(interaction);
 		this.lastMessageNumber++;
 		const message = new CustomerOrderMessage(
 			interaction.segId,
@@ -221,9 +231,12 @@ export class Dialog {
 		return interaction.getClientResponse<TClientResponse>(responseMessage);
 	}
 
-	async sendTanMessage(refSegId: string, tanOrderReference: string, tan?: string): Promise<Message> {
-		if (!refSegId || !tanOrderReference) {
-			throw Error('refSegId and tanOrderReference must be provided to send a TAN message');
+	async continueCustomerOrderInteraction<TClientResponse>(
+		tanOrderReference: string,
+		tan?: string
+	): Promise<TClientResponse> {
+		if (!tanOrderReference) {
+			throw Error('tanOrderReference must be provided to continue a customer order with a TAN');
 		}
 
 		if (!this.config.selectedTanMethod?.isDecoupled && !tan) {
@@ -235,9 +248,14 @@ export class Dialog {
 		}
 
 		if (this.hasEnded) {
-			throw Error('cannot send a TAN message when dialog has alreay ended');
+			throw Error('cannot continue a customer order when dialog has already ended');
 		}
 
+		if (this.interactions.length === 0) {
+			throw new Error('No running customer interaction found to continue');
+		}
+
+		const interaction = this.interactions[this.interactions.length - 1];
 		this.lastMessageNumber++;
 		const message = new CustomerMessage(this.dialogId, this.lastMessageNumber);
 
@@ -257,7 +275,7 @@ export class Dialog {
 			const hktan: HKTANSegment = {
 				header: { segId: HKTAN.Id, segNr: 0, version: this.config.selectedTanMethod!.version },
 				tanProcess: this.config.selectedTanMethod?.isDecoupled ? TanProcess.Status : TanProcess.Process2,
-				segId: refSegId,
+				segId: interaction.segId,
 				orderRef: tanOrderReference,
 				nextTan: false,
 				tanMedia:
@@ -270,10 +288,8 @@ export class Dialog {
 		}
 
 		const responseMessage = await this.httpClient.sendMessage(message);
-
 		this.checkEnded(responseMessage);
-
-		return responseMessage;
+		return interaction.getClientResponse(responseMessage) as TClientResponse;
 	}
 
 	private checkEnded(initResponse: Message) {
