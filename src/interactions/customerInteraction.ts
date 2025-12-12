@@ -33,8 +33,8 @@ export abstract class CustomerInteraction {
 
 	constructor(public segId: string) {}
 
-	getSegments(init: FinTSConfig): Segment[] {
-		return this.createSegments(init);
+	getSegments(config: FinTSConfig): Segment[] {
+		return this.createSegments(config);
 	}
 
 	getClientResponse<TResponse extends ClientResponse>(message: Message): TResponse {
@@ -47,7 +47,7 @@ export abstract class CustomerInteraction {
 		return clientResponse as TResponse;
 	}
 
-	protected abstract createSegments(init: FinTSConfig): Segment[];
+	protected abstract createSegments(config: FinTSConfig): Segment[];
 	protected abstract handleResponse(response: Message, clientResponse: ClientResponse): void;
 
 	private handleBaseResponse(response: Message): ClientResponse {

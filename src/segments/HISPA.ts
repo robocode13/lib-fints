@@ -1,9 +1,9 @@
-import { InternationalAccount, InternationalAccountGroup } from '../dataGroups/InternationalAccount.js';
+import { SepaAccount, SepaAccountGroup } from '../dataGroups/SepaAccount.js';
 import { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HISPASegment = Segment & {
-	sepaAccounts: InternationalAccount[];
+	sepaAccounts: SepaAccount[];
 };
 
 /**
@@ -16,5 +16,5 @@ export class HISPA extends SegmentDefinition {
 	constructor() {
 		super(HISPA.Id);
 	}
-	elements = [new InternationalAccountGroup('sepaAccounts', 0, 999)];
+	elements = [new SepaAccountGroup('sepaAccounts', 0, 999)];
 }

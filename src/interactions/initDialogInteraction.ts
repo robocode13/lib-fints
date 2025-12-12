@@ -163,7 +163,6 @@ export class InitDialogInteraction extends CustomerInteraction {
 		}
 
 		const tanMethodMessaqe = bankAnswers.find((answer) => answer.code === 3920);
-		let availableTanMethodIds: number[] = [];
 
 		if (tanMethodMessaqe && this.config.bankingInformation.bpd) {
 			this.config.bankingInformation.bpd.availableTanMethodIds =
