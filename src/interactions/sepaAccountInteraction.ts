@@ -1,13 +1,14 @@
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './customerInteraction.js';
+import { ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
 import { Message } from '../message.js';
 import { Segment } from '../segment.js';
 import { HISPA, HISPASegment } from '../segments/HISPA.js';
 import { HKSPA, HKSPASegment } from '../segments/HKSPA.js';
-import { InternationalAccount } from '../dataGroups/InternationalAccount.js';
 import { FinTSConfig } from '../config.js';
+import { SepaAccount } from '../dataGroups/SepaAccount.js';
+import { sep } from 'path';
 
 export interface SepaAccountResponse extends ClientResponse {
-	sepaAccounts?: InternationalAccount[];
+	sepaAccounts?: SepaAccount[];
 }
 
 export class SepaAccountInteraction extends CustomerOrderInteraction {
@@ -46,6 +47,15 @@ export class SepaAccountInteraction extends CustomerOrderInteraction {
 		const hispa = response.findSegment<HISPASegment>(HISPA.Id);
 		if (hispa) {
 			clientResponse.sepaAccounts = hispa.sepaAccounts || [];
+
+			clientResponse.sepaAccounts.forEach((sepaAccount) => {
+				const bankAccount = this.dialog!.config.getBankAccount(sepaAccount.accountNumber);
+				if (bankAccount) {
+					bankAccount.isSepaAccount = sepaAccount.isSepaAccount;
+					bankAccount.iban = sepaAccount.iban;
+					bankAccount.bic = sepaAccount.bic;
+				}
+			});
 		}
 	}
 }

@@ -2,15 +2,13 @@ import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from './DataGroup.js';
 import { Identification } from '../dataElements/Identification.js';
 import { BankIdentification } from './BankIdentification.js';
-import { Bank } from './Account.js';
+import { Account } from './Account.js';
 import { YesNo } from '../dataElements/YesNo.js';
 
-export type SepaAccount = {
+export type SepaAccount = Account & {
+	isSepaAccount: boolean;
 	iban?: string;
 	bic?: string;
-	accountNumber?: string;
-	subAccountId?: string;
-	bank?: Bank;
 };
 
 export class SepaAccountGroup extends DataGroup {

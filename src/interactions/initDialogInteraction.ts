@@ -70,8 +70,6 @@ export class InitDialogInteraction extends CustomerInteraction {
 	}
 
 	handleResponse(response: Message, clientResponse: InitResponse) {
-		const currentBankingInformationSnapshot = JSON.stringify(this.config.bankingInformation);
-
 		const hisyn = response.findSegment<HISYNSegment>(HISYN.Id);
 		if (hisyn && hisyn.systemId) {
 			this.config.bankingInformation.systemId = hisyn.systemId;
@@ -175,6 +173,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 			const hiupds = response.findAllSegments<HIUPDSegment>(HIUPD.Id);
 			const accounts: BankAccount[] = hiupds.map((upd) => {
 				return {
+					isSepaAccount: false,
 					accountNumber: upd.account.accountNumber,
 					subAccountId: upd.account.subAccountId,
 					bank: upd.account.bank,
@@ -204,8 +203,6 @@ export class InitDialogInteraction extends CustomerInteraction {
 		this.config.bankingInformation.bankMessages = bankMessages;
 
 		clientResponse.bankingInformation = this.config.bankingInformation;
-		clientResponse.bankingInformationUpdated =
-			currentBankingInformationSnapshot !== JSON.stringify(this.config.bankingInformation);
 	}
 }
 

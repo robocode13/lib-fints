@@ -40,9 +40,14 @@ export abstract class CustomerInteraction {
 	getClientResponse<TResponse extends ClientResponse>(message: Message): TResponse {
 		const clientResponse = this.handleBaseResponse(message);
 
+		const currentBankingInformationSnapshot = JSON.stringify(this.dialog?.config.bankingInformation);
+
 		if (clientResponse.success && !clientResponse.requiresTan) {
 			this.handleResponse(message, clientResponse);
 		}
+
+		clientResponse.bankingInformationUpdated =
+			currentBankingInformationSnapshot !== JSON.stringify(this.dialog?.config.bankingInformation);
 
 		return clientResponse as TResponse;
 	}

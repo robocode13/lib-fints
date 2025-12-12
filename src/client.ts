@@ -4,7 +4,7 @@ import { StatementResponse, StatementInteraction } from './interactions/statemen
 import { AccountBalanceResponse, BalanceInteraction } from './interactions/balanceInteraction.js';
 import { PortfolioResponse, PortfolioInteraction } from './interactions/portfolioInteraction.js';
 import { FinTSConfig } from './config.js';
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
+import { ClientResponse, CustomerOrderInteraction } from './interactions/customerInteraction.js';
 import { TanMediaInteraction, TanMediaResponse } from './interactions/tanMediaInteraction.js';
 import { TanMethod } from './tanMethod.js';
 import { HKSAL } from './segments/HKSAL.js';
@@ -13,7 +13,6 @@ import { HKWPD } from './segments/HKWPD.js';
 import { DKKKU } from './segments/DKKKU.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 import { CreditCardStatementInteraction } from './interactions/creditcardStatementInteraction.js';
-import { SepaAccountInteraction, SepaAccountResponse } from './interactions/sepaAccountInteraction.js';
 
 export interface SynchronizeResponse extends InitResponse {}
 
