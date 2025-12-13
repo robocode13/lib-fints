@@ -5,7 +5,6 @@ import { HISPA, HISPASegment } from '../segments/HISPA.js';
 import { HKSPA, HKSPASegment } from '../segments/HKSPA.js';
 import { FinTSConfig } from '../config.js';
 import { SepaAccount } from '../dataGroups/SepaAccount.js';
-import { sep } from 'path';
 
 export interface SepaAccountResponse extends ClientResponse {
 	sepaAccounts?: SepaAccount[];
