@@ -1,3 +1,4 @@
+import { TextEncoder } from 'node:util';
 import { BankAnswer } from '../bankAnswer.js';
 import { Dialog } from '../dialog.js';
 import { FinTSConfig } from '../config.js';
@@ -5,6 +6,11 @@ import { Message } from '../message.js';
 import { Segment } from '../segment.js';
 import { HITAN, HITANSegment } from '../segments/HITAN.js';
 import { HNHBK, HNHBKSegment } from '../segments/HNHBK.js';
+
+export interface PhotoTan {
+    mimeType: string;
+    image: Uint8Array;
+}
 
 /**
  * The response from the client after a customer interaction
@@ -25,6 +31,7 @@ export interface ClientResponse {
 	requiresTan: boolean;
 	tanReference?: string;
 	tanChallenge?: string;
+    tanPhoto?: PhotoTan;
 	tanMediaName?: string;
 }
 
@@ -49,6 +56,19 @@ export abstract class CustomerInteraction {
 
 	protected abstract createSegments(init: FinTSConfig): Segment[];
 	protected abstract handleResponse(response: Message, clientResponse: ClientResponse): void;
+
+    private parseHHDUC(tanChallengeHHDUC: string) : PhotoTan {
+        let offset = 0;
+        const hhducBytes = new TextEncoder().encode(tanChallengeHHDUC);
+        const countAsString = Array.from(hhducBytes.slice(offset, 2), (b) => String(b)).join('');
+        offset += 2;
+        const count = parseInt(countAsString);
+        const mimeType = Buffer.from(hhducBytes.slice(offset, offset + count)).toString('ascii');
+        offset += count;
+        offset += 2;  // Skip the length of the image data - use the full length of the buffer
+        const image = hhducBytes.slice(offset);
+        return { mimeType, image };
+    }
 
 	private handleBaseResponse(response: Message): ClientResponse {
 		const hnhbk = response.findSegment<HNHBKSegment>(HNHBK.Id);
@@ -76,7 +96,8 @@ export abstract class CustomerInteraction {
 						bankAnswers.find((answer) => answer.code === 3956)?.text ??
 						bankAnswers.find((answer) => answer.code === 3957)?.text ??
 						'',
-					tanMediaName: hitan.tanMedia,
+                    tanPhoto : hitan.challengeHhdUc ? this.parseHHDUC(hitan.challengeHhdUc) : undefined,
+                    tanMediaName: hitan.tanMedia,
 				};
 			} else {
 				throw new Error('HITAN segment not found in response, despite return code indicating security approval');

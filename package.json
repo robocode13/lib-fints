@@ -39,7 +39,7 @@
     "url": "https://github.com/robocode13/lib-fints.git"
   },
   "devDependencies": {
-    "@types/node": "^20.10.6",
+    "@types/node": "^20.19.26",
     "typescript": "^5.3.3",
     "vitest": "^1.6.0"
   }
