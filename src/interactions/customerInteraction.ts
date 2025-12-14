@@ -1,4 +1,3 @@
-import { TextEncoder } from 'node:util';
 import { BankAnswer } from '../bankAnswer.js';
 import { Dialog } from '../dialog.js';
 import { FinTSConfig } from '../config.js';
@@ -59,15 +58,24 @@ export abstract class CustomerInteraction {
 
     private parseHHDUC(tanChallengeHHDUC: string) : PhotoTan {
         let offset = 0;
-        const hhducBytes = new TextEncoder().encode(tanChallengeHHDUC);
-        const countAsString = Array.from(hhducBytes.slice(offset, 2), (b) => String(b)).join('');
+        // convert the string with binary data to a byte array
+        const bytes = new Uint8Array(tanChallengeHHDUC.length);
+        for (let i = 0; i < tanChallengeHHDUC.length; i++) {
+            bytes[i] = tanChallengeHHDUC.charCodeAt(i) & 0xff;
+        }
+        const countAsString = Array.from(bytes.slice(offset, 2), (b) => String(b)).join('');
         offset += 2;
         const count = parseInt(countAsString);
-        const mimeType = Buffer.from(hhducBytes.slice(offset, offset + count)).toString('ascii');
+        const mimeTypeArray = bytes.slice(offset, offset + count);
+        const mimeType = new TextDecoder('iso-8859-1').decode(mimeTypeArray);
         offset += count;
-        offset += 2;  // Skip the length of the image data - use the full length of the buffer
-        const image = hhducBytes.slice(offset);
-        return { mimeType, image };
+        // image size is 2 bytes, little endian
+        const hi = bytes[offset];
+        const lo = bytes[offset + 1];
+        const imageSize = (hi << 8) + lo;
+        offset += 2;
+        const image = bytes.slice(offset, offset + imageSize);
+        return {mimeType, image};
     }
 
 	private handleBaseResponse(response: Message): ClientResponse {
