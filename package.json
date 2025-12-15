@@ -21,9 +21,9 @@
   },
   "scripts": {
     "build": "rm -rf ./dist && tsc",
-    "pack": "npm run build && npm pack --pack-destination ~/npm-repo",
+    "pack": "pnpm run build && pnpm pack --pack-destination ~/npm-repo",
     "test": "vitest",
-    "preprepare": "npm run build"
+    "preprepare": "pnpm run build"
   },
   "keywords": [
     "FinTS",
