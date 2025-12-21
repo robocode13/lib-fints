@@ -5,7 +5,7 @@ import { FinTSConfig } from '../config.js';
 import { HKIDN, HKIDNSegment } from '../segments/HKIDN.js';
 import { BankMessage, BankingInformation } from '../bankingInformation.js';
 import { HKVVB, HKVVBSegment } from '../segments/HKVVB.js';
-import { Language, SyncMode } from '../codes.js';
+import { Language, SyncMode, TanMediaRequirement } from '../codes.js';
 import { HKSYN, HKSYNSegment } from '../segments/HKSYN.js';
 import { HISYN, HISYNSegment } from '../segments/HISYN.js';
 import { BankAnswer } from '../bankAnswer.js';
@@ -21,6 +21,8 @@ import { HIKIMSegment, HIKIM } from '../segments/HIKIM.js';
 import { HIUPDSegment, HIUPD } from '../segments/HIUPD.js';
 import { HKTAB } from '../segments/HKTAB.js';
 import { TanMediaInteraction } from './tanMediaInteraction.js';
+import { HKSPA } from '../segments/HKSPA.js';
+import { SepaAccountInteraction } from './sepaAccountInteraction.js';
 
 export interface InitResponse extends ClientResponse {
 	bankingInformation?: BankingInformation;
@@ -171,7 +173,6 @@ export class InitDialogInteraction extends CustomerInteraction {
 			const hiupds = response.findAllSegments<HIUPDSegment>(HIUPD.Id);
 			const accounts: BankAccount[] = hiupds.map((upd) => {
 				return {
-					isSepaAccount: false,
 					accountNumber: upd.account.accountNumber,
 					subAccountId: upd.account.subAccountId,
 					bank: upd.account.bank,
@@ -202,8 +203,23 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 		clientResponse.bankingInformation = this.config.bankingInformation;
 
-		if (this.config.selectedTanMethod && this.config.isTransactionSupported(HKTAB.Id)) {
+		if (
+			this.config.selectedTanMethod &&
+			this.config.selectedTanMethod.tanMediaRequirement > TanMediaRequirement.NotAllowed &&
+			this.config.isTransactionSupported(HKTAB.Id)
+		) {
 			this.dialog!.addCustomerInteraction(new TanMediaInteraction(), true);
+		}
+
+		const bankAccounts = this.config.bankingInformation?.upd?.bankAccounts;
+
+		if (bankAccounts) {
+			if (
+				bankAccounts.some((account) => account.isSepaAccount === undefined) &&
+				this.config.isTransactionSupported(HKSPA.Id)
+			) {
+				this.dialog!.addCustomerInteraction(new SepaAccountInteraction(), true);
+			}
 		}
 	}
 }

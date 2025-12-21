@@ -6,7 +6,7 @@ import { Account } from './Account.js';
 import { YesNo } from '../dataElements/YesNo.js';
 
 export type SepaAccount = Account & {
-	isSepaAccount: boolean;
+	isSepaAccount?: boolean;
 	iban?: string;
 	bic?: string;
 };
