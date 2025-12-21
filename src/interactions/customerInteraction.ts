@@ -7,6 +7,11 @@ import { Statement } from '../statement.js';
 import { HITAN, HITANSegment } from '../segments/HITAN.js';
 import { HNHBK, HNHBKSegment } from '../segments/HNHBK.js';
 
+export interface PhotoTan {
+	mimeType: string;
+	image: Uint8Array;
+}
+
 /**
  * The response from the client after a customer interaction
  * @property dialogId The dialog ID of the current dialog
@@ -26,6 +31,7 @@ export interface ClientResponse {
 	requiresTan: boolean;
 	tanReference?: string;
 	tanChallenge?: string;
+	tanPhoto?: PhotoTan;
 	tanMediaName?: string;
 }
 
@@ -55,6 +61,28 @@ export abstract class CustomerInteraction {
 	protected abstract createSegments(init: FinTSConfig): Segment[];
 	protected abstract handleResponse(response: Message, clientResponse: ClientResponse): void;
 
+	private parseHHDUC(tanChallengeHHDUC: string): PhotoTan {
+		let offset = 0;
+		// convert the string with binary data to a byte array
+		const bytes = new Uint8Array(tanChallengeHHDUC.length);
+		for (let i = 0; i < tanChallengeHHDUC.length; i++) {
+			bytes[i] = tanChallengeHHDUC.charCodeAt(i) & 0xff;
+		}
+		const countAsString = Array.from(bytes.slice(offset, 2), (b) => String(b)).join('');
+		offset += 2;
+		const count = parseInt(countAsString);
+		const mimeTypeArray = bytes.slice(offset, offset + count);
+		const mimeType = new TextDecoder('iso-8859-1').decode(mimeTypeArray);
+		offset += count;
+		// image size is 2 bytes, little endian
+		const hi = bytes[offset];
+		const lo = bytes[offset + 1];
+		const imageSize = (hi << 8) + lo;
+		offset += 2;
+		const image = bytes.slice(offset, offset + imageSize);
+		return { mimeType, image };
+	}
+
 	private handleBaseResponse(response: Message): ClientResponse {
 		const hnhbk = response.findSegment<HNHBKSegment>(HNHBK.Id);
 		const dialogId = hnhbk?.dialogId ?? '';
@@ -81,6 +109,7 @@ export abstract class CustomerInteraction {
 						bankAnswers.find((answer) => answer.code === 3956)?.text ??
 						bankAnswers.find((answer) => answer.code === 3957)?.text ??
 						'',
+					tanPhoto: hitan.challengeHhdUc ? this.parseHHDUC(hitan.challengeHhdUc) : undefined,
 					tanMediaName: hitan.tanMedia,
 				};
 			} else {
