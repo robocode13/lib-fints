@@ -3,7 +3,6 @@ import { TanMediaRequirement, TanProcess } from './codes.js';
 import { HttpClient } from './httpClient.js';
 import { CustomerMessage, CustomerOrderMessage, Message } from './message.js';
 import { SegmentWithContinuationMark } from './segment.js';
-import { HKEND, HKENDSegment } from './segments/HKEND.js';
 import { HKIDN } from './segments/HKIDN.js';
 import { HKTAN, HKTANSegment } from './segments/HKTAN.js';
 import { HNHBK, HNHBKSegment } from './segments/HNHBK.js';
@@ -11,6 +10,7 @@ import { decode } from './segment.js';
 import { PARTED, PartedSegment } from './partedSegment.js';
 import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
+import { EndDialogInteraction } from './interactions/endDialogInteraction.js';
 
 export class Dialog {
 	dialogId: string = '0';
@@ -28,15 +28,15 @@ export class Dialog {
 		}
 
 		this.httpClient = this.getHttpClient();
-		this.addCustomerInteraction(new InitDialogInteraction(this.config, syncSystemId));
+		this.interactions.push(new InitDialogInteraction(this.config, syncSystemId));
+		this.interactions.push(new EndDialogInteraction());
+		this.interactions.forEach((interaction) => {
+			interaction.dialog = this;
+		});
 	}
 
 	get currentInteraction(): CustomerInteraction {
 		return this.interactions[this.currentInteractionIndex];
-	}
-
-	get lastInteraction(): CustomerInteraction {
-		return this.interactions[this.interactions.length - 1];
 	}
 
 	async start(): Promise<Map<string, ClientResponse>> {
@@ -57,14 +57,18 @@ export class Dialog {
 		do {
 			const message = this.createCurrentCustomerMessage();
 			const responseMessage = await this.httpClient.sendMessage(message);
-			await this.handleMessageContinuations(message, responseMessage, this.currentInteraction);
-			this.checkEnded(responseMessage);
-			clientResponse = this.currentInteraction.handleClientResponse<ClientResponse>(responseMessage);
+			await this.handlePartedMessages(message, responseMessage, this.currentInteraction);
+			clientResponse = this.currentInteraction.handleClientResponse(responseMessage);
+			this.checkEnded(clientResponse);
 			this.dialogId = clientResponse.dialogId;
 			this.responses.set(this.currentInteraction.segId, clientResponse);
 
 			if (clientResponse.success && !clientResponse.requiresTan) {
 				this.currentInteractionIndex++;
+
+				if (this.currentInteractionIndex > 0) {
+					this.isInitialized = true;
+				}
 			}
 		} while (
 			!this.hasEnded &&
@@ -72,10 +76,6 @@ export class Dialog {
 			clientResponse.success &&
 			!clientResponse.requiresTan
 		);
-
-		if (!this.hasEnded && this.currentInteractionIndex === this.interactions.length) {
-			await this.end();
-		}
 
 		return this.responses;
 	}
@@ -93,7 +93,7 @@ export class Dialog {
 			throw Error('cannot continue a customer order when dialog has already ended');
 		}
 
-		if (this.currentInteractionIndex >= this.interactions.length) {
+		if (!this.currentInteraction) {
 			throw new Error('there is no running customer interaction in this dialog to continue');
 		}
 
@@ -106,14 +106,18 @@ export class Dialog {
 				? this.createCurrentTanMessage(tanOrderReference, tan)
 				: this.createCurrentCustomerMessage();
 			const responseMessage = await this.httpClient.sendMessage(message);
-			await this.handleMessageContinuations(message, responseMessage, this.currentInteraction);
-			this.checkEnded(responseMessage);
-			clientResponse = this.currentInteraction.handleClientResponse<ClientResponse>(responseMessage);
+			await this.handlePartedMessages(message, responseMessage, this.currentInteraction);
+			clientResponse = this.currentInteraction.handleClientResponse(responseMessage);
+			this.checkEnded(clientResponse);
 			this.dialogId = clientResponse.dialogId;
 			this.responses.set(this.currentInteraction.segId, clientResponse);
 
 			if (clientResponse.success && !clientResponse.requiresTan) {
 				this.currentInteractionIndex++;
+
+				if (this.currentInteractionIndex > 0) {
+					this.isInitialized = true;
+				}
 			}
 
 			isFirstMessage = false;
@@ -124,10 +128,6 @@ export class Dialog {
 			!clientResponse.requiresTan
 		);
 
-		if (!this.hasEnded && this.currentInteractionIndex === this.interactions.length) {
-			await this.end();
-		}
-
 		return this.responses;
 	}
 
@@ -136,7 +136,7 @@ export class Dialog {
 			throw Error('cannot queue another customer interaction when dialog has already ended');
 		}
 
-		const isCustomerOrder = this.currentInteraction instanceof CustomerOrderInteraction;
+		const isCustomerOrder = interaction instanceof CustomerOrderInteraction;
 
 		if (isCustomerOrder && !this.config.isTransactionSupported(interaction.segId)) {
 			throw Error(`customer order transaction ${interaction.segId} is not supported according to the BPD`);
@@ -149,42 +149,7 @@ export class Dialog {
 			return;
 		}
 
-		this.interactions.push(interaction);
-	}
-
-	private async end(): Promise<boolean> {
-		if (!this.isInitialized || this.hasEnded) {
-			return true;
-		}
-
-		const tanMethod = this.config.selectedTanMethod;
-		const isScaSupported = tanMethod && tanMethod.version >= 6;
-
-		this.lastMessageNumber++;
-		const message = new CustomerMessage(this.dialogId, this.lastMessageNumber);
-
-		if (this.config.userId && this.config.pin) {
-			message.sign(
-				this.config.countryCode,
-				this.config.bankId,
-				this.config.userId,
-				this.config.pin,
-				this.config.bankingInformation.systemId,
-				isScaSupported ? this.config.tanMethodId : undefined
-			);
-		}
-
-		const hkend: HKENDSegment = {
-			header: { segId: HKEND.Id, segNr: 0, version: HKEND.Version },
-			dialogId: this.dialogId,
-		};
-
-		message.addSegment(hkend);
-
-		const responseMessage = await this.httpClient.sendMessage(message);
-
-		this.checkEnded(responseMessage);
-		return this.hasEnded;
+		this.interactions.splice(this.interactions.length - 1, 0, interaction);
 	}
 
 	private createCurrentCustomerMessage(): CustomerMessage {
@@ -273,7 +238,7 @@ export class Dialog {
 		return message;
 	}
 
-	private async handleMessageContinuations(
+	private async handlePartedMessages(
 		message: CustomerMessage,
 		responseMessage: Message,
 		interaction: CustomerInteraction
@@ -312,8 +277,11 @@ export class Dialog {
 		}
 	}
 
-	private checkEnded(initResponse: Message) {
-		if (initResponse.hasReturnCode(100) || initResponse.hasReturnCode(9800)) {
+	private checkEnded(response: ClientResponse) {
+		if (
+			response.bankAnswers.some((answer) => answer.code === 100) ||
+			response.bankAnswers.some((answer) => answer.code === 9000)
+		) {
 			this.hasEnded = true;
 		}
 	}

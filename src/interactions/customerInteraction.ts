@@ -37,7 +37,7 @@ export abstract class CustomerInteraction {
 		return this.createSegments(config);
 	}
 
-	handleClientResponse<TResponse extends ClientResponse>(message: Message): TResponse {
+	handleClientResponse(message: Message): ClientResponse {
 		const clientResponse = this.handleBaseResponse(message);
 
 		const currentBankingInformationSnapshot = JSON.stringify(this.dialog?.config.bankingInformation);
@@ -49,7 +49,7 @@ export abstract class CustomerInteraction {
 		clientResponse.bankingInformationUpdated =
 			currentBankingInformationSnapshot !== JSON.stringify(this.dialog?.config.bankingInformation);
 
-		return clientResponse as TResponse;
+		return clientResponse;
 	}
 
 	protected abstract createSegments(config: FinTSConfig): Segment[];
