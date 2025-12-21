@@ -19,17 +19,15 @@ import { HIUPA, HIUPASegment } from '../segments/HIUPA.js';
 import { BankAccount, finTsAccountTypeToEnum } from '../bankAccount.js';
 import { HIKIMSegment, HIKIM } from '../segments/HIKIM.js';
 import { HIUPDSegment, HIUPD } from '../segments/HIUPD.js';
+import { HKTAB } from '../segments/HKTAB.js';
+import { TanMediaInteraction } from './tanMediaInteraction.js';
 
 export interface InitResponse extends ClientResponse {
 	bankingInformation?: BankingInformation;
 }
 
 export class InitDialogInteraction extends CustomerInteraction {
-	constructor(
-		public config: FinTSConfig,
-		public syncSystemId = false,
-		public followUpInteraction?: CustomerOrderInteraction
-	) {
+	constructor(public config: FinTSConfig, public syncSystemId = false) {
 		super(HKIDN.Id);
 	}
 
@@ -203,6 +201,12 @@ export class InitDialogInteraction extends CustomerInteraction {
 		this.config.bankingInformation.bankMessages = bankMessages;
 
 		clientResponse.bankingInformation = this.config.bankingInformation;
+
+		if (this.config.selectedTanMethod && this.config.isTransactionSupported(HKTAB.Id)) {
+			this.dialog!.addCustomerInteraction(new TanMediaInteraction(), true);
+		}
+
+		this.dialog!.isInitialized = true;
 	}
 }
 

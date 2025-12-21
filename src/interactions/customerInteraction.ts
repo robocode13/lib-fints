@@ -37,7 +37,7 @@ export abstract class CustomerInteraction {
 		return this.createSegments(config);
 	}
 
-	getClientResponse<TResponse extends ClientResponse>(message: Message): TResponse {
+	handleClientResponse<TResponse extends ClientResponse>(message: Message): TResponse {
 		const clientResponse = this.handleBaseResponse(message);
 
 		const currentBankingInformationSnapshot = JSON.stringify(this.dialog?.config.bankingInformation);

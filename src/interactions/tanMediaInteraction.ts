@@ -37,6 +37,11 @@ export class TanMediaInteraction extends CustomerOrderInteraction {
 			clientResponse.tanMediaList = (hitab.mediaList ?? [])
 				.map((media) => media.name)
 				.filter((name) => name) as string[];
+
+			let tanMethod = this.dialog!.config.selectedTanMethod;
+			if (tanMethod) {
+				tanMethod.activeTanMedia = clientResponse.tanMediaList;
+			}
 		}
 	}
 }
