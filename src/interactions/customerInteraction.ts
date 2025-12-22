@@ -44,21 +44,26 @@ export abstract class CustomerInteraction {
 
 	constructor(public segId: string) {}
 
-	getSegments(init: FinTSConfig): Segment[] {
-		return this.createSegments(init);
+	getSegments(config: FinTSConfig): Segment[] {
+		return this.createSegments(config);
 	}
 
-	getClientResponse<TResponse extends ClientResponse>(message: Message): TResponse {
+	handleClientResponse(message: Message): ClientResponse {
 		const clientResponse = this.handleBaseResponse(message);
+
+		const currentBankingInformationSnapshot = JSON.stringify(this.dialog?.config.bankingInformation);
 
 		if (clientResponse.success && !clientResponse.requiresTan) {
 			this.handleResponse(message, clientResponse);
 		}
 
-		return clientResponse as TResponse;
+		clientResponse.bankingInformationUpdated =
+			currentBankingInformationSnapshot !== JSON.stringify(this.dialog?.config.bankingInformation);
+
+		return clientResponse;
 	}
 
-	protected abstract createSegments(init: FinTSConfig): Segment[];
+	protected abstract createSegments(config: FinTSConfig): Segment[];
 	protected abstract handleResponse(response: Message, clientResponse: ClientResponse): void;
 
 	private parseHHDUC(tanChallengeHHDUC: string): PhotoTan {

@@ -33,6 +33,9 @@ import { HICAZS } from './HICAZS.js';
 import { HITAB } from './HITAB.js';
 import { HKWPD } from './HKWPD.js';
 import { HIWPD } from './HIWPD.js';
+import { HKSPA } from './HKSPA.js';
+import { HISPA } from './HISPA.js';
+import { HISPAS } from './HISPAS.js';
 import { DIKKU } from './DIKKU.js';
 import { DKKKU } from './DKKKU.js';
 import { UNKNOW } from '../unknownSegment.js';
@@ -77,6 +80,11 @@ export function registerSegments() {
 	registerSegmentDefinition(new HICAZS());
 	registerSegmentDefinition(new HKWPD());
 	registerSegmentDefinition(new HIWPD());
+	registerSegmentDefinition(new HKWPD());
+	registerSegmentDefinition(new HIWPD());
+	registerSegmentDefinition(new HKSPA());
+	registerSegmentDefinition(new HISPA());
+	registerSegmentDefinition(new HISPAS());
 	registerSegmentDefinition(new UNKNOW());
 	registerSegmentDefinition(new PARTED());
 }

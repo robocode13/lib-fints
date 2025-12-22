@@ -1,4 +1,5 @@
 import { Account } from './dataGroups/Account.js';
+import { SepaAccount } from './dataGroups/SepaAccount.js';
 import { AccountLimit, AllowedTransactions } from './segments/HIUPD.js';
 
 export enum AccountType {
@@ -14,9 +15,7 @@ export enum AccountType {
 	Miscellaneous = 'Miscellaneous',
 }
 
-export type BankAccount = Account & {
-	iban?: string;
-	bic?: string;
+export type BankAccount = SepaAccount & {
 	customerId: string;
 	accountType: AccountType;
 	currency: string;
