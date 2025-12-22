@@ -4,7 +4,7 @@ import { CamtParser } from '../camtParser.js';
 describe('CamtParser', () => {
   it('should parse CAMT.052 XML with balances and transactions', () => {
     const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">
   <BkToCstmrAcctRpt>
     <GrpHdr>
       <MsgId>camt52_20131118101510__ONLINEBA</MsgId>
@@ -183,7 +183,7 @@ describe('CamtParser', () => {
 
   it('should handle debit transactions correctly', () => {
     const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">
   <BkToCstmrAcctRpt>
     <Rpt>
       <Id>test</Id>
@@ -303,13 +303,12 @@ describe('CamtParser', () => {
 
   it('should handle empty or invalid XML gracefully', () => {
     const parser = new CamtParser('invalid xml');
-    const statements = parser.parse();
-    expect(statements).toHaveLength(0); // Should return empty array instead of throwing
+    expect(() => parser.parse()).toThrow(); // Should throw error for invalid XML
   });
 
   it('should handle multiple reports', () => {
     const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">
   <BkToCstmrAcctRpt>
     <Rpt>
       <Id>report1</Id>
@@ -336,7 +335,7 @@ describe('CamtParser', () => {
 
   it('should parse comprehensive CAMT XML with all possible fields and bank transaction codes', () => {
     const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">
   <BkToCstmrAcctRpt>
     <GrpHdr>
       <MsgId>comprehensive_test</MsgId>
@@ -544,7 +543,7 @@ describe('CamtParser', () => {
 
   it('should handle edge cases and missing optional fields correctly', () => {
     const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">
   <BkToCstmrAcctRpt>
     <Rpt>
       <Id>edge-case-test</Id>

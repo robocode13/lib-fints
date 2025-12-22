@@ -1,191 +1,363 @@
 import { Statement, Transaction, Balance } from './statement.js';
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
+
+export class CamtParsingError extends Error {
+  constructor(message: string, public cause?: Error) {
+    super(message);
+    this.name = 'CamtParsingError';
+  }
+}
 
 export class CamtParser {
   private xmlData: string;
+  private parser: XMLParser;
 
   constructor(xmlData: string) {
     this.xmlData = xmlData;
+    this.parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '@',
+      textNodeName: '#text',
+      removeNSPrefix: true,
+      parseAttributeValue: true,
+      trimValues: true,
+      parseTagValue: false, // Don't auto-parse values to preserve strings like "00001"
+      processEntities: true,
+      allowBooleanAttributes: false,
+      numberParseOptions: {
+        hex: false,
+        leadingZeros: true,
+        eNotation: true,
+      },
+    });
   }
 
   parse(): Statement[] {
     try {
-      const statements: Statement[] = [];
+      // Pre-validate XML
+      const validationResult = XMLValidator.validate(this.xmlData);
+      if (validationResult !== true) {
+        throw new CamtParsingError(`Invalid CAMT XML structure: ${validationResult.err.msg}`);
+      }
 
-      // Parse multiple reports using regex (CAMT.053 can contain multiple reports)
-      const reportMatches = this.xmlData.match(/<Rpt>[\s\S]*?<\/Rpt>/g);
-      if (!reportMatches) {
+      // Parse XML to JavaScript object
+      const document = this.parser.parse(this.xmlData);
+
+      // Navigate to Document/BkToCstmrStmt/Stmt array
+      const statements: Statement[] = [];
+      const docObj = this.getDocumentObject(document);
+      const reports = this.getReports(docObj);
+
+      if (!reports || reports.length === 0) {
         return statements;
       }
 
-      for (const reportXml of reportMatches) {
-        const statement = this.parseReport(reportXml);
-        if (statement) {
-          statements.push(statement);
+      for (let i = 0; i < reports.length; i++) {
+        try {
+          const statement = this.parseReport(reports[i], i + 1);
+          if (statement) {
+            statements.push(statement);
+          }
+        } catch (error) {
+          throw new CamtParsingError(
+            `Failed to parse CAMT report ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            error instanceof Error ? error : undefined
+          );
         }
       }
 
       return statements;
     } catch (error) {
-      throw new Error(`Failed to parse CAMT data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof CamtParsingError) {
+        throw error;
+      }
+      throw new CamtParsingError(
+        `Failed to parse CAMT document: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error : undefined
+      );
     }
   }
 
-  private parseReport(reportXml: string): Statement | null {
-    // Extract account information
-    const account = this.extractTagValue(reportXml, 'IBAN');
-
-    // Extract statement number/ID
-    const number = this.extractTagValue(reportXml, 'Id');
-
-    // Extract transaction reference
-    const transactionReference = this.extractTagValue(reportXml, 'ElctrncSeqNb');
-
-    // Parse balances
-    const balances = this.parseBalances(reportXml);
-    if (!balances.openingBalance || !balances.closingBalance) {
-      return null; // Need at least opening and closing balance
+  private getDocumentObject(document: any): any {
+    // Handle different possible XML root structures
+    if (document.Document) {
+      return document.Document;
     }
-
-    // Parse transactions
-    const transactions = this.parseTransactions(reportXml);
-
-    return {
-      account,
-      number,
-      transactionReference,
-      openingBalance: balances.openingBalance,
-      closingBalance: balances.closingBalance,
-      availableBalance: balances.availableBalance,
-      transactions,
-    };
+    if (document.camt) {
+      return document.camt;
+    }
+    // Look for any object with BkToCstmrAcctRpt property
+    for (const key in document) {
+      if (document[key] && document[key].BkToCstmrAcctRpt) {
+        return document[key];
+      }
+    }
+    throw new CamtParsingError('No valid CAMT document structure found');
   }
 
-  private parseBalances(reportXml: string): {
+  private getReports(docObj: any): any[] {
+    const bkToCstmrAcctRpt = docObj.BkToCstmrAcctRpt;
+    if (!bkToCstmrAcctRpt) {
+      throw new CamtParsingError('No BkToCstmrAcctRpt element found in CAMT document');
+    }
+
+    const rpt = bkToCstmrAcctRpt.Rpt;
+    if (!rpt) {
+      return [];
+    }
+
+    // Handle both single report and array of reports
+    return Array.isArray(rpt) ? rpt : [rpt];
+  }
+
+  private parseReport(report: any, reportNumber: number): Statement | null {
+    try {
+      // Extract account information
+      const account = this.getValueFromPath(report, 'Acct.Id.IBAN');
+
+      // Extract statement number/ID
+      const number = this.getValueFromPath(report, 'Id');
+
+      // Extract transaction reference
+      const transactionReference = this.getValueFromPath(report, 'ElctrncSeqNb');
+
+      // Parse balances
+      const balances = this.parseBalances(report, reportNumber);
+
+      // Be more flexible with balance requirements - some banks only provide one balance
+      let openingBalance = balances.openingBalance;
+      let closingBalance = balances.closingBalance;
+
+      // If we don't have both opening and closing, try to use what we have
+      if (!openingBalance && !closingBalance) {
+        // If we have available balance, use it as closing balance
+        if (balances.availableBalance) {
+          closingBalance = balances.availableBalance;
+        } else {
+          throw new CamtParsingError(`No balance information found in CAMT report ${reportNumber}`);
+        }
+      }
+
+      // If missing opening balance, create a zero balance for the same date as closing
+      if (!openingBalance && closingBalance) {
+        openingBalance = {
+          date: closingBalance.date,
+          currency: closingBalance.currency,
+          value: 0,
+        };
+      }
+
+      // If missing closing balance, use opening balance as closing
+      if (!closingBalance && openingBalance) {
+        closingBalance = openingBalance;
+      }
+
+      // Parse transactions
+      const transactions = this.parseTransactions(report, reportNumber);
+
+      return {
+        account,
+        number,
+        transactionReference,
+        openingBalance: openingBalance!,
+        closingBalance: closingBalance!,
+        availableBalance: balances.availableBalance,
+        transactions,
+      };
+    } catch (error) {
+      if (error instanceof CamtParsingError) {
+        throw error;
+      }
+      throw new CamtParsingError(
+        `Failed to parse report ${reportNumber} content: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private getValueFromPath(obj: any, path: string): string | undefined {
+    const pathParts = path.split('.');
+    let current = obj;
+
+    for (const part of pathParts) {
+      if (current && typeof current === 'object' && current[part] !== undefined) {
+        current = current[part];
+      } else {
+        return undefined;
+      }
+    }
+
+    if (typeof current === 'string' || typeof current === 'number') {
+      return String(current);
+    }
+    if (current && typeof current === 'object' && current['#text'] !== undefined) {
+      return String(current['#text']);
+    }
+
+    return undefined;
+  }
+
+  private parseBalances(
+    report: any,
+    reportNumber: number
+  ): {
     openingBalance?: Balance;
     closingBalance?: Balance;
     availableBalance?: Balance;
   } {
-    let openingBalance: Balance | undefined;
-    let closingBalance: Balance | undefined;
-    let availableBalance: Balance | undefined;
+    try {
+      let openingBalance: Balance | undefined;
+      let closingBalance: Balance | undefined;
+      let availableBalance: Balance | undefined;
 
-    // Extract all balance elements
-    const balanceMatches = reportXml.match(/<Bal[\s\S]*?<\/Bal>/g);
-    if (!balanceMatches) {
-      return { openingBalance, closingBalance, availableBalance };
-    }
-
-    for (const balanceXml of balanceMatches) {
-      const typeCode = this.extractTagValue(balanceXml, 'Cd');
-
-      // Extract amount and currency
-      const amtMatch = balanceXml.match(/<Amt\s+Ccy="([^"]+)">([^<]+)<\/Amt>/);
-      const currency = amtMatch ? amtMatch[1] : 'EUR';
-      const value = amtMatch ? parseFloat(amtMatch[2]) : 0;
-
-      const creditDebitInd = this.extractTagValue(balanceXml, 'CdtDbtInd');
-      const finalValue = creditDebitInd === 'DBIT' ? -value : value;
-
-      const dateStr = this.extractTagValue(balanceXml, 'Dt');
-      const date = dateStr ? this.parseDate(dateStr) : new Date();
-
-      const balance: Balance = {
-        date,
-        currency,
-        value: finalValue,
-      };
-
-      switch (typeCode) {
-        case 'PRCD': // Previous closing date
-          openingBalance = balance;
-          break;
-        case 'CLBD': // Closing booked
-          closingBalance = balance;
-          break;
-        case 'ITBD': // Interim booked
-        case 'FWAV': // Forward available
-          availableBalance = balance;
-          break;
+      // Get balance array from report
+      const balances = report.Bal;
+      if (!balances) {
+        return { openingBalance, closingBalance, availableBalance };
       }
-    }
 
-    return { openingBalance, closingBalance, availableBalance };
+      const balanceArray = Array.isArray(balances) ? balances : [balances];
+
+      for (const balanceObj of balanceArray) {
+        const typeCode = this.getValueFromPath(balanceObj, 'Tp.CdOrPrtry.Cd');
+
+        // Extract amount and currency
+        const currency = balanceObj.Amt?.['@Ccy'] || 'EUR';
+        const value = parseFloat(this.getValueFromPath(balanceObj, 'Amt') || '0');
+
+        const creditDebitInd = this.getValueFromPath(balanceObj, 'CdtDbtInd');
+        const finalValue = creditDebitInd === 'DBIT' ? -value : value;
+
+        const dateStr = this.getValueFromPath(balanceObj, 'Dt.Dt') || this.getValueFromPath(balanceObj, 'Dt');
+        const date = dateStr ? this.parseDate(dateStr) : new Date();
+
+        const balance: Balance = {
+          date,
+          currency,
+          value: finalValue,
+        };
+
+        switch (typeCode) {
+          case 'PRCD': // Previous closing date
+          case 'OPBD': // Opening booked
+          case 'OPAV': // Opening available
+            openingBalance = balance;
+            break;
+          case 'CLBD': // Closing booked
+          case 'CLAV': // Closing available
+            closingBalance = balance;
+            break;
+          case 'ITBD': // Interim booked
+          case 'ITAV': // Interim available
+          case 'FWAV': // Forward available
+          case 'BOOK': // Booked balance
+            // Use as available balance, or as closing if we don't have one
+            if (!availableBalance) {
+              availableBalance = balance;
+            }
+            // If we don't have a closing balance, use this as closing
+            if (!closingBalance && (typeCode === 'BOOK' || typeCode === 'ITBD')) {
+              closingBalance = balance;
+            }
+            break;
+          default:
+            // Handle unknown balance types by using them as closing balance if we don't have one
+            if (!closingBalance) {
+              closingBalance = balance;
+            }
+            break;
+        }
+      }
+
+      return { openingBalance, closingBalance, availableBalance };
+    } catch (error) {
+      throw new CamtParsingError(
+        `Failed to parse balances in report ${reportNumber}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        error instanceof Error ? error : undefined
+      );
+    }
   }
 
-  private parseTransactions(reportXml: string): Transaction[] {
+  private parseTransactions(report: any, reportNumber: number): Transaction[] {
     const transactions: Transaction[] = [];
-    const entryMatches = reportXml.match(/<Ntry[\s\S]*?<\/Ntry>/g);
+    const entries = report.Ntry;
 
-    if (!entryMatches) {
+    if (!entries) {
       return transactions;
     }
 
-    for (const entryXml of entryMatches) {
-      const transaction = this.parseTransaction(entryXml);
-      if (transaction) {
-        transactions.push(transaction);
+    const entryArray = Array.isArray(entries) ? entries : [entries];
+
+    for (let i = 0; i < entryArray.length; i++) {
+      try {
+        const transaction = this.parseTransaction(entryArray[i], reportNumber, i + 1);
+        if (transaction) {
+          transactions.push(transaction);
+        }
+      } catch (error) {
+        throw new CamtParsingError(
+          `Failed to parse transaction ${i + 1} in report ${reportNumber}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+          error instanceof Error ? error : undefined
+        );
       }
     }
 
     return transactions;
   }
 
-  private parseTransaction(entryXml: string): Transaction | null {
+  private parseTransaction(entry: any, reportNumber: number, transactionNumber: number): Transaction | null {
     try {
       // Extract amount and credit/debit indicator
-      const amtMatch = entryXml.match(/<Amt[^>]*>([^<]+)<\/Amt>/);
-      const amountValue = amtMatch ? parseFloat(amtMatch[1]) : 0;
-      const creditDebitInd = this.extractTagValue(entryXml, 'CdtDbtInd');
+      const amountValue = parseFloat(this.getValueFromPath(entry, 'Amt') || '0');
+      const creditDebitInd = this.getValueFromPath(entry, 'CdtDbtInd');
       const isDebit = creditDebitInd === 'DBIT';
       const amount = isDebit ? -amountValue : amountValue;
 
       // Extract dates
-      const bookingDate = this.extractNestedTagValue(entryXml, 'BookgDt', 'Dt');
-      const valueDate = this.extractNestedTagValue(entryXml, 'ValDt', 'Dt');
+      const bookingDate = this.getValueFromPath(entry, 'BookgDt.Dt') || this.getValueFromPath(entry, 'BookgDt');
+      const valueDate = this.getValueFromPath(entry, 'ValDt.Dt') || this.getValueFromPath(entry, 'ValDt');
 
       const entryDate = bookingDate ? this.parseDate(bookingDate) : new Date();
       const parsedValueDate = valueDate ? this.parseDate(valueDate) : entryDate;
 
       // Extract references
-      const accountServicerRef = this.extractTagValue(entryXml, 'AcctSvcrRef') || '';
-      const endToEndId = this.extractTagValue(entryXml, 'EndToEndId') || '';
-      const mandateId = this.extractTagValue(entryXml, 'MndtId') || '';
+      const accountServicerRef = this.getValueFromPath(entry, 'AcctSvcrRef') || '';
+      const endToEndId = this.getValueFromPath(entry, 'NtryDtls.TxDtls.Refs.EndToEndId') || '';
+      const mandateId = this.getValueFromPath(entry, 'NtryDtls.TxDtls.Refs.MndtId') || '';
 
       // Extract transaction details
-      const additionalEntryInfo = this.extractTagValue(entryXml, 'AddtlNtryInf') || '';
-      const remittanceInfo = this.extractTagValue(entryXml, 'Ustrd') || '';
+      const additionalEntryInfo = this.getValueFromPath(entry, 'AddtlNtryInf') || '';
+      const remittanceInfo = this.getValueFromPath(entry, 'NtryDtls.TxDtls.RmtInf.Ustrd') || '';
 
       // Extract remote party information based on transaction type
       let remoteName = '';
       let remoteIBAN = '';
       let remoteBankId = '';
 
-      if (isDebit) {
-        // For debit transactions, we want the creditor (receiving party)
-        const creditorNameMatch = entryXml.match(/<Cdtr>[\s\S]*?<Nm>([^<]+)<\/Nm>[\s\S]*?<\/Cdtr>/);
-        remoteName = creditorNameMatch ? creditorNameMatch[1] : '';
-
-        const creditorIbanMatch = entryXml.match(/<CdtrAcct>[\s\S]*?<IBAN>([^<]+)<\/IBAN>[\s\S]*?<\/CdtrAcct>/);
-        remoteIBAN = creditorIbanMatch ? creditorIbanMatch[1] : '';
-
-        // For debit, get creditor's bank BIC
-        const creditorBicMatch = entryXml.match(/<CdtrAgt>[\s\S]*?<BIC>([^<]+)<\/BIC>[\s\S]*?<\/CdtrAgt>/);
-        remoteBankId = creditorBicMatch ? creditorBicMatch[1] : '';
-      } else {
-        // For credit transactions, we want the debtor (sending party)
-        const debtorNameMatch = entryXml.match(/<Dbtr>[\s\S]*?<Nm>([^<]+)<\/Nm>[\s\S]*?<\/Dbtr>/);
-        remoteName = debtorNameMatch ? debtorNameMatch[1] : '';
-
-        const debtorIbanMatch = entryXml.match(/<DbtrAcct>[\s\S]*?<IBAN>([^<]+)<\/IBAN>[\s\S]*?<\/DbtrAcct>/);
-        remoteIBAN = debtorIbanMatch ? debtorIbanMatch[1] : '';
-
-        // For credit, get debtor's bank BIC
-        const debtorBicMatch = entryXml.match(/<DbtrAgt>[\s\S]*?<BIC>([^<]+)<\/BIC>[\s\S]*?<\/DbtrAgt>/);
-        remoteBankId = debtorBicMatch ? debtorBicMatch[1] : '';
+      const txDtls = entry.NtryDtls?.TxDtls;
+      if (txDtls) {
+        if (isDebit) {
+          // For debit transactions, we want the creditor (receiving party)
+          remoteName = this.getValueFromPath(txDtls, 'RltdPties.Cdtr.Nm') || '';
+          remoteIBAN = this.getValueFromPath(txDtls, 'RltdPties.CdtrAcct.Id.IBAN') || '';
+          remoteBankId = this.getValueFromPath(txDtls, 'RltdAgts.CdtrAgt.FinInstnId.BIC') || '';
+        } else {
+          // For credit transactions, we want the debtor (sending party)
+          remoteName = this.getValueFromPath(txDtls, 'RltdPties.Dbtr.Nm') || '';
+          remoteIBAN = this.getValueFromPath(txDtls, 'RltdPties.DbtrAcct.Id.IBAN') || '';
+          remoteBankId = this.getValueFromPath(txDtls, 'RltdAgts.DbtrAgt.FinInstnId.BIC') || '';
+        }
       }
 
-      // Extract bank transaction code structure (BkTxCd)
-      const bkTxCd = this.parseBankTransactionCode(entryXml);
+      // Extract bank transaction code structure (BkTxCd) - can be at entry level or TxDtls level
+      let bkTxCd = this.parseBankTransactionCode(entry);
+      if (!bkTxCd.domainCode && !bkTxCd.familyCode && !bkTxCd.subFamilyCode && txDtls) {
+        bkTxCd = this.parseBankTransactionCode(txDtls);
+      }
 
       return {
         valueDate: parsedValueDate,
@@ -206,8 +378,10 @@ export class CamtParser {
         bookingText: additionalEntryInfo,
       };
     } catch (error) {
-      console.warn('Failed to parse CAMT transaction entry:', error);
-      return null;
+      throw new CamtParsingError(
+        `Failed to parse transaction details: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error : undefined
+      );
     }
   }
 
@@ -228,42 +402,24 @@ export class CamtParser {
     return new Date(dateStr);
   }
 
-  private extractTagValue(xml: string, tagName: string): string | undefined {
-    const pattern = new RegExp(`<${tagName}>([^<]*)<\\/${tagName}>`, 'i');
-    const match = xml.match(pattern);
-    return match ? match[1] : undefined;
-  }
-
-  private extractNestedTagValue(xml: string, parentTag: string, childTag: string): string | undefined {
-    const parentPattern = new RegExp(`<${parentTag}[\\s\\S]*?<\\/${parentTag}>`, 'i');
-    const parentMatch = xml.match(parentPattern);
-    if (!parentMatch) {
-      return undefined;
-    }
-    return this.extractTagValue(parentMatch[0], childTag);
-  }
-
-  private parseBankTransactionCode(entryXml: string): {
+  private parseBankTransactionCode(entry: any): {
     domainCode?: string;
     familyCode?: string;
     subFamilyCode?: string;
   } {
-    // Extract the entire BkTxCd block
-    const bkTxCdMatch = entryXml.match(/<BkTxCd>[\s\S]*?<\/BkTxCd>/);
-    if (!bkTxCdMatch) {
+    const bkTxCd = entry.BkTxCd;
+    if (!bkTxCd) {
       return {};
     }
 
-    const bkTxCdXml = bkTxCdMatch[0];
-
     // Extract Domain Code (first level - e.g., "PMNT")
-    const domainCode = this.extractNestedTagValue(bkTxCdXml, 'Domn', 'Cd');
+    const domainCode = this.getValueFromPath(bkTxCd, 'Domn.Cd');
 
     // Extract Family Code (second level - e.g., "CCRD")
-    const familyCode = this.extractNestedTagValue(bkTxCdXml, 'Fmly', 'Cd');
+    const familyCode = this.getValueFromPath(bkTxCd, 'Domn.Fmly.Cd');
 
     // Extract SubFamily Code (third level - e.g., "POSD")
-    const subFamilyCode = this.extractTagValue(bkTxCdXml, 'SubFmlyCd');
+    const subFamilyCode = this.getValueFromPath(bkTxCd, 'Domn.Fmly.SubFmlyCd');
 
     return {
       domainCode,

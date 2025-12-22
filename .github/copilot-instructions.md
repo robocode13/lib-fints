@@ -27,7 +27,7 @@ All transactions may require two-step TAN process:
 ```typescript
 let response = await client.getAccountStatements(account);
 if (response.requiresTan) {
-	response = await client.getAccountStatementsWithTan(response.tanReference, userTAN);
+  response = await client.getAccountStatementsWithTan(response.tanReference, userTAN);
 }
 ```
 
@@ -49,8 +49,8 @@ new DataGroup('acceptedFormats', [new Text('format', 1, 99)], 1, 1);
 
 // ✅ Direct element with maxCount>1 as last element in segment
 elements = [
-	new Text('someField', 1, 1),
-	new Binary('transactions', 0, 10000), // Last element can have maxCount>1
+  new Text('someField', 1, 1),
+  new Binary('transactions', 0, 10000), // Last element can have maxCount>1
 ];
 ```
 
@@ -59,8 +59,8 @@ elements = [
 ```typescript
 // ❌ DataElement with maxCount>1 not as last element
 elements = [
-	new Text('formats', 1, 99), // maxCount>1 but not last!
-	new YesNo('someFlag', 1, 1), // This breaks parsing
+  new Text('formats', 1, 99), // maxCount>1 but not last!
+  new YesNo('someFlag', 1, 1), // This breaks parsing
 ];
 ```
 
@@ -69,7 +69,7 @@ elements = [
 - Use Vitest with mock patterns for `Dialog.prototype` methods
 - Mock external HTTP communication, not internal protocol logic
 - Test files follow `*.test.ts` naming in `src/tests/`
-- Run tests: `pnpm test`
+- Run tests: `pnpm test run`
 
 ### Error Handling
 
