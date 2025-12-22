@@ -342,14 +342,14 @@ export class CamtParser {
       if (txDtls) {
         if (isDebit) {
           // For debit transactions, we want the creditor (receiving party)
-          remoteName = this.getValueFromPath(txDtls, 'RltdPties.Cdtr.Nm') || '';
+          remoteName = this.extractPartyName(txDtls, 'RltdPties.Cdtr');
           remoteIBAN = this.getValueFromPath(txDtls, 'RltdPties.CdtrAcct.Id.IBAN') || '';
-          remoteBankId = this.getValueFromPath(txDtls, 'RltdAgts.CdtrAgt.FinInstnId.BIC') || '';
+          remoteBankId = this.extractBankId(txDtls, 'RltdAgts.CdtrAgt.FinInstnId');
         } else {
           // For credit transactions, we want the debtor (sending party)
-          remoteName = this.getValueFromPath(txDtls, 'RltdPties.Dbtr.Nm') || '';
+          remoteName = this.extractPartyName(txDtls, 'RltdPties.Dbtr');
           remoteIBAN = this.getValueFromPath(txDtls, 'RltdPties.DbtrAcct.Id.IBAN') || '';
-          remoteBankId = this.getValueFromPath(txDtls, 'RltdAgts.DbtrAgt.FinInstnId.BIC') || '';
+          remoteBankId = this.extractBankId(txDtls, 'RltdAgts.DbtrAgt.FinInstnId');
         }
       }
 
@@ -383,6 +383,82 @@ export class CamtParser {
         error instanceof Error ? error : undefined
       );
     }
+  }
+
+  /**
+   * Extract party name from various possible CAMT structures
+   * Handles both direct name (<Dbtr><Nm>) and party structure (<Dbtr><Pty><Nm>)
+   */
+  private extractPartyName(txDtls: any, partyPath: string): string {
+    // Strategy 1: Direct name structure (e.g., RltdPties.Dbtr.Nm)
+    let name = this.getValueFromPath(txDtls, `${partyPath}.Nm`);
+    if (name) {
+      return name;
+    }
+
+    // Strategy 2: Party structure (e.g., RltdPties.Dbtr.Pty.Nm)
+    name = this.getValueFromPath(txDtls, `${partyPath}.Pty.Nm`);
+    if (name) {
+      return name;
+    }
+
+    // Strategy 3: Organization ID structure (e.g., RltdPties.Dbtr.Id.OrgId.Nm)
+    name = this.getValueFromPath(txDtls, `${partyPath}.Id.OrgId.Nm`);
+    if (name) {
+      return name;
+    }
+
+    // Strategy 4: Private ID structure (e.g., RltdPties.Dbtr.Id.PrvtId.Nm)
+    name = this.getValueFromPath(txDtls, `${partyPath}.Id.PrvtId.Nm`);
+    if (name) {
+      return name;
+    }
+
+    // Strategy 5: Try postal address line as fallback
+    name = this.getValueFromPath(txDtls, `${partyPath}.PstlAdr.AdrLine`);
+    if (name) {
+      return name;
+    }
+
+    // Strategy 6: Try organization identification other
+    name = this.getValueFromPath(txDtls, `${partyPath}.Id.OrgId.Othr.Id`);
+    if (name) {
+      return name;
+    }
+
+    return '';
+  }
+
+  /**
+   * Extract bank identification code from various possible CAMT structures
+   * Handles both BIC and BICFI elements
+   */
+  private extractBankId(txDtls: any, bankPath: string): string {
+    // Strategy 1: Standard BIC element
+    let bankId = this.getValueFromPath(txDtls, `${bankPath}.BIC`);
+    if (bankId) {
+      return bankId;
+    }
+
+    // Strategy 2: BICFI element (used by some banks)
+    bankId = this.getValueFromPath(txDtls, `${bankPath}.BICFI`);
+    if (bankId) {
+      return bankId;
+    }
+
+    // Strategy 3: Try ClrSysMmbId (clearing system member identification)
+    bankId = this.getValueFromPath(txDtls, `${bankPath}.ClrSysMmbId.MmbId`);
+    if (bankId) {
+      return bankId;
+    }
+
+    // Strategy 4: Try other identification
+    bankId = this.getValueFromPath(txDtls, `${bankPath}.Othr.Id`);
+    if (bankId) {
+      return bankId;
+    }
+
+    return '';
   }
 
   private parseDate(dateStr: string): Date {

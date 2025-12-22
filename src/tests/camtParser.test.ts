@@ -634,4 +634,98 @@ describe('CamtParser', () => {
     expect(transaction.additionalInformation).toBe('');
     expect(transaction.bookingText).toBe('');
   });
+
+  it('should handle party structure variations in XML (Dbtr.Pty.Nm format)', () => {
+    const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">
+  <BkToCstmrAcctRpt>
+    <Rpt>
+      <Id>party-structure-test</Id>
+      <Acct>
+        <Id>
+          <IBAN>DE06940594210000027227</IBAN>
+        </Id>
+      </Acct>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>PRCD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="EUR">1000.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt><Dt>2013-10-31</Dt></Dt>
+      </Bal>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>CLBD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="EUR">1200.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt><Dt>2013-11-01</Dt></Dt>
+      </Bal>
+      <Ntry>
+        <Amt>200.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt><Dt>2013-11-01</Dt></BookgDt>
+        <ValDt><Dt>2013-11-01</Dt></ValDt>
+        <AcctSvcrRef>TXN003</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>PARTY-TEST-123</EndToEndId>
+            </Refs>
+            <RmtInf>
+              <Ustrd>Payment with party structure</Ustrd>
+            </RmtInf>
+            <RltdPties>
+              <Dbtr>
+                <Pty>
+                  <Nm>John Smith Bank Format</Nm>
+                </Pty>
+              </Dbtr>
+              <DbtrAcct>
+                <Id>
+                  <IBAN>DE12345678901234567890</IBAN>
+                </Id>
+              </DbtrAcct>
+              <Cdtr>
+                <Pty>
+                  <Nm>Jane Smith Bank Format</Nm>
+                </Pty>
+              </Cdtr>
+              <CdtrAcct>
+                <Id>
+                  <IBAN>DE12345678901234567891</IBAN>
+                </Id>
+              </CdtrAcct>
+            </RltdPties>
+            <RltdAgts>
+              <DbtrAgt>
+                <FinInstnId>
+                  <BICFI>BANKABC1XXX</BICFI>
+                </FinInstnId>
+              </DbtrAgt>
+              <CdtrAgt>
+                <FinInstnId>
+                  <BICFI>BANKDEF2XXX</BICFI>
+                </FinInstnId>
+              </CdtrAgt>
+            </RltdAgts>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+    </Rpt>
+  </BkToCstmrAcctRpt>
+</Document>`;
+
+    const parser = new CamtParser(camtXml);
+    const statements = parser.parse();
+
+    expect(statements).toHaveLength(1);
+    expect(statements[0].transactions).toHaveLength(1);
+
+    const transaction = statements[0].transactions[0];
+
+    // Verify that the party name is correctly extracted from Dbtr.Pty.Nm structure
+    expect(transaction.remoteName).toBe('John Smith Bank Format');
+    expect(transaction.remoteAccountNumber).toBe('DE12345678901234567890');
+    expect(transaction.remoteBankId).toBe('BANKABC1XXX'); // Credit transaction uses DbtrAgt BIC
+    expect(transaction.purpose).toBe('Payment with party structure');
+    expect(transaction.amount).toBe(200.0);
+  });
 });
