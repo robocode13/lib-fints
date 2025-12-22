@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { CamtParser } from '../camtParser.js';
 
 describe('CamtParser', () => {
-	it('should parse CAMT.052 XML with balances and transactions', () => {
-		const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
+  it('should parse CAMT.052 XML with balances and transactions', () => {
+    const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
   <BkToCstmrAcctRpt>
     <GrpHdr>
@@ -105,42 +105,84 @@ describe('CamtParser', () => {
   </BkToCstmrAcctRpt>
 </Document>`;
 
-		const parser = new CamtParser(camtXml);
-		const statements = parser.parse();
+    const parser = new CamtParser(camtXml);
+    const statements = parser.parse();
 
-		expect(statements).toHaveLength(1);
+    expect(statements).toHaveLength(1);
 
-		const statement = statements[0];
-		expect(statement.account).toBe('DE06940594210000027227');
-		expect(statement.number).toBe('camt052_ONLINEBA');
-		expect(statement.transactionReference).toBe('00001');
+    const statement = statements[0];
 
-		// Check balances
-		expect(statement.openingBalance).toBeDefined();
-		expect(statement.openingBalance.value).toBe(1000.0);
-		expect(statement.openingBalance.currency).toBe('EUR');
+    // Check all Statement fields
+    expect(statement.account).toBe('DE06940594210000027227');
+    expect(statement.number).toBe('camt052_ONLINEBA');
+    expect(statement.transactionReference).toBe('00001');
 
-		expect(statement.closingBalance).toBeDefined();
-		expect(statement.closingBalance.value).toBe(1500.0);
-		expect(statement.closingBalance.currency).toBe('EUR');
+    // Verify optional fields that are not set
+    expect(statement.relatedReference).toBeUndefined();
+    expect(statement.availableBalance).toBeUndefined();
+    expect(statement.forwardBalances).toBeUndefined();
 
-		// Check transactions
-		expect(statement.transactions).toHaveLength(1);
+    // Check balances with all fields
+    expect(statement.openingBalance).toBeDefined();
+    expect(statement.openingBalance.value).toBe(1000.0);
+    expect(statement.openingBalance.currency).toBe('EUR');
+    expect(statement.openingBalance.date).toBeInstanceOf(Date);
+    expect(statement.openingBalance.date.getFullYear()).toBe(2013);
+    expect(statement.openingBalance.date.getMonth()).toBe(9); // October (0-based)
+    expect(statement.openingBalance.date.getDate()).toBe(31);
 
-		const transaction = statement.transactions[0];
-		expect(transaction.amount).toBe(500.0);
-		expect(transaction.customerReference).toBe('E2E123');
-		expect(transaction.bankReference).toBe('TXN001');
-		expect(transaction.purpose).toBe('Test payment');
-		expect(transaction.remoteName).toBe('John Doe');
-		expect(transaction.remoteAccountNumber).toBe('DE12345678901234567890');
-		expect(transaction.remoteBankId).toBe('BYLADEM1001'); // Credit transaction uses DbtrAgt BIC
-		expect(transaction.e2eReference).toBe('E2E123');
-		expect(transaction.mandateReference).toBe('MANDT001');
-	});
+    expect(statement.closingBalance).toBeDefined();
+    expect(statement.closingBalance.value).toBe(1500.0);
+    expect(statement.closingBalance.currency).toBe('EUR');
+    expect(statement.closingBalance.date).toBeInstanceOf(Date);
+    expect(statement.closingBalance.date.getFullYear()).toBe(2013);
+    expect(statement.closingBalance.date.getMonth()).toBe(10); // November (0-based)
+    expect(statement.closingBalance.date.getDate()).toBe(4);
 
-	it('should handle debit transactions correctly', () => {
-		const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
+    // Check transactions
+    expect(statement.transactions).toHaveLength(1);
+
+    const transaction = statement.transactions[0];
+
+    // Check all Transaction fields filled by the parser
+    expect(transaction.amount).toBe(500.0);
+    expect(transaction.customerReference).toBe('E2E123');
+    expect(transaction.bankReference).toBe('TXN001');
+    expect(transaction.purpose).toBe('Test payment');
+    expect(transaction.remoteName).toBe('John Doe');
+    expect(transaction.remoteAccountNumber).toBe('DE12345678901234567890');
+    expect(transaction.remoteBankId).toBe('BYLADEM1001'); // Credit transaction uses DbtrAgt BIC
+    expect(transaction.e2eReference).toBe('E2E123');
+    expect(transaction.mandateReference).toBe('MANDT001');
+
+    // Check date fields
+    expect(transaction.valueDate).toBeInstanceOf(Date);
+    expect(transaction.valueDate.getFullYear()).toBe(2013);
+    expect(transaction.valueDate.getMonth()).toBe(10); // November (0-based)
+    expect(transaction.valueDate.getDate()).toBe(1);
+    expect(transaction.entryDate).toBeInstanceOf(Date);
+    expect(transaction.entryDate.getFullYear()).toBe(2013);
+    expect(transaction.entryDate.getMonth()).toBe(10); // November (0-based)
+    expect(transaction.entryDate.getDate()).toBe(1);
+
+    // Check transaction type and code fields
+    expect(transaction.fundsCode).toBe('CRDT'); // Credit/debit indicator
+    expect(transaction.transactionType).toBe(''); // Should be empty as no family code in BkTxCd
+    expect(transaction.transactionCode).toBe(''); // Parser only handles structured BkTxCd, not Prtry format
+
+    // Check additional information fields
+    expect(transaction.additionalInformation).toBe(''); // No AddtlNtryInf in this test
+    expect(transaction.bookingText).toBe(''); // Should match additionalInformation
+
+    // Verify optional fields not set in this test
+    expect(transaction.primeNotesNr).toBeUndefined();
+    expect(transaction.remoteIdentifier).toBeUndefined();
+    expect(transaction.client).toBeUndefined();
+    expect(transaction.textKeyExtension).toBeUndefined();
+  });
+
+  it('should handle debit transactions correctly', () => {
+    const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
   <BkToCstmrAcctRpt>
     <Rpt>
@@ -222,28 +264,51 @@ describe('CamtParser', () => {
   </BkToCstmrAcctRpt>
 </Document>`;
 
-		const parser = new CamtParser(camtXml);
-		const statements = parser.parse();
+    const parser = new CamtParser(camtXml);
+    const statements = parser.parse();
 
-		expect(statements).toHaveLength(1);
-		expect(statements[0].transactions).toHaveLength(1);
-		expect(statements[0].transactions[0].amount).toBe(-200.0); // Should be negative for debit
+    expect(statements).toHaveLength(1);
+    expect(statements[0].transactions).toHaveLength(1);
+    expect(statements[0].transactions[0].amount).toBe(-200.0); // Should be negative for debit
 
-		const transaction = statements[0].transactions[0];
-		expect(transaction.purpose).toBe('Test payment');
-		expect(transaction.remoteName).toBe('John Doe');
-		expect(transaction.remoteAccountNumber).toBe('DE12345678901234567890');
-		expect(transaction.remoteBankId).toBe('DEUTDEFF'); // Debit transaction uses CdtrAgt BIC
-	});
+    const transaction = statements[0].transactions[0];
 
-	it('should handle empty or invalid XML gracefully', () => {
-		const parser = new CamtParser('invalid xml');
-		const statements = parser.parse();
-		expect(statements).toHaveLength(0); // Should return empty array instead of throwing
-	});
+    // Comprehensive Transaction field checks for debit transaction
+    expect(transaction.purpose).toBe('Test payment');
+    expect(transaction.remoteName).toBe('John Doe');
+    expect(transaction.remoteAccountNumber).toBe('DE12345678901234567890');
+    expect(transaction.remoteBankId).toBe('DEUTDEFF'); // Debit transaction uses CdtrAgt BIC
 
-	it('should handle multiple reports', () => {
-		const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
+    // Check all other fields for debit transaction
+    expect(transaction.customerReference).toBe('485315597247918');
+    expect(transaction.bankReference).toBe('TXN002');
+    expect(transaction.e2eReference).toBe('485315597247918');
+    expect(transaction.mandateReference).toBe(''); // No MndtId in this test
+
+    // Date fields
+    expect(transaction.valueDate).toBeInstanceOf(Date);
+    expect(transaction.valueDate.getFullYear()).toBe(2013);
+    expect(transaction.entryDate).toBeInstanceOf(Date);
+    expect(transaction.entryDate.getFullYear()).toBe(2013);
+
+    // Transaction type indicators
+    expect(transaction.fundsCode).toBe('DBIT'); // Debit indicator
+    expect(transaction.transactionType).toBe(''); // No family code
+    expect(transaction.transactionCode).toBe(''); // No BkTxCd in this test
+
+    // Additional info fields
+    expect(transaction.additionalInformation).toBe('Additional Info');
+    expect(transaction.bookingText).toBe('Additional Info');
+  });
+
+  it('should handle empty or invalid XML gracefully', () => {
+    const parser = new CamtParser('invalid xml');
+    const statements = parser.parse();
+    expect(statements).toHaveLength(0); // Should return empty array instead of throwing
+  });
+
+  it('should handle multiple reports', () => {
+    const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
   <BkToCstmrAcctRpt>
     <Rpt>
@@ -261,11 +326,313 @@ describe('CamtParser', () => {
   </BkToCstmrAcctRpt>
 </Document>`;
 
-		const parser = new CamtParser(camtXml);
-		const statements = parser.parse();
+    const parser = new CamtParser(camtXml);
+    const statements = parser.parse();
 
-		expect(statements).toHaveLength(2);
-		expect(statements[0].account).toBe('DE11111111111111111111');
-		expect(statements[1].account).toBe('DE22222222222222222222');
-	});
+    expect(statements).toHaveLength(2);
+    expect(statements[0].account).toBe('DE11111111111111111111');
+    expect(statements[1].account).toBe('DE22222222222222222222');
+  });
+
+  it('should parse comprehensive CAMT XML with all possible fields and bank transaction codes', () => {
+    const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
+  <BkToCstmrAcctRpt>
+    <GrpHdr>
+      <MsgId>comprehensive_test</MsgId>
+      <CreDtTm>2023-12-22T14:30:00+01:00</CreDtTm>
+    </GrpHdr>
+    <Rpt>
+      <Id>COMPREHENSIVE_TEST</Id>
+      <ElctrncSeqNb>987654321</ElctrncSeqNb>
+      <CreDtTm>2023-12-22T14:30:00+01:00</CreDtTm>
+      <Acct>
+        <Id>
+          <IBAN>DE89370400440532013000</IBAN>
+        </Id>
+        <Ccy>EUR</Ccy>
+      </Acct>
+      <Bal>
+        <Tp>
+          <CdOrPrtry>
+            <Cd>PRCD</Cd>
+          </CdOrPrtry>
+        </Tp>
+        <Amt Ccy="EUR">5000.50</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt>
+          <Dt>2023-12-21</Dt>
+        </Dt>
+      </Bal>
+      <Bal>
+        <Tp>
+          <CdOrPrtry>
+            <Cd>CLBD</Cd>
+          </CdOrPrtry>
+        </Tp>
+        <Amt Ccy="EUR">4750.75</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt>
+          <Dt>2023-12-22</Dt>
+        </Dt>
+      </Bal>
+      <Bal>
+        <Tp>
+          <CdOrPrtry>
+            <Cd>ITBD</Cd>
+          </CdOrPrtry>
+        </Tp>
+        <Amt Ccy="EUR">4500.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt>
+          <Dt>2023-12-22</Dt>
+        </Dt>
+      </Bal>
+      <Ntry>
+        <Amt>249.75</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <BookgDt>
+          <Dt>2023-12-22</Dt>
+        </BookgDt>
+        <ValDt>
+          <Dt>2023-12-22</Dt>
+        </ValDt>
+        <AcctSvcrRef>BANK-REF-123456</AcctSvcrRef>
+        <BkTxCd>
+          <Domn>
+            <Cd>PMNT</Cd>
+            <Fmly>
+              <Cd>ICDT</Cd>
+              <SubFmlyCd>ESCT</SubFmlyCd>
+            </Fmly>
+          </Domn>
+        </BkTxCd>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>NOTPROVIDED</EndToEndId>
+              <TxId>TXN-ID-789</TxId>
+              <MndtId>MANDATE-REF-456</MndtId>
+            </Refs>
+            <AmtDtls>
+              <TxAmt>
+                <Amt Ccy="EUR">249.75</Amt>
+              </TxAmt>
+            </AmtDtls>
+            <RmtInf>
+              <Ustrd>SEPA Instant Transfer Payment Reference Text</Ustrd>
+            </RmtInf>
+            <RltdPties>
+              <Dbtr>
+                <Nm>Max Mustermann</Nm>
+              </Dbtr>
+              <DbtrAcct>
+                <Id>
+                  <IBAN>DE89370400440532013000</IBAN>
+                </Id>
+              </DbtrAcct>
+              <Cdtr>
+                <Nm>Erika Musterfrau</Nm>
+              </Cdtr>
+              <CdtrAcct>
+                <Id>
+                  <IBAN>DE12500105170648489890</IBAN>
+                </Id>
+              </CdtrAcct>
+            </RltdPties>
+            <RltdAgts>
+              <DbtrAgt>
+                <FinInstnId>
+                  <BIC>COBADEFFXXX</BIC>
+                </FinInstnId>
+              </DbtrAgt>
+              <CdtrAgt>
+                <FinInstnId>
+                  <BIC>INGDDEFFXXX</BIC>
+                </FinInstnId>
+              </CdtrAgt>
+            </RltdAgts>
+            <Purp>
+              <Cd>CBFF</Cd>
+            </Purp>
+          </TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>Additional payment information from bank</AddtlNtryInf>
+      </Ntry>
+    </Rpt>
+  </BkToCstmrAcctRpt>
+</Document>`;
+
+    const parser = new CamtParser(camtXml);
+    const statements = parser.parse();
+
+    expect(statements).toHaveLength(1);
+    const statement = statements[0];
+
+    // Test all Statement fields with comprehensive data
+    expect(statement.account).toBe('DE89370400440532013000');
+    expect(statement.number).toBe('COMPREHENSIVE_TEST');
+    expect(statement.transactionReference).toBe('987654321');
+    expect(statement.relatedReference).toBeUndefined();
+    expect(statement.forwardBalances).toBeUndefined();
+
+    // Test opening balance with exact date parsing
+    expect(statement.openingBalance).toBeDefined();
+    expect(statement.openingBalance.value).toBe(5000.5);
+    expect(statement.openingBalance.currency).toBe('EUR');
+    expect(statement.openingBalance.date.getFullYear()).toBe(2023);
+    expect(statement.openingBalance.date.getMonth()).toBe(11); // December (0-based)
+    expect(statement.openingBalance.date.getDate()).toBe(21);
+
+    // Test closing balance
+    expect(statement.closingBalance).toBeDefined();
+    expect(statement.closingBalance.value).toBe(4750.75);
+    expect(statement.closingBalance.currency).toBe('EUR');
+    expect(statement.closingBalance.date.getFullYear()).toBe(2023);
+    expect(statement.closingBalance.date.getMonth()).toBe(11); // December (0-based)
+    expect(statement.closingBalance.date.getDate()).toBe(22);
+
+    // Test available balance (ITBD)
+    expect(statement.availableBalance).toBeDefined();
+    expect(statement.availableBalance!.value).toBe(4500.0);
+    expect(statement.availableBalance!.currency).toBe('EUR');
+
+    // Test transaction with comprehensive fields
+    expect(statement.transactions).toHaveLength(1);
+    const transaction = statement.transactions[0];
+
+    // Amount and basic fields
+    expect(transaction.amount).toBe(-249.75); // Negative for debit
+    expect(transaction.customerReference).toBe('NOTPROVIDED');
+    expect(transaction.bankReference).toBe('BANK-REF-123456');
+    expect(transaction.purpose).toBe('SEPA Instant Transfer Payment Reference Text');
+
+    // Party information (debit transaction - creditor is remote party)
+    expect(transaction.remoteName).toBe('Erika Musterfrau');
+    expect(transaction.remoteAccountNumber).toBe('DE12500105170648489890');
+    expect(transaction.remoteBankId).toBe('INGDDEFFXXX'); // CdtrAgt BIC for debit
+
+    // Reference fields
+    expect(transaction.e2eReference).toBe('NOTPROVIDED');
+    expect(transaction.mandateReference).toBe('MANDATE-REF-456');
+
+    // Date fields with exact verification
+    expect(transaction.valueDate).toBeInstanceOf(Date);
+    expect(transaction.valueDate.getFullYear()).toBe(2023);
+    expect(transaction.valueDate.getMonth()).toBe(11); // December
+    expect(transaction.valueDate.getDate()).toBe(22);
+    expect(transaction.entryDate).toBeInstanceOf(Date);
+    expect(transaction.entryDate.getFullYear()).toBe(2023);
+    expect(transaction.entryDate.getMonth()).toBe(11);
+    expect(transaction.entryDate.getDate()).toBe(22);
+
+    // Bank transaction code structure
+    expect(transaction.fundsCode).toBe('PMNT'); // Domain code
+    expect(transaction.transactionType).toBe('ICDT'); // Family code
+    expect(transaction.transactionCode).toBe('ESCT'); // SubFamily code
+
+    // Additional information
+    expect(transaction.additionalInformation).toBe('Additional payment information from bank');
+    expect(transaction.bookingText).toBe('Additional payment information from bank');
+
+    // Verify undefined optional fields
+    expect(transaction.primeNotesNr).toBeUndefined();
+    expect(transaction.remoteIdentifier).toBeUndefined();
+    expect(transaction.client).toBeUndefined();
+    expect(transaction.textKeyExtension).toBeUndefined();
+  });
+
+  it('should handle edge cases and missing optional fields correctly', () => {
+    const camtXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
+  <BkToCstmrAcctRpt>
+    <Rpt>
+      <Id>edge-case-test</Id>
+      <Acct>
+        <Id>
+          <IBAN>DE99999999999999999999</IBAN>
+        </Id>
+        <Ccy>USD</Ccy>
+      </Acct>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>PRCD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="USD">0.01</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Dt><Dt>20231222</Dt></Dt>
+      </Bal>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>CLBD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="USD">999.99</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt><Dt>20231222</Dt></Dt>
+      </Bal>
+      <Ntry>
+        <Amt>1000.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt><Dt>20231222</Dt></BookgDt>
+        <ValDt><Dt>20231221</Dt></ValDt>
+        <AcctSvcrRef></AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId></EndToEndId>
+            </Refs>
+            <RmtInf>
+              <Ustrd></Ustrd>
+            </RmtInf>
+            <RltdPties>
+              <Dbtr>
+                <Nm></Nm>
+              </Dbtr>
+            </RltdPties>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+    </Rpt>
+  </BkToCstmrAcctRpt>
+</Document>`;
+
+    const parser = new CamtParser(camtXml);
+    const statements = parser.parse();
+
+    expect(statements).toHaveLength(1);
+    const statement = statements[0];
+
+    // Test edge case balances
+    expect(statement.openingBalance.value).toBe(-0.01); // Negative due to DBIT indicator
+    expect(statement.openingBalance.currency).toBe('USD');
+    expect(statement.closingBalance.value).toBe(999.99);
+    expect(statement.closingBalance.currency).toBe('USD');
+
+    // Test date parsing from YYYYMMDD format
+    expect(statement.openingBalance.date.getFullYear()).toBe(2023);
+    expect(statement.openingBalance.date.getMonth()).toBe(11); // December
+    expect(statement.openingBalance.date.getDate()).toBe(22);
+
+    // Test transaction with mostly empty/missing fields
+    expect(statement.transactions).toHaveLength(1);
+    const transaction = statement.transactions[0];
+
+    expect(transaction.amount).toBe(1000.0);
+    expect(transaction.customerReference).toBe(''); // Empty EndToEndId
+    expect(transaction.bankReference).toBe(''); // Empty AcctSvcrRef
+    expect(transaction.purpose).toBe(''); // Empty Ustrd
+    expect(transaction.remoteName).toBe(''); // Empty Nm
+    expect(transaction.remoteAccountNumber).toBe(''); // No IBAN provided
+    expect(transaction.remoteBankId).toBe(''); // No BIC provided
+    expect(transaction.e2eReference).toBe(''); // Empty EndToEndId
+    expect(transaction.mandateReference).toBe(''); // No MndtId
+
+    // Test date parsing consistency
+    expect(transaction.valueDate.getDate()).toBe(21); // Different from entry date
+    expect(transaction.entryDate.getDate()).toBe(22);
+
+    // Test transaction type fields with no BkTxCd
+    expect(transaction.fundsCode).toBe('CRDT');
+    expect(transaction.transactionType).toBe('');
+    expect(transaction.transactionCode).toBe('');
+
+    expect(transaction.additionalInformation).toBe('');
+    expect(transaction.bookingText).toBe('');
+  });
 });

@@ -8,7 +8,7 @@ import { Segment } from '../segment.js';
 import { FinTSConfig } from '../config.js';
 
 export class StatementInteractionCAMT extends CustomerOrderInteraction {
-	private acceptedCamtFormats: string[] = ['urn:iso:std:iso:20022:tech:xsd:camt.052.001.02'];
+	private acceptedCamtFormats: string[] = ['urn:iso:std:iso:20022:tech:xsd:camt.052.001.08'];
 
 	constructor(public accountNumber: string, public from?: Date, public to?: Date) {
 		super(HKCAZ.Id, HICAZ.Id);
