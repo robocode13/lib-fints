@@ -5,7 +5,7 @@ import { FinTSConfig } from '../config.js';
 import { HKIDN, HKIDNSegment } from '../segments/HKIDN.js';
 import { BankMessage, BankingInformation } from '../bankingInformation.js';
 import { HKVVB, HKVVBSegment } from '../segments/HKVVB.js';
-import { Language, SyncMode } from '../codes.js';
+import { Language, SyncMode, TanMediaRequirement } from '../codes.js';
 import { HKSYN, HKSYNSegment } from '../segments/HKSYN.js';
 import { HISYN, HISYNSegment } from '../segments/HISYN.js';
 import { BankAnswer } from '../bankAnswer.js';
@@ -19,17 +19,17 @@ import { HIUPA, HIUPASegment } from '../segments/HIUPA.js';
 import { BankAccount, finTsAccountTypeToEnum } from '../bankAccount.js';
 import { HIKIMSegment, HIKIM } from '../segments/HIKIM.js';
 import { HIUPDSegment, HIUPD } from '../segments/HIUPD.js';
+import { HKTAB } from '../segments/HKTAB.js';
+import { TanMediaInteraction } from './tanMediaInteraction.js';
+import { HKSPA } from '../segments/HKSPA.js';
+import { SepaAccountInteraction } from './sepaAccountInteraction.js';
 
 export interface InitResponse extends ClientResponse {
 	bankingInformation?: BankingInformation;
 }
 
 export class InitDialogInteraction extends CustomerInteraction {
-	constructor(
-		public config: FinTSConfig,
-		public syncSystemId = false,
-		public followUpInteraction?: CustomerOrderInteraction
-	) {
+	constructor(public config: FinTSConfig, public syncSystemId = false) {
 		super(HKIDN.Id);
 	}
 
@@ -70,8 +70,6 @@ export class InitDialogInteraction extends CustomerInteraction {
 	}
 
 	handleResponse(response: Message, clientResponse: InitResponse) {
-		const currentBankingInformationSnapshot = JSON.stringify(this.config.bankingInformation);
-
 		const hisyn = response.findSegment<HISYNSegment>(HISYN.Id);
 		if (hisyn && hisyn.systemId) {
 			this.config.bankingInformation.systemId = hisyn.systemId;
@@ -163,7 +161,6 @@ export class InitDialogInteraction extends CustomerInteraction {
 		}
 
 		const tanMethodMessaqe = bankAnswers.find((answer) => answer.code === 3920);
-		let availableTanMethodIds: number[] = [];
 
 		if (tanMethodMessaqe && this.config.bankingInformation.bpd) {
 			this.config.bankingInformation.bpd.availableTanMethodIds =
@@ -205,8 +202,25 @@ export class InitDialogInteraction extends CustomerInteraction {
 		this.config.bankingInformation.bankMessages = bankMessages;
 
 		clientResponse.bankingInformation = this.config.bankingInformation;
-		clientResponse.bankingInformationUpdated =
-			currentBankingInformationSnapshot !== JSON.stringify(this.config.bankingInformation);
+
+		if (
+			this.config.selectedTanMethod &&
+			this.config.selectedTanMethod.tanMediaRequirement > TanMediaRequirement.NotAllowed &&
+			this.config.isTransactionSupported(HKTAB.Id)
+		) {
+			this.dialog!.addCustomerInteraction(new TanMediaInteraction(), true);
+		}
+
+		const bankAccounts = this.config.bankingInformation?.upd?.bankAccounts;
+
+		if (bankAccounts) {
+			if (
+				bankAccounts.some((account) => account.isSepaAccount === undefined) &&
+				this.config.isTransactionSupported(HKSPA.Id)
+			) {
+				this.dialog!.addCustomerInteraction(new SepaAccountInteraction(), true);
+			}
+		}
 	}
 }
 
