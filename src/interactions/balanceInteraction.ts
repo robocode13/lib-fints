@@ -23,13 +23,13 @@ export class BalanceInteraction extends CustomerOrderInteraction {
       throw Error(`Account ${this.accountNumber} does not support business transaction '${this.segId}'`);
     }
 
-    const account = { ...bankAccount, iban: undefined };
-
     const version = init.getMaxSupportedTransactionVersion(HKSAL.Id);
 
     if (!version) {
       throw Error(`There is no supported version for business transaction '${HKSAL.Id}`);
     }
+
+    const account = version <= 6 ? { ...bankAccount, iban: undefined, bic: undefined } : bankAccount;
 
     const hksal: HKSALSegment = {
       header: { segId: HKSAL.Id, segNr: 0, version: version },

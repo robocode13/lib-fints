@@ -28,11 +28,13 @@ In theory the library is compatible with a browser environment, but communicatin
 
 ### Installing
 
-Installation is straight forward by simply adding the npm package. The package has no further dependencies on other packages.
+Installation is straight forward by simply adding the npm package.
 
 ```
 npm i lib-fints
 ```
+
+**Dependencies**: The library includes the `fast-xml-parser` package for robust CAMT statement parsing but has no other runtime dependencies.
 
 ### Sample Usage
 
@@ -59,10 +61,10 @@ If the call is successfull the response will contain a `bankingInformation` obje
 
 ```typescript
 export type BankingInformation = {
-	systemId: string;
-	bpd?: BPD;
-	upd?: UPD;
-	bankMessages: BankMessage[];
+  systemId: string;
+  bpd?: BPD;
+  upd?: UPD;
+  bankMessages: BankMessage[];
 };
 ```
 
@@ -104,22 +106,22 @@ Most transactions may require authorization with a two step TAN process. As ment
 ```typescript
 // we use the node readline interface later to ask the user for a TAN
 const rl = readline.createInterface({
-	input: process.stdin,
-	output: process.stdout,
+  input: process.stdin,
+  output: process.stdout,
 });
 
 let response = await client.getAccountStatements(account.accountNumber);
 
 if (!response.success) {
-	return;
+  return;
 }
 
 // need to check if a TAN is required to continue the transaction
 if (response.requiresTan) {
-	// asking the user for the TAN, using the tanChallenge property
-	const tan = await rl.question(response.tanChallenge + ': ');
-	// continue the transaction by providing the tanReference from the response and the entered TAN
-	response = await client.getAccountStatementsWithTan(response.tanReference!, tan);
+  // asking the user for the TAN, using the tanChallenge property
+  const tan = await rl.question(response.tanChallenge + ': ');
+  // continue the transaction by providing the tanReference from the response and the entered TAN
+  response = await client.getAccountStatementsWithTan(response.tanReference!, tan);
 }
 ```
 
@@ -140,13 +142,13 @@ This not only saves you from making the same synchronization requests every time
 
 ```typescript
 const config = FinTSConfig.fromBankingInformation(
-	productId,
-	productVersion,
-	bankingInformation,
-	userId,
-	pin,
-	tanMethodId,
-	tanMediaName // when also needed (see below)
+  productId,
+  productVersion,
+  bankingInformation,
+  userId,
+  pin,
+  tanMethodId,
+  tanMediaName // when also needed (see below)
 );
 const client = new FinTSClient(config);
 ```
@@ -161,12 +163,12 @@ You can get a list of all available TAN methods from the `config.availableTanMet
 
 ```typescript
 export type TanMethod = {
-	id: number;
-	name: string;
-	version: number;
-	activeTanMediaCount: number;
-	activeTanMedia: string[];
-	tanMediaRequirement: TanMediaRequirement;
+  id: number;
+  name: string;
+  version: number;
+  activeTanMediaCount: number;
+  activeTanMedia: string[];
+  tanMediaRequirement: TanMediaRequirement;
 };
 ```
 
@@ -192,26 +194,26 @@ This will print out all sent messages and received responses to the console in a
 
 The following table shows all transactions supported by the FinTSClient interface:
 
-| Transaction                | Method                                                               | Description                                                                   | FinTS Segment(s)           | TAN Support | Account-Specific |
-| -------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------- | ----------- | ---------------- |
-| **Synchronization**        | `synchronize()`                                                      | Synchronizes bank and account information, updating config.bankingInformation | HKIDN, HKVVB, HKSYN, HKTAB | ✓           | ❌               |
-| **Account Balance**        | `getAccountBalance(accountNumber)`                                   | Fetches the current balance for a specific account                            | HKSAL                      | ✓           | ✓                |
-| **Account Statements**     | `getAccountStatements(accountNumber, from?, to?)`                    | Fetches account transactions/statements for a date range                      | HKKAZ                      | ✓           | ✓                |
-| **Portfolio**              | `getPortfolio(accountNumber, currency?, priceQuality?, maxEntries?)` | Fetches securities portfolio information for depot accounts                   | HKWPD                      | ✓           | ✓                |
-| **Credit Card Statements** | `getCreditCardStatements(accountNumber, from?)`                      | Fetches credit card statements for credit card accounts                       | DKKKU                      | ✓           | ✓                |
-| **TAN Method Selection**   | `selectTanMethod(tanMethodId)`                                       | Selects a TAN method by ID from available methods                             | -                          | ❌          | ❌               |
-| **TAN Media Selection**    | `selectTanMedia(tanMediaName)`                                       | Selects a specific TAN media device by name                                   | -                          | ❌          | ❌               |
+| Transaction                | Method                                                               | Description                                                                     | FinTS Segment(s)           | TAN Support | Account-Specific |
+| -------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------- | ----------- | ---------------- |
+| **Synchronization**        | `synchronize()`                                                      | Synchronizes bank and account information, updating config.bankingInformation   | HKIDN, HKVVB, HKSYN, HKTAB | ✓           | ❌               |
+| **Account Balance**        | `getAccountBalance(accountNumber)`                                   | Fetches the current balance for a specific account                              | HKSAL                      | ✓           | ✓                |
+| **Account Statements**     | `getAccountStatements(accountNumber, from?, to?)`                    | Fetches account transactions/statements for a date range (MT940 or CAMT format) | HKKAZ, HKCAZ               | ✓           | ✓                |
+| **Portfolio**              | `getPortfolio(accountNumber, currency?, priceQuality?, maxEntries?)` | Fetches securities portfolio information for depot accounts                     | HKWPD                      | ✓           | ✓                |
+| **Credit Card Statements** | `getCreditCardStatements(accountNumber, from?)`                      | Fetches credit card statements for credit card accounts                         | DKKKU                      | ✓           | ✓                |
+| **TAN Method Selection**   | `selectTanMethod(tanMethodId)`                                       | Selects a TAN method by ID from available methods                               | -                          | ❌          | ❌               |
+| **TAN Media Selection**    | `selectTanMedia(tanMediaName)`                                       | Selects a specific TAN media device by name                                     | -                          | ❌          | ❌               |
 
 ### Transaction Support Checking
 
 For each account-specific transaction, the client provides corresponding `can*` methods to check if the bank or specific account supports the transaction:
 
-| Support Check Method                         | Purpose                                                |
-| -------------------------------------------- | ------------------------------------------------------ |
-| `canGetAccountBalance(accountNumber?)`       | Checks if account balance fetching is supported        |
-| `canGetAccountStatements(accountNumber?)`    | Checks if account statements fetching is supported     |
-| `canGetPortfolio(accountNumber?)`            | Checks if portfolio information fetching is supported  |
-| `canGetCreditCardStatements(accountNumber?)` | Checks if credit card statements fetching is supported |
+| Support Check Method                         | Purpose                                                         |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| `canGetAccountBalance(accountNumber?)`       | Checks if account balance fetching is supported                 |
+| `canGetAccountStatements(accountNumber?)`    | Checks if account statements fetching is supported (MT940/CAMT) |
+| `canGetPortfolio(accountNumber?)`            | Checks if portfolio information fetching is supported           |
+| `canGetCreditCardStatements(accountNumber?)` | Checks if credit card statements fetching is supported          |
 
 ### TAN Continuation Methods
 
@@ -242,6 +244,7 @@ Implementing further transactions should be straight forward and contributions a
 ## Built With
 
 - [Typescript](https://www.typescriptlang.org/) - Programming Language
+- [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - XML parsing for CAMT statements
 - [Vitest](https://vitest.dev/) - Testing Framework
 - [pnpm](https://pnpm.io/) - Package manager
 

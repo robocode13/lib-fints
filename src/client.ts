@@ -1,18 +1,20 @@
 import { Dialog } from './dialog.js';
-import { HKTAB } from './segments/HKTAB.js';
-import { StatementResponse, StatementInteraction } from './interactions/statementInteraction.js';
+import { StatementInteractionMT940 } from './interactions/statementInteractionMT940.js';
+import { StatementInteractionCAMT } from './interactions/statementInteractionCAMT.js';
+import { StatementResponse } from './interactions/customerInteraction.js';
 import { AccountBalanceResponse, BalanceInteraction } from './interactions/balanceInteraction.js';
 import { PortfolioResponse, PortfolioInteraction } from './interactions/portfolioInteraction.js';
 import { FinTSConfig } from './config.js';
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
-import { TanMediaInteraction, TanMediaResponse } from './interactions/tanMediaInteraction.js';
+import { ClientResponse, CustomerOrderInteraction } from './interactions/customerInteraction.js';
 import { TanMethod } from './tanMethod.js';
 import { HKSAL } from './segments/HKSAL.js';
 import { HKKAZ } from './segments/HKKAZ.js';
+import { HKCAZ } from './segments/HKCAZ.js';
 import { HKWPD } from './segments/HKWPD.js';
 import { DKKKU } from './segments/DKKKU.js';
-import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
-import {CreditCardStatementInteraction} from "./interactions/creditcardStatementInteraction.js";
+import { InitResponse } from './interactions/initDialogInteraction.js';
+import { CreditCardStatementInteraction } from './interactions/creditcardStatementInteraction.js';
+import { HKIDN } from './segments/HKIDN.js';
 
 export interface SynchronizeResponse extends InitResponse {}
 
@@ -20,7 +22,7 @@ export interface SynchronizeResponse extends InitResponse {}
  * A client to communicate with a bank over the FinTS protocol
  */
 export class FinTSClient {
-	private openCustomerInteractions = new Map<string, CustomerInteraction>();
+	private currentDialog: Dialog | undefined;
 
 	/**
 	 * Creates a new FinTS client
@@ -59,27 +61,9 @@ export class FinTSClient {
 	 * @returns the synchronization response
 	 */
 	async synchronize(): Promise<SynchronizeResponse> {
-		const dialog = new Dialog(this.config);
-
-		const syncResponse = await this.initDialog(dialog, true);
-
-		if (!syncResponse.success || syncResponse.requiresTan) {
-			return syncResponse;
-		}
-
-		if (this.config.selectedTanMethod && this.config.isTransactionSupported(HKTAB.Id)) {
-			const tanMediaResponse = await dialog.startCustomerOrderInteraction<TanMediaResponse>(new TanMediaInteraction());
-
-			let tanMethod = this.config.selectedTanMethod;
-			if (tanMethod) {
-				tanMethod.activeTanMedia = tanMediaResponse.tanMediaList;
-			}
-
-			syncResponse.bankAnswers.push(...tanMediaResponse.bankAnswers);
-		}
-
-		await dialog.end();
-		return syncResponse;
+		this.currentDialog = new Dialog(this.config, true);
+		const responses = await this.currentDialog.start();
+		return responses.get(HKIDN.Id) as SynchronizeResponse;
 	}
 
 	/**
@@ -89,7 +73,8 @@ export class FinTSClient {
 	 * @returns the synchronization response
 	 */
 	async synchronizeWithTan(tanReference: string, tan?: string): Promise<SynchronizeResponse> {
-		return this.continueCustomerInteractionWithTan(tanReference, tan);
+		const responses = await this.continueCustomerInteractionWithTan(tanReference, tan);
+		return responses.get(HKIDN.Id) as SynchronizeResponse;
 	}
 
 	/**
@@ -109,7 +94,8 @@ export class FinTSClient {
 	 * @returns the account balance response
 	 */
 	async getAccountBalance(accountNumber: string): Promise<AccountBalanceResponse> {
-		return this.startCustomerOrderInteraction(new BalanceInteraction(accountNumber));
+		const responses = await this.startCustomerOrderInteraction(new BalanceInteraction(accountNumber));
+		return responses.get(HKSAL.Id) as AccountBalanceResponse;
 	}
 
 	/**
@@ -119,7 +105,8 @@ export class FinTSClient {
 	 * @returns the account balance response
 	 */
 	async getAccountBalanceWithTan(tanReference: string, tan?: string): Promise<AccountBalanceResponse> {
-		return this.continueCustomerInteractionWithTan(tanReference, tan);
+		const responses = await this.continueCustomerInteractionWithTan(tanReference, tan);
+		return responses.get(HKSAL.Id) as AccountBalanceResponse;
 	}
 
 	/**
@@ -128,9 +115,16 @@ export class FinTSClient {
 	 * @returns true if the bank (and account) supports fetching account statements
 	 */
 	canGetAccountStatements(accountNumber?: string): boolean {
-		return accountNumber
-			? this.config.isAccountTransactionSupported(accountNumber, HKKAZ.Id)
-			: this.config.isTransactionSupported(HKKAZ.Id);
+		if (accountNumber) {
+			// Check if either CAMT or MT940 is supported for this account
+			return (
+				this.config.isAccountTransactionSupported(accountNumber, HKCAZ.Id) ||
+				this.config.isAccountTransactionSupported(accountNumber, HKKAZ.Id)
+			);
+		} else {
+			// Check if either CAMT or MT940 is supported by the bank
+			return this.config.isTransactionSupported(HKCAZ.Id) || this.config.isTransactionSupported(HKKAZ.Id);
+		}
 	}
 
 	/**
@@ -138,10 +132,35 @@ export class FinTSClient {
 	 * @param accountNumber - the account number to fetch the statements for, must be an account available in the config.baningInformation.UPD.accounts
 	 * @param from - an optional start date of the period to fetch the statements for
 	 * @param to - an optional end date of the period to fetch the statements for
+	 * @param preferCamt - whether to prefer CAMT format over MT940 when both are supported (default: true)
 	 * @returns an account statements response containing an array of statements
 	 */
-	async getAccountStatements(accountNumber: string, from?: Date, to?: Date): Promise<StatementResponse> {
-		return this.startCustomerOrderInteraction(new StatementInteraction(accountNumber, from, to));
+	async getAccountStatements(
+		accountNumber: string,
+		from?: Date,
+		to?: Date,
+		preferCamt: boolean = true
+	): Promise<StatementResponse> {
+		// Check what formats the bank supports
+		const camtSupported = this.config.isAccountTransactionSupported(accountNumber, 'HKCAZ');
+		const mt940Supported = this.config.isAccountTransactionSupported(accountNumber, 'HKKAZ');
+
+		if (!camtSupported && !mt940Supported) {
+			throw Error(`Account ${accountNumber} does not support account statements`);
+		}
+
+		// Choose format based on support and preference
+		const useCAMT = (preferCamt && camtSupported) || (!mt940Supported && camtSupported);
+
+		if (useCAMT) {
+			const responses = await this.startCustomerOrderInteraction(new StatementInteractionCAMT(accountNumber, from, to));
+			return responses.get(HKCAZ.Id) as StatementResponse;
+		} else {
+			const responses = await this.startCustomerOrderInteraction(
+				new StatementInteractionMT940(accountNumber, from, to)
+			);
+			return responses.get(HKKAZ.Id) as StatementResponse;
+		}
 	}
 
 	/**
@@ -151,7 +170,8 @@ export class FinTSClient {
 	 * @returns an account statements response containing an array of statements
 	 */
 	async getAccountStatementsWithTan(tanReference: string, tan?: string): Promise<StatementResponse> {
-		return this.continueCustomerInteractionWithTan(tanReference, tan);
+		const responses = await this.continueCustomerInteractionWithTan(tanReference, tan);
+		return responses.get(HKKAZ.Id) as StatementResponse;
 	}
 
 	/**
@@ -179,9 +199,10 @@ export class FinTSClient {
 		priceQuality?: '1' | '2',
 		maxEntries?: number
 	): Promise<PortfolioResponse> {
-		return this.startCustomerOrderInteraction(
+		const responses = await this.startCustomerOrderInteraction(
 			new PortfolioInteraction(accountNumber, currency, priceQuality, maxEntries)
 		);
+		return responses.get(HKWPD.Id) as PortfolioResponse;
 	}
 
 	/**
@@ -192,9 +213,9 @@ export class FinTSClient {
 	 * @returns a portfolio response containing holdings and total value
 	 */
 	async getPortfolioWithTan(tanReference: string, tan?: string): Promise<PortfolioResponse> {
-		return this.continueCustomerInteractionWithTan(tanReference, tan);
+		const responses = await this.continueCustomerInteractionWithTan(tanReference, tan);
+		return responses.get(HKWPD.Id) as PortfolioResponse;
 	}
-
 
 	/**
 	 * Checks if the bank supports fetching credit card statements in general or for the given account number
@@ -216,7 +237,8 @@ export class FinTSClient {
 	 * @returns an account statements response containing an array of statements
 	 */
 	async getCreditCardStatements(accountNumber: string, from?: Date): Promise<StatementResponse> {
-		return this.startCustomerOrderInteraction(new CreditCardStatementInteraction(accountNumber, from));
+		const responses = await this.startCustomerOrderInteraction(new CreditCardStatementInteraction(accountNumber, from));
+		return responses.get(DKKKU.Id) as StatementResponse;
 	}
 
 	/**
@@ -226,84 +248,26 @@ export class FinTSClient {
 	 * @returns a credit card statements response containing an array of statements
 	 */
 	async getCreditCardStatementsWithTan(tanReference: string, tan?: string): Promise<StatementResponse> {
-		return this.continueCustomerInteractionWithTan(tanReference, tan);
+		const responses = await this.continueCustomerInteractionWithTan(tanReference, tan);
+		return responses.get(DKKKU.Id) as StatementResponse;
 	}
 
-	private async startCustomerOrderInteraction<TClientResponse extends ClientResponse>(
+	private async startCustomerOrderInteraction(
 		interaction: CustomerOrderInteraction
-	): Promise<TClientResponse> {
-		const dialog = new Dialog(this.config);
-		const syncResponse = await this.initDialog(dialog, false, interaction);
-
-		if (!syncResponse.success || syncResponse.requiresTan) {
-			return syncResponse as TClientResponse;
-		}
-
-		const clientResponse = await dialog.startCustomerOrderInteraction<TClientResponse>(interaction);
-
-		if (clientResponse.requiresTan) {
-			this.openCustomerInteractions.set(clientResponse.tanReference!, interaction);
-		} else {
-			await dialog.end();
-		}
-
-		return clientResponse;
+	): Promise<Map<string, ClientResponse>> {
+		this.currentDialog = new Dialog(this.config, false);
+		this.currentDialog.addCustomerInteraction(interaction);
+		return await this.currentDialog.start();
 	}
 
-	private async continueCustomerInteractionWithTan<TClientResponse extends ClientResponse>(
+	private async continueCustomerInteractionWithTan(
 		tanReference: string,
 		tan?: string
-	): Promise<TClientResponse> {
-		const interaction = this.openCustomerInteractions.get(tanReference);
-
-		if (!interaction) {
-			throw new Error('No open customer interaction found for TAN reference: ' + tanReference);
+	): Promise<Map<string, ClientResponse>> {
+		if (!this.currentDialog) {
+			throw new Error('no customer dialog was started which can continue');
 		}
 
-		const dialog = interaction.dialog!;
-		let responseMessage = await dialog.sendTanMessage(interaction.segId, tanReference, tan);
-		let clientResponse = interaction.getClientResponse(responseMessage) as TClientResponse;
-
-		this.openCustomerInteractions.delete(tanReference);
-
-		if (!clientResponse.success) {
-			await dialog.end();
-			return clientResponse;
-		}
-
-		if (clientResponse.requiresTan) {
-			this.openCustomerInteractions.set(clientResponse.tanReference!, interaction);
-			return clientResponse;
-		}
-
-		const initDialogInteraction = interaction as InitDialogInteraction;
-		if (initDialogInteraction.followUpInteraction) {
-			clientResponse = await dialog.startCustomerOrderInteraction<TClientResponse>(
-				initDialogInteraction.followUpInteraction
-			);
-
-			if (clientResponse.requiresTan) {
-				this.openCustomerInteractions.set(clientResponse.tanReference!, initDialogInteraction.followUpInteraction);
-				return clientResponse;
-			}
-		}
-
-		await dialog.end();
-		return clientResponse;
-	}
-
-	private async initDialog(
-		dialog: Dialog,
-		syncSystemId = false,
-		followUpInteraction?: CustomerOrderInteraction
-	): Promise<InitResponse> {
-		const interaction = new InitDialogInteraction(this.config, syncSystemId, followUpInteraction);
-		const initResponse = await dialog.initialize(interaction);
-
-		if (initResponse.requiresTan) {
-			this.openCustomerInteractions.set(initResponse.tanReference!, interaction);
-		}
-
-		return initResponse;
+		return await this.currentDialog.continue(tanReference, tan);
 	}
 }
