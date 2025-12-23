@@ -2,48 +2,115 @@ import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'v
 import { FinTSClient } from '../client.js';
 import { Dialog } from '../dialog.js';
 import { FinTSConfig } from '../config.js';
+import { Language } from '../codes.js';
+import { AccountBalanceResponse, ClientResponse } from '../index.js';
 
 describe('FinTSClient', () => {
-	let dialogStartMock: MockInstance;
-	let dialogContinueMock: MockInstance;
+  const client = new FinTSClient(
+    FinTSConfig.fromBankingInformation('product', '1.0', {
+      systemId: 'SYSTEM01',
+      bpd: {
+        version: 1,
+        url: 'https://bank.example.com/fints',
+        countryCode: 280,
+        bankId: '10020030',
+        bankName: 'Example Bank',
+        allowedTransactions: [{ transId: 'HKSAL', versions: [6, 7], tanRequired: false }],
+        maxTransactionsPerMessage: 1,
+        supportedLanguages: [Language.German],
+        supportedHbciVersions: [300],
+        supportedTanMethods: [
+          {
+            id: 1,
+            name: 'ChipTAN',
+            version: 1,
+            isDecoupled: false,
+            activeTanMediaCount: 0,
+            activeTanMedia: [],
+            tanMediaRequirement: 0,
+          },
+        ],
+        availableTanMethodIds: [1],
+      },
+      bankMessages: [],
+    })
+  );
 
-	beforeEach(() => {
-		dialogStartMock = vi.spyOn(Dialog.prototype, 'start');
-		dialogContinueMock = vi.spyOn(Dialog.prototype, 'continue');
-	});
+  let dialogStartMock: MockInstance;
+  let dialogContinueMock: MockInstance;
 
-	afterEach(() => {
-		dialogStartMock.mockRestore();
-		dialogContinueMock.mockRestore();
-	});
+  beforeEach(() => {
+    dialogStartMock = vi.spyOn(Dialog.prototype, 'start');
+    dialogContinueMock = vi.spyOn(Dialog.prototype, 'continue');
+  });
 
-	it('sends a message', async () => {
-		const client = new FinTSClient(
-			FinTSConfig.forFirstTimeUse('product', '1.0', 'http://localhost', '12030000', 'user')
-		);
+  afterEach(() => {
+    dialogStartMock.mockRestore();
+    dialogContinueMock.mockRestore();
+  });
 
-		dialogStartMock.mockResolvedValueOnce(
-			new Map([
-				[
-					'HKIDN',
-					{
-						dialogId: 'DIALOG1',
-						success: true,
-						requiresTan: false,
-						bankingInformationUpdated: true,
-						bankingInformation: { systemId: 'SYSTEM01', bankMessages: [] },
-						bankAnswers: [{ code: 20, text: 'Auftrag ausgeführt' }],
-					},
-				],
-			])
-		);
+  describe('getAccountBalance', () => {
+    it('returns balance response when no TAN is required', async () => {
+      dialogStartMock.mockResolvedValueOnce(
+        new Map<string, ClientResponse | AccountBalanceResponse>([
+          [
+            'HKIDN',
+            {
+              dialogId: 'DIALOG1',
+              success: true,
+              requiresTan: false,
+              bankingInformationUpdated: false,
+              bankAnswers: [{ code: 20, text: 'Auftrag ausgeführt' }],
+            },
+          ],
+          [
+            'HKSAL',
+            {
+              dialogId: 'DIALOG1',
+              success: true,
+              requiresTan: false,
+              bankingInformationUpdated: false,
+              bankAnswers: [{ code: 20, text: 'Auftrag ausgeführt' }],
+              balance: { date: new Date('2025-12-23'), currency: 'EUR', balance: 1000.0 },
+            },
+          ],
+        ])
+      );
 
-		const response = await client.synchronize();
+      const response = (await client.getAccountBalance('1234567890')) as AccountBalanceResponse;
 
-		expect(response.success).toBe(true);
-		expect(response.requiresTan).toBe(false);
-		expect(response.bankingInformation).toBeDefined();
-		expect(dialogStartMock).toHaveBeenCalledOnce();
-		expect(dialogContinueMock).toHaveBeenCalledTimes(0);
-	});
+      expect(response.success).toBe(true);
+      expect(response.requiresTan).toBe(false);
+      expect(response.balance).toBeDefined();
+      expect(dialogStartMock).toHaveBeenCalledOnce();
+      expect(dialogContinueMock).toHaveBeenCalledTimes(0);
+    });
+
+    it('returns init dialog response when TAN is required', async () => {
+      dialogStartMock.mockResolvedValueOnce(
+        new Map<string, ClientResponse | AccountBalanceResponse>([
+          [
+            'HKIDN',
+            {
+              dialogId: 'DIALOG1',
+              success: true,
+              requiresTan: true,
+              tanReference: 'TANREF123',
+              tanChallenge: 'Bitte geben Sie Ihre TAN ein.',
+              bankingInformationUpdated: false,
+              bankAnswers: [{ code: 20, text: 'Auftrag ausgeführt' }],
+            },
+          ],
+        ])
+      );
+
+      const response = (await client.getAccountBalance('1234567890')) as AccountBalanceResponse;
+
+      expect(response.success).toBe(true);
+      expect(response.requiresTan).toBe(true);
+      expect(response.tanReference).toBe('TANREF123');
+      expect(dialogStartMock).toHaveBeenCalledOnce();
+      expect(dialogContinueMock).toHaveBeenCalledTimes(0);
+    });
+  });
 });
