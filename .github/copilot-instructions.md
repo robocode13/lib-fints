@@ -69,7 +69,7 @@ elements = [
 - Use Vitest with mock patterns for `Dialog.prototype` methods
 - Mock external HTTP communication, not internal protocol logic
 - Test files follow `*.test.ts` naming in `src/tests/`
-- Run tests: `pnpm test run`
+- Run tests: `pnpm test --run`
 
 ### Error Handling
 
