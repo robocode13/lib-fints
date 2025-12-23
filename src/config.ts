@@ -1,6 +1,7 @@
 import { TanMethod } from './tanMethod.js';
 import { BankingInformation } from './bankingInformation.js';
 import { getSegmentDefinition } from './segments/registry.js';
+import { BankAccount } from './bankAccount.js';
 
 /**
  * Configuration for the FinTS client
@@ -240,7 +241,7 @@ export class FinTSConfig {
 	 * Gets the bank account information for a specific account number
 	 * @param accountNumber The account number
 	 */
-	getBankAccount(accountNumber: string) {
+	getBankAccount(accountNumber: string): BankAccount {
 		const bankAccount = this.bankingInformation.upd?.bankAccounts.find((a) => a.accountNumber === accountNumber);
 
 		if (!bankAccount) {
