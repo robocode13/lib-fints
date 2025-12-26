@@ -7,7 +7,11 @@ import { Segment } from '../segment.js';
 import { FinTSConfig } from '../config.js';
 
 export class StatementInteractionMT940 extends CustomerOrderInteraction {
-	constructor(public accountNumber: string, public from?: Date, public to?: Date) {
+	constructor(
+		public accountNumber: string,
+		public from?: Date,
+		public to?: Date,
+	) {
 		super(HKKAZ.Id, HIKAZ.Id);
 	}
 

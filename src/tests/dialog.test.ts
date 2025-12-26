@@ -68,7 +68,7 @@ describe('Dialog', () => {
 			'testuser',
 			'12345',
 			940, // tanMethodId
-			'TEST_MEDIA' // tanMediaName
+			'TEST_MEDIA', // tanMediaName
 		);
 
 		// Create dialog instance
@@ -81,7 +81,10 @@ describe('Dialog', () => {
 			bankAnswers: [{ code: 20, text: 'Success' }],
 		} as any);
 
-		vi.spyOn(dialog.interactions[dialog.interactions.length - 1], 'handleClientResponse').mockReturnValue({
+		vi.spyOn(
+			dialog.interactions[dialog.interactions.length - 1],
+			'handleClientResponse',
+		).mockReturnValue({
 			dialogId: 'MOCK_DIALOG_123',
 			success: true,
 			requiresTan: false,
@@ -166,7 +169,9 @@ describe('Dialog', () => {
 		it('throws error when lastMessageNumber > 0', async () => {
 			dialog.lastMessageNumber = 1;
 
-			await expect(dialog.start()).rejects.toThrow('dialog start can only be called on a new dialog');
+			await expect(dialog.start()).rejects.toThrow(
+				'dialog start can only be called on a new dialog',
+			);
 		});
 
 		it('handles TAN requirement correctly', async () => {
@@ -234,14 +239,14 @@ describe('Dialog', () => {
 
 		it('throws error when tanOrderReference is missing', async () => {
 			await expect(dialog.continue('')).rejects.toThrow(
-				'tanOrderReference must be provided to continue a customer order with a TAN'
+				'tanOrderReference must be provided to continue a customer order with a TAN',
 			);
 		});
 
 		it('throws error when TAN is missing for non-decoupled method', async () => {
 			// The default config already has a non-decoupled TAN method
 			await expect(dialog.continue('TAN_REF_123')).rejects.toThrow(
-				'TAN must be provided for non-decoupled TAN methods'
+				'TAN must be provided for non-decoupled TAN methods',
 			);
 		});
 
@@ -249,7 +254,7 @@ describe('Dialog', () => {
 			dialog.hasEnded = true;
 
 			await expect(dialog.continue('TAN_REF_123', '123456')).rejects.toThrow(
-				'cannot continue a customer order when dialog has already ended'
+				'cannot continue a customer order when dialog has already ended',
 			);
 		});
 
@@ -257,7 +262,7 @@ describe('Dialog', () => {
 			dialog.currentInteractionIndex = dialog.interactions.length;
 
 			await expect(dialog.continue('TAN_REF_123', '123456')).rejects.toThrow(
-				'there is no running customer interaction in this dialog to continue'
+				'there is no running customer interaction in this dialog to continue',
 			);
 		});
 	});
@@ -293,7 +298,7 @@ describe('Dialog', () => {
 			dialog.hasEnded = true;
 
 			expect(() => dialog.addCustomerInteraction(sepaAccountInteraction)).toThrow(
-				'cannot queue another customer interaction when dialog has already ended'
+				'cannot queue another customer interaction when dialog has already ended',
 			);
 		});
 
@@ -302,7 +307,7 @@ describe('Dialog', () => {
 			sepaAccountInteraction.segId = 'UNSUPPORTED';
 
 			expect(() => dialog.addCustomerInteraction(sepaAccountInteraction)).toThrow(
-				'customer order transaction UNSUPPORTED is not supported according to the BPD'
+				'customer order transaction UNSUPPORTED is not supported according to the BPD',
 			);
 		});
 	});

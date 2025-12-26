@@ -74,16 +74,28 @@ export class Mt940Parser {
 							transactions: [],
 						};
 						this.statements.push(this.currentStatement as Statement);
-						this.currentStatement.transactionReference = this.tokenizer.parseNextToken(TokenType.TextToEndOfLine, true);
+						this.currentStatement.transactionReference = this.tokenizer.parseNextToken(
+							TokenType.TextToEndOfLine,
+							true,
+						);
 						break;
 					case ':21:':
-						this.currentStatement.relatedReference = this.tokenizer.parseNextToken(TokenType.TextToEndOfLine, false);
+						this.currentStatement.relatedReference = this.tokenizer.parseNextToken(
+							TokenType.TextToEndOfLine,
+							false,
+						);
 						break;
 					case ':25:':
-						this.currentStatement.account = this.tokenizer.parseNextToken(TokenType.TextToEndOfLine, true);
+						this.currentStatement.account = this.tokenizer.parseNextToken(
+							TokenType.TextToEndOfLine,
+							true,
+						);
 						break;
 					case ':28C:':
-						this.currentStatement.number = this.tokenizer.parseNextToken(TokenType.StatementNumber, true);
+						this.currentStatement.number = this.tokenizer.parseNextToken(
+							TokenType.StatementNumber,
+							true,
+						);
 						break;
 					case ':60F:':
 						this.currentStatement.openingBalance = this.parseBalance();
@@ -119,9 +131,15 @@ export class Mt940Parser {
 						const fundsCode = this.tokenizer.parseNextToken(TokenType.SingleAlpha, false);
 						const amount = this.parseAmount(creditDebit, true);
 						const transactionType = this.tokenizer.parseNextToken(TokenType.TransactionType, true);
-						const customerReference = this.tokenizer.parseNextToken(TokenType.CustomerReference, true);
+						const customerReference = this.tokenizer.parseNextToken(
+							TokenType.CustomerReference,
+							true,
+						);
 						const bankReference = this.tokenizer.parseNextToken(TokenType.BankReference, false);
-						const additionalInformation = this.tokenizer.parseNextToken(TokenType.NextNonTagLine, false);
+						const additionalInformation = this.tokenizer.parseNextToken(
+							TokenType.NextNonTagLine,
+							false,
+						);
 
 						this.currentTransaction = {
 							valueDate: valueDate,
@@ -168,7 +186,10 @@ export class Mt940Parser {
 
 		const subFieldTokenizer = new Mt940Tokenizer(infoToAccountOwner);
 
-		this.currentTransaction.transactionCode = subFieldTokenizer.parseNextToken(TokenType.TransactionCode, false);
+		this.currentTransaction.transactionCode = subFieldTokenizer.parseNextToken(
+			TokenType.TransactionCode,
+			false,
+		);
 
 		let subTag;
 		do {
@@ -176,10 +197,16 @@ export class Mt940Parser {
 			if (subTag) {
 				switch (subTag) {
 					case '?00':
-						this.currentTransaction.bookingText = subFieldTokenizer.parseNextToken(TokenType.TextToNextSubTag, true);
+						this.currentTransaction.bookingText = subFieldTokenizer.parseNextToken(
+							TokenType.TextToNextSubTag,
+							true,
+						);
 						break;
 					case '?10':
-						this.currentTransaction.primeNotesNr = subFieldTokenizer.parseNextToken(TokenType.TextToNextSubTag, true);
+						this.currentTransaction.primeNotesNr = subFieldTokenizer.parseNextToken(
+							TokenType.TextToNextSubTag,
+							true,
+						);
 						break;
 					case '?20':
 					case '?21':
@@ -208,15 +235,21 @@ export class Mt940Parser {
 							this.currentTransaction.purpose += purposeTag;
 						}
 
-						this.currentTransaction.purpose += subFieldTokenizer.parseNextToken(TokenType.TextToNextSubTag, true);
+						this.currentTransaction.purpose += subFieldTokenizer.parseNextToken(
+							TokenType.TextToNextSubTag,
+							true,
+						);
 						break;
 					case '?30':
-						this.currentTransaction.remoteBankId = subFieldTokenizer.parseNextToken(TokenType.TextToNextSubTag, true);
+						this.currentTransaction.remoteBankId = subFieldTokenizer.parseNextToken(
+							TokenType.TextToNextSubTag,
+							true,
+						);
 						break;
 					case '?31':
 						this.currentTransaction.remoteAccountNumber = subFieldTokenizer.parseNextToken(
 							TokenType.TextToNextSubTag,
-							true
+							true,
 						);
 						break;
 					case '?32':
@@ -224,12 +257,15 @@ export class Mt940Parser {
 						if (!this.currentTransaction.remoteName) {
 							this.currentTransaction.remoteName = '';
 						}
-						this.currentTransaction.remoteName += subFieldTokenizer.parseNextToken(TokenType.TextToNextSubTag, true);
+						this.currentTransaction.remoteName += subFieldTokenizer.parseNextToken(
+							TokenType.TextToNextSubTag,
+							true,
+						);
 						break;
 					case '?34':
 						this.currentTransaction.textKeyExtension = subFieldTokenizer.parseNextToken(
 							TokenType.TextToNextSubTag,
-							true
+							true,
 						);
 						break;
 					default:
@@ -310,7 +346,9 @@ export class Mt940Parser {
 
 	parseAmount(creditDebit: string, isMandatory = true): number {
 		const amount = this.tokenizer.parseNextToken(TokenType.Decimal, isMandatory);
-		return parseFloat(amount.replace(',', '.')) * (creditDebit === 'D' || creditDebit == 'RC' ? -1 : 1);
+		return (
+			parseFloat(amount.replace(',', '.')) * (creditDebit === 'D' || creditDebit == 'RC' ? -1 : 1)
+		);
 	}
 }
 
@@ -329,7 +367,9 @@ export class Mt940Tokenizer {
 		}
 
 		if (isMandatory) {
-			throw new SyntaxError(`Expected ${type} token at position ${this.position}, after '${this.lastToken}'...`);
+			throw new SyntaxError(
+				`Expected ${type} token at position ${this.position}, after '${this.lastToken}'...`,
+			);
 		}
 
 		return '';

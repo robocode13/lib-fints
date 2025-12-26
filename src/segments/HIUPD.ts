@@ -57,9 +57,13 @@ export class HIUPD extends SegmentDefinition {
 		new AlphaNumeric('accountProduct', 0, 1, 30),
 		new DataGroup(
 			'accountLimit',
-			[new AlphaNumeric('limitType', 1, 1, 1), new MoneyGroup('limitAmount', 0, 1), new Numeric('limitDays', 0, 1, 3)],
+			[
+				new AlphaNumeric('limitType', 1, 1, 1),
+				new MoneyGroup('limitAmount', 0, 1),
+				new Numeric('limitDays', 0, 1, 3),
+			],
 			0,
-			1
+			1,
 		),
 		new DataGroup(
 			'allowedTransactions',
@@ -71,7 +75,7 @@ export class HIUPD extends SegmentDefinition {
 				new Numeric('limitDays', 0, 1, 3),
 			],
 			0,
-			999
+			999,
 		),
 		new AlphaNumeric('accountExtension', 0, 1, 2048),
 	];

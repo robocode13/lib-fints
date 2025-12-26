@@ -1,5 +1,5 @@
 export type BankAnswer = {
-  code: number;
-  text: string;
-  params?: string[];
+	code: number;
+	text: string;
+	params?: string[];
 };

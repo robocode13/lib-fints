@@ -29,7 +29,7 @@ export class HIRMS extends SegmentDefinition {
 				new AlphaNumeric('params', 0, 10, 35),
 			],
 			1,
-			99
+			99,
 		),
 	];
 }

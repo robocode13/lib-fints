@@ -4,7 +4,10 @@ import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { Identification } from '../dataElements/Identification.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { BusinessTransactionParameter, BusinessTransactionParameterSegment } from './businessTransactionParameter.js';
+import {
+	BusinessTransactionParameter,
+	BusinessTransactionParameterSegment,
+} from './businessTransactionParameter.js';
 
 export type HITANSSegment = BusinessTransactionParameterSegment<HITANSParameter>;
 
@@ -92,7 +95,7 @@ export class HITANS extends BusinessTransactionParameter {
 					new YesNo('decoupledAutoConfirmationAllowed', 0, 1, 7),
 				],
 				1,
-				98
+				98,
 			),
 		]);
 	}

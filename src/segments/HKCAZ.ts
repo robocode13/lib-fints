@@ -3,7 +3,10 @@ import { YesNo } from '../dataElements/YesNo.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { Text } from '../dataElements/Text.js';
-import { InternationalAccount, InternationalAccountGroup } from '../dataGroups/InternationalAccount.js';
+import {
+	InternationalAccount,
+	InternationalAccountGroup,
+} from '../dataGroups/InternationalAccount.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
 import { SegmentWithContinuationMark } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';

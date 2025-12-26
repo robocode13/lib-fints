@@ -2,7 +2,10 @@ import { YesNo } from '../dataElements/YesNo.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { BusinessTransactionParameter, BusinessTransactionParameterSegment } from './businessTransactionParameter.js';
+import {
+	BusinessTransactionParameter,
+	BusinessTransactionParameterSegment,
+} from './businessTransactionParameter.js';
 
 export type HIPINSSegment = BusinessTransactionParameterSegment<HIPINSParameter>;
 
@@ -34,7 +37,12 @@ export class HIPINS extends BusinessTransactionParameter {
 			new Numeric('maxTanLen', 0, 1, 2),
 			new AlphaNumeric('textUserId', 0, 1, 30),
 			new AlphaNumeric('textCustomerId', 0, 1, 30),
-			new DataGroup('transactions', [new AlphaNumeric('transId', 1, 1, 6), new YesNo('tanRequired', 1, 1)], 0, 999),
+			new DataGroup(
+				'transactions',
+				[new AlphaNumeric('transId', 1, 1, 6), new YesNo('tanRequired', 1, 1)],
+				0,
+				999,
+			),
 		]);
 	}
 }

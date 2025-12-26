@@ -9,13 +9,13 @@ import { UPD } from './upd.js';
  * @property bankMessages Messages from the bank which should be displayed to the user
  */
 export type BankingInformation = {
-  systemId: string;
-  bpd?: BPD;
-  upd?: UPD;
-  bankMessages: BankMessage[];
+	systemId: string;
+	bpd?: BPD;
+	upd?: UPD;
+	bankMessages: BankMessage[];
 };
 
 export type BankMessage = {
-  subject: string;
-  text: string;
+	subject: string;
+	text: string;
 };

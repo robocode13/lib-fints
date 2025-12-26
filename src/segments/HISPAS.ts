@@ -1,5 +1,11 @@
-import { BusinessTransactionParameter, BusinessTransactionParameterSegment } from './businessTransactionParameter.js';
-import { SepaAccountParameters, SepaAccountParametersGroup } from '../dataGroups/SepaAccountParameters.js';
+import {
+	BusinessTransactionParameter,
+	BusinessTransactionParameterSegment,
+} from './businessTransactionParameter.js';
+import {
+	SepaAccountParameters,
+	SepaAccountParametersGroup,
+} from '../dataGroups/SepaAccountParameters.js';
 
 export type HISPASSegment = BusinessTransactionParameterSegment<SepaAccountParameters>;
 
@@ -17,7 +23,7 @@ export class HISPAS extends BusinessTransactionParameter {
 		super(
 			HISPAS.Id,
 			[new SepaAccountParametersGroup('sepaAccountParams', 1, 1)],
-			1 // secClassMinVersion
+			1, // secClassMinVersion
 		);
 	}
 }

@@ -27,7 +27,7 @@ export class SepaAccountParametersGroup extends DataGroup {
 			minCount,
 			maxCount,
 			minVersion,
-			maxVersion
+			maxVersion,
 		);
 	}
 }

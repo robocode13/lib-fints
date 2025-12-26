@@ -13,7 +13,7 @@ export interface SepaAccountResponse extends ClientResponse {
 export class SepaAccountInteraction extends CustomerOrderInteraction {
 	constructor(
 		public accounts?: string[], // optional specific account numbers
-		public maxEntries?: number
+		public maxEntries?: number,
 	) {
 		super(HKSPA.Id, HISPA.Id);
 	}

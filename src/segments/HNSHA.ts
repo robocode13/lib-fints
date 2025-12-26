@@ -29,6 +29,11 @@ export class HNSHA extends SegmentDefinition {
 	elements = [
 		new AlphaNumeric('secControlRef', 1, 1, 14),
 		new Binary('valResult', 0, 1, 512),
-		new DataGroup('customSignature', [new AlphaNumeric('pin', 1, 1), new AlphaNumeric('tan', 0, 1)], 0, 1),
+		new DataGroup(
+			'customSignature',
+			[new AlphaNumeric('pin', 1, 1), new AlphaNumeric('tan', 0, 1)],
+			0,
+			1,
+		),
 	];
 }

@@ -8,7 +8,11 @@ import { HKTAN, HKTANSegment } from './segments/HKTAN.js';
 import { HNHBK, HNHBKSegment } from './segments/HNHBK.js';
 import { decode } from './segment.js';
 import { PARTED, PartedSegment } from './partedSegment.js';
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
+import {
+	ClientResponse,
+	CustomerInteraction,
+	CustomerOrderInteraction,
+} from './interactions/customerInteraction.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 import { EndDialogInteraction } from './interactions/endDialogInteraction.js';
 
@@ -22,7 +26,10 @@ export class Dialog {
 	hasEnded = false;
 	httpClient: HttpClient;
 
-	constructor(public config: FinTSConfig, syncSystemId: boolean = false) {
+	constructor(
+		public config: FinTSConfig,
+		syncSystemId: boolean = false,
+	) {
 		if (!this.config) {
 			throw new Error('configuration must be provided');
 		}
@@ -139,7 +146,9 @@ export class Dialog {
 		const isCustomerOrder = interaction instanceof CustomerOrderInteraction;
 
 		if (isCustomerOrder && !this.config.isTransactionSupported(interaction.segId)) {
-			throw Error(`customer order transaction ${interaction.segId} is not supported according to the BPD`);
+			throw Error(
+				`customer order transaction ${interaction.segId} is not supported according to the BPD`,
+			);
 		}
 
 		interaction.dialog = this;
@@ -161,8 +170,8 @@ export class Dialog {
 					this.currentInteraction.segId,
 					this.currentInteraction.responseSegId,
 					this.dialogId,
-					this.lastMessageNumber
-			  )
+					this.lastMessageNumber,
+				)
 			: new CustomerMessage(this.dialogId, this.lastMessageNumber);
 
 		const tanMethod = this.config.selectedTanMethod;
@@ -171,7 +180,7 @@ export class Dialog {
 
 		if (isCustomerOrder) {
 			const bankTransaction = this.config.bankingInformation.bpd?.allowedTransactions.find(
-				(t) => t.transId === this.currentInteraction.segId
+				(t) => t.transId === this.currentInteraction.segId,
 			);
 
 			isTanMethodNeeded = isScaSupported && bankTransaction?.tanRequired;
@@ -184,7 +193,7 @@ export class Dialog {
 				this.config.userId,
 				this.config.pin,
 				this.config.bankingInformation.systemId,
-				isScaSupported ? this.config.tanMethodId : undefined
+				isScaSupported ? this.config.tanMethodId : undefined,
 			);
 		}
 
@@ -216,14 +225,16 @@ export class Dialog {
 				this.config.pin,
 				this.config.bankingInformation!.systemId,
 				this.config.tanMethodId,
-				tan
+				tan,
 			);
 		}
 
 		if (this.config.userId && this.config.pin && this.config.tanMethodId) {
 			const hktan: HKTANSegment = {
 				header: { segId: HKTAN.Id, segNr: 0, version: this.config.selectedTanMethod!.version },
-				tanProcess: this.config.selectedTanMethod?.isDecoupled ? TanProcess.Status : TanProcess.Process2,
+				tanProcess: this.config.selectedTanMethod?.isDecoupled
+					? TanProcess.Status
+					: TanProcess.Process2,
 				segId: this.currentInteraction.segId,
 				orderRef: tanOrderReference,
 				nextTan: false,
@@ -241,7 +252,7 @@ export class Dialog {
 	private async handlePartedMessages(
 		message: CustomerMessage,
 		responseMessage: Message,
-		interaction: CustomerInteraction
+		interaction: CustomerInteraction,
 	) {
 		let partedSegment = responseMessage.findSegment<PartedSegment>(PARTED.Id);
 
@@ -249,11 +260,11 @@ export class Dialog {
 			while (responseMessage.hasReturnCode(3040)) {
 				const answers = responseMessage.getBankAnswers();
 				const segmentWithContinuation = message.segments.find(
-					(s) => s.header.segId === interaction.segId
+					(s) => s.header.segId === interaction.segId,
 				) as SegmentWithContinuationMark;
 				if (!segmentWithContinuation) {
 					throw new Error(
-						`Response contains segment with further information, but corresponding segment could not be found or is not specified`
+						`Response contains segment with further information, but corresponding segment could not be found or is not specified`,
 					);
 				}
 
@@ -264,7 +275,8 @@ export class Dialog {
 
 				if (nextPartedSegment) {
 					nextPartedSegment.rawData =
-						partedSegment.rawData + nextPartedSegment.rawData.slice(nextPartedSegment.rawData.indexOf('+') + 1);
+						partedSegment.rawData +
+						nextPartedSegment.rawData.slice(nextPartedSegment.rawData.indexOf('+') + 1);
 					partedSegment = nextPartedSegment;
 				}
 

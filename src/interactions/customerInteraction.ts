@@ -51,7 +51,9 @@ export abstract class CustomerInteraction {
 	handleClientResponse(message: Message): ClientResponse {
 		const clientResponse = this.handleBaseResponse(message);
 
-		const currentBankingInformationSnapshot = JSON.stringify(this.dialog?.config.bankingInformation);
+		const currentBankingInformationSnapshot = JSON.stringify(
+			this.dialog?.config.bankingInformation,
+		);
 
 		if (clientResponse.success && !clientResponse.requiresTan) {
 			this.handleResponse(message, clientResponse);
@@ -118,7 +120,9 @@ export abstract class CustomerInteraction {
 					tanMediaName: hitan.tanMedia,
 				};
 			} else {
-				throw new Error('HITAN segment not found in response, despite return code indicating security approval');
+				throw new Error(
+					'HITAN segment not found in response, despite return code indicating security approval',
+				);
 			}
 		}
 
@@ -133,7 +137,10 @@ export abstract class CustomerInteraction {
 }
 
 export abstract class CustomerOrderInteraction extends CustomerInteraction {
-	constructor(segId: string, public responseSegId: string) {
+	constructor(
+		segId: string,
+		public responseSegId: string,
+	) {
 		super(segId);
 	}
 }

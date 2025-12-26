@@ -1,4 +1,8 @@
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './customerInteraction.js';
+import {
+	ClientResponse,
+	CustomerInteraction,
+	CustomerOrderInteraction,
+} from './customerInteraction.js';
 import { Message } from '../message.js';
 import { Segment } from '../segment.js';
 import { FinTSConfig } from '../config.js';
@@ -29,7 +33,10 @@ export interface InitResponse extends ClientResponse {
 }
 
 export class InitDialogInteraction extends CustomerInteraction {
-	constructor(public config: FinTSConfig, public syncSystemId = false) {
+	constructor(
+		public config: FinTSConfig,
+		public syncSystemId = false,
+	) {
 		super(HKIDN.Id);
 	}
 
@@ -97,14 +104,17 @@ export class InitDialogInteraction extends CustomerInteraction {
 							decoupled: isDecoupledTanMethod(method)
 								? {
 										maxStatusRequests: method.decoupledMaxStatusRequests!,
-										waitingSecondsBeforeFirstStatusRequest: method.decoupledWaitBeforeFirstStatusRequest!,
+										waitingSecondsBeforeFirstStatusRequest:
+											method.decoupledWaitBeforeFirstStatusRequest!,
 										waitingSecondsBetweenStatusRequests: method.decoupledWaitBetweenStatusRequests!,
 										manualConfirmationAllowed: method.decoupledManualConfirmationAllowed ?? false,
 										autoConfirmationAllowed: method.decoupledAutoConfirmationAllowed ?? false,
-								  }
+									}
 								: undefined,
 						}))
-						.filter((method) => !supportedTanMethods.some((existing) => existing.id === method.id)) ?? [])
+						.filter(
+							(method) => !supportedTanMethods.some((existing) => existing.id === method.id),
+						) ?? []),
 				);
 			});
 
@@ -120,7 +130,9 @@ export class InitDialogInteraction extends CustomerInteraction {
 			const hipins = response.findSegment<HIPINSSegment>(HIPINS.Id);
 
 			if (!hipins) {
-				throw new Error('Bank does not support PIN/TAN transactions (HIPINS segment not found in BPA)');
+				throw new Error(
+					'Bank does not support PIN/TAN transactions (HIPINS segment not found in BPA)',
+				);
 			}
 
 			const bankTransactions: BankTransaction[] = hipins.params.transactions.map((t) => {
@@ -198,7 +210,10 @@ export class InitDialogInteraction extends CustomerInteraction {
 		}
 
 		const hikimSegments = response.findAllSegments<HIKIMSegment>(HIKIM.Id);
-		const bankMessages: BankMessage[] = hikimSegments.map((s) => ({ subject: s.subject, text: s.text }));
+		const bankMessages: BankMessage[] = hikimSegments.map((s) => ({
+			subject: s.subject,
+			text: s.text,
+		}));
 		this.config.bankingInformation.bankMessages = bankMessages;
 
 		clientResponse.bankingInformation = this.config.bankingInformation;

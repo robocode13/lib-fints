@@ -1,6 +1,9 @@
 import { YesNo } from '../dataElements/YesNo.js';
 import { Numeric } from '../dataElements/Numeric.js';
-import { BusinessTransactionParameter, BusinessTransactionParameterSegment } from './businessTransactionParameter.js';
+import {
+	BusinessTransactionParameter,
+	BusinessTransactionParameterSegment,
+} from './businessTransactionParameter.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 
 export type HICAZSSegment = BusinessTransactionParameterSegment<HICAZSParameter>;

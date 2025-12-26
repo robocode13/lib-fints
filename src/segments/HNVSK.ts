@@ -45,16 +45,30 @@ export class HNVSK extends SegmentDefinition {
 	}
 	version = 3;
 	elements = [
-		new DataGroup('secProfile', [new AlphaNumeric('secMethod', 1, 1, 3), new Numeric('secVersion', 1, 1, 3)], 1, 1),
+		new DataGroup(
+			'secProfile',
+			[new AlphaNumeric('secMethod', 1, 1, 3), new Numeric('secVersion', 1, 1, 3)],
+			1,
+			1,
+		),
 		new Numeric('secFunc', 1, 1, 3),
 		new Numeric('secRole', 1, 1, 3),
 		new DataGroup(
 			'secId',
-			[new Numeric('partyType', 1, 1, 3), new Binary('cid', 0, 1, 256), new Identification('partyID', 0, 1)],
+			[
+				new Numeric('partyType', 1, 1, 3),
+				new Binary('cid', 0, 1, 256),
+				new Identification('partyID', 0, 1),
+			],
 			1,
-			1
+			1,
 		),
-		new DataGroup('dateTime', [new Numeric('type', 1, 1, 3), new Dat('date', 0, 1), new Time('time', 0, 1)], 1, 1),
+		new DataGroup(
+			'dateTime',
+			[new Numeric('type', 1, 1, 3), new Dat('date', 0, 1), new Time('time', 0, 1)],
+			1,
+			1,
+		),
 		new DataGroup(
 			'encryption',
 			[
@@ -67,7 +81,7 @@ export class HNVSK extends SegmentDefinition {
 				new Binary('initParamValue', 0, 1, 512),
 			],
 			1,
-			1
+			1,
 		),
 		new DataGroup(
 			'key',
@@ -79,10 +93,15 @@ export class HNVSK extends SegmentDefinition {
 				new Numeric('keyVersion', 1, 1, 3),
 			],
 			1,
-			1
+			1,
 		),
 		new Numeric('compressMethod', 1, 1, 3),
-		new DataGroup('certificate', [new Numeric('type', 1, 1, 3), new Binary('content', 1, 1, 4096)], 0, 1),
+		new DataGroup(
+			'certificate',
+			[new Numeric('type', 1, 1, 3), new Binary('content', 1, 1, 4096)],
+			0,
+			1,
+		),
 	];
 
 	setSegmentNumber(segmentNumber: number): number {

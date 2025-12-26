@@ -1,4 +1,8 @@
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './customerInteraction.js';
+import {
+	ClientResponse,
+	CustomerInteraction,
+	CustomerOrderInteraction,
+} from './customerInteraction.js';
 import { Message } from '../message.js';
 import { Segment } from '../segment.js';
 import { FinTSConfig } from '../config.js';

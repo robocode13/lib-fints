@@ -57,7 +57,10 @@ export function segmentToString(segment: Segment): string {
 	const keyedSegment = segment as { [key: string]: any };
 
 	const number = segment.header.segNr?.toString() ?? '?';
-	const segId = segment.header.segId === UnkownId ? (segment as UnknownSegment).originalId : segment.header.segId;
+	const segId =
+		segment.header.segId === UnkownId
+			? (segment as UnknownSegment).originalId
+			: segment.header.segId;
 
 	let text = `${number.padStart(4, ' ')}. ${segId} v${segment.header.version}`;
 	if (segment.header.refSegNr) {

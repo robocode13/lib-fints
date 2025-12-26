@@ -17,7 +17,11 @@ export type BusinessTransactionParameterSegment<TParams> = Segment & {
 export abstract class BusinessTransactionParameter extends SegmentDefinition {
 	elements: DataElement[];
 
-	constructor(id: string, public paramElements: DataElement[], secClassMinVersion = 1) {
+	constructor(
+		id: string,
+		public paramElements: DataElement[],
+		secClassMinVersion = 1,
+	) {
 		super(id);
 		this.elements = [
 			new Numeric('maxTrans', 1, 1, 3),

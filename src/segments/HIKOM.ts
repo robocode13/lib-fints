@@ -43,7 +43,7 @@ export class HIKOM extends SegmentDefinition {
 				new Numeric('filterVer', 0, 1, 3),
 			],
 			1,
-			1
+			1,
 		),
 	];
 }

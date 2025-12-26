@@ -16,13 +16,21 @@ export abstract class SegmentDefinition {
 
 	getElementsForVersion(version: number) {
 		return this.elements.filter(
-			(element) => version >= (element.minVersion ?? 0) && version <= (element.maxVersion ?? Number.MAX_SAFE_INTEGER)
+			(element) =>
+				version >= (element.minVersion ?? 0) &&
+				version <= (element.maxVersion ?? Number.MAX_SAFE_INTEGER),
 		);
 	}
 
 	encode(data: Segment) {
-		const headerText = SegmentDefinition.header.encode(data.header, [data.header.segId], data.header.version);
-		const elementsText = encodeElements(data, this.elements, '+', data.header.version, [data.header.segId]);
+		const headerText = SegmentDefinition.header.encode(
+			data.header,
+			[data.header.segId],
+			data.header.version,
+		);
+		const elementsText = encodeElements(data, this.elements, '+', data.header.version, [
+			data.header.segId,
+		]);
 		return `${headerText}+${elementsText}'`;
 	}
 }
