@@ -1,4 +1,4 @@
-import { CustomerMessage, CustomerOrderMessage, Message } from './message.js';
+import { type CustomerMessage, type CustomerOrderMessage, Message } from './message.js';
 
 export class HttpClient {
 	constructor(

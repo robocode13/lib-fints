@@ -1,5 +1,5 @@
-import { SepaAccount, SepaAccountGroup } from '../dataGroups/SepaAccount.js';
-import { Segment } from '../segment.js';
+import { type SepaAccount, SepaAccountGroup } from '../dataGroups/SepaAccount.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HISPASegment = Segment & {

@@ -1,4 +1,4 @@
-import { Statement, Transaction, Balance } from './statement.js';
+import type { Statement, Transaction, Balance } from './statement.js';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 
 export class CamtParsingError extends Error {
@@ -91,7 +91,7 @@ export class CamtParser {
 		}
 		// Look for any object with BkToCstmrAcctRpt property
 		for (const key in document) {
-			if (document[key] && document[key].BkToCstmrAcctRpt) {
+			if (document[key]?.BkToCstmrAcctRpt) {
 				return document[key];
 			}
 		}

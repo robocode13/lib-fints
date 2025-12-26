@@ -1,4 +1,4 @@
-import { DataElement } from './dataElements/DataElement.js';
+import type { DataElement } from './dataElements/DataElement.js';
 
 export function decodeElements(
 	text: string,

@@ -1,6 +1,6 @@
-import { SyncMode } from '../codes.js';
+import type { SyncMode } from '../codes.js';
 import { Numeric } from '../dataElements/Numeric.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HKSYNSegment = Segment & {

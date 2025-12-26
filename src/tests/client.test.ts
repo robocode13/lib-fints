@@ -1,9 +1,9 @@
-import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FinTSClient } from '../client.js';
 import { Dialog } from '../dialog.js';
 import { FinTSConfig } from '../config.js';
 import { Language } from '../codes.js';
-import {
+import type {
 	AccountBalanceResponse,
 	ClientResponse,
 	StatementResponse,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerSegments } from '../segments/registry.js';
-import { HITAB, HITABSegment } from '../segments/HITAB.js';
+import { HITAB, type HITABSegment } from '../segments/HITAB.js';
 import { decode, encode, segmentToString } from '../segment.js';
 import exp from 'constants';
 

@@ -1,6 +1,6 @@
-import { BankTransaction } from './bankTransaction.js';
-import { Language } from './codes.js';
-import { TanMethod } from './tanMethod.js';
+import type { BankTransaction } from './bankTransaction.js';
+import type { Language } from './codes.js';
+import type { TanMethod } from './tanMethod.js';
 
 export type BPD = {
 	version: number;

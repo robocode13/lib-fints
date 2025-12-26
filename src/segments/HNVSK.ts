@@ -6,10 +6,10 @@ import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { BankIdentification } from '../dataGroups/BankIdentification.js';
 import { Identification } from '../dataElements/Identification.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
-import { SegmentHeader } from '../segmentHeader.js';
-import { Certificate, Key, SecDateTime, SecIdentification, SecProfile } from './HNSHK.js';
+import type { SegmentHeader } from '../segmentHeader.js';
+import type { Certificate, Key, SecDateTime, SecIdentification, SecProfile } from './HNSHK.js';
 
 export type HNVSKSegment = Segment & {
 	header: SegmentHeader & { segNr: 998 };

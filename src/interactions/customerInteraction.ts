@@ -1,11 +1,11 @@
-import { BankAnswer } from '../bankAnswer.js';
-import { Dialog } from '../dialog.js';
-import { FinTSConfig } from '../config.js';
-import { Message } from '../message.js';
-import { Segment } from '../segment.js';
-import { Statement } from '../statement.js';
-import { HITAN, HITANSegment } from '../segments/HITAN.js';
-import { HNHBK, HNHBKSegment } from '../segments/HNHBK.js';
+import type { BankAnswer } from '../bankAnswer.js';
+import type { Dialog } from '../dialog.js';
+import type { FinTSConfig } from '../config.js';
+import type { Message } from '../message.js';
+import type { Segment } from '../segment.js';
+import type { Statement } from '../statement.js';
+import { HITAN, type HITANSegment } from '../segments/HITAN.js';
+import { HNHBK, type HNHBKSegment } from '../segments/HNHBK.js';
 
 export interface PhotoTan {
 	mimeType: string;

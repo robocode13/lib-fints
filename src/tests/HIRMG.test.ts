@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerSegments } from '../segments/registry.js';
-import { HIRMGSegment } from '../segments/HIRMG.js';
+import type { HIRMGSegment } from '../segments/HIRMG.js';
 import { decode, encode, segmentToString } from '../segment.js';
 
 registerSegments();

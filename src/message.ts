@@ -1,19 +1,19 @@
 import { HashAlgorithm } from './codes.js';
 import { splitBySeparator } from './parser.js';
-import { HNHBS, HNHBSSegment } from './segments/HNHBS.js';
-import { HNHBK, HNHBKSegment } from './segments/HNHBK.js';
-import { HNVSK, HNVSKSegment } from './segments/HNVSK.js';
-import { HNSHK, HNSHKSegment } from './segments/HNSHK.js';
-import { HNVSD, HNVSDSegment } from './segments/HNVSD.js';
-import { HNSHA, HNSHASegment } from './segments/HNSHA.js';
-import { HIRMS, HIRMSSegment } from './segments/HIRMS.js';
-import { HIRMG, HIRMGSegment } from './segments/HIRMG.js';
-import { BankAnswer } from './bankAnswer.js';
-import { Segment } from './segment.js';
-import { UnknownSegment, UnkownId } from './unknownSegment.js';
+import { HNHBS, type HNHBSSegment } from './segments/HNHBS.js';
+import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
+import { HNVSK, type HNVSKSegment } from './segments/HNVSK.js';
+import { HNSHK, type HNSHKSegment } from './segments/HNSHK.js';
+import { HNVSD, type HNVSDSegment } from './segments/HNVSD.js';
+import { HNSHA, type HNSHASegment } from './segments/HNSHA.js';
+import { HIRMS, type HIRMSSegment } from './segments/HIRMS.js';
+import { HIRMG, type HIRMGSegment } from './segments/HIRMG.js';
+import type { BankAnswer } from './bankAnswer.js';
+import type { Segment } from './segment.js';
+import { type UnknownSegment, UnkownId } from './unknownSegment.js';
 import { decode, encode, segmentToString } from './segment.js';
 import { SegmentDefinition } from './segmentDefinition.js';
-import { PARTED, PartedSegment } from './partedSegment.js';
+import { PARTED, type PartedSegment } from './partedSegment.js';
 import { getSegmentDefinition } from './segments/registry.js';
 
 export class Message {
@@ -53,7 +53,7 @@ export class Message {
 	}
 
 	getBankAnswers(): BankAnswer[] {
-		let bankAnswers: BankAnswer[] = [];
+		const bankAnswers: BankAnswer[] = [];
 		const hirmgSegments = this.findAllSegments<HIRMGSegment>(HIRMG.Id);
 
 		hirmgSegments.forEach((hirmg) =>
@@ -83,7 +83,7 @@ export class Message {
 
 	static decode(text: string, partedResponseSegId?: string): Message {
 		const segmentTexts = splitBySeparator(text, "'").filter((text) => !!text);
-		let segments = segmentTexts.map((text) => Message.decodeSegment(text, partedResponseSegId));
+		const segments = segmentTexts.map((text) => Message.decodeSegment(text, partedResponseSegId));
 
 		const hnvskIndex = segments.findIndex((segment) => segment.header.segId === HNVSK.Id);
 		const hnvsdIndex = segments.findIndex((segment) => segment.header.segId === HNVSD.Id);

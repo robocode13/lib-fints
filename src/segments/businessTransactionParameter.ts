@@ -1,7 +1,7 @@
 import { Numeric } from '../dataElements/Numeric.js';
-import { DataElement } from '../dataElements/DataElement.js';
+import type { DataElement } from '../dataElements/DataElement.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type BusinessTransactionParameterSegment<TParams> = Segment & {

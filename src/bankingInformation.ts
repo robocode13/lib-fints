@@ -1,5 +1,5 @@
-import { BPD } from './bpd.js';
-import { UPD } from './upd.js';
+import type { BPD } from './bpd.js';
+import type { UPD } from './upd.js';
 
 /**
  * Information returned by the bank

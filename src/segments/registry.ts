@@ -1,4 +1,4 @@
-import { SegmentDefinition } from '../segmentDefinition.js';
+import type { SegmentDefinition } from '../segmentDefinition.js';
 import { HNHBK } from './HNHBK.js';
 import { HNHBS } from './HNHBS.js';
 import { HNVSK } from './HNVSK.js';

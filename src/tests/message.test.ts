@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { CustomerMessage, Message } from '../message.js';
-import { HKIDN, HKIDNSegment } from '../segments/HKIDN.js';
-import { HKVVB, HKVVBSegment } from '../segments/HKVVB.js';
+import { HKIDN, type HKIDNSegment } from '../segments/HKIDN.js';
+import { HKVVB, type HKVVBSegment } from '../segments/HKVVB.js';
 import { Language } from '../codes.js';
 import { registerSegments } from '../segments/registry.js';
-import { HIRMS, HIRMSSegment } from '../segments/HIRMS.js';
+import { HIRMS, type HIRMSSegment } from '../segments/HIRMS.js';
 import { HIRMG } from '../segments/HIRMG.js';
 
 registerSegments();

@@ -1,16 +1,16 @@
-import { FinTSConfig } from './config.js';
+import type { FinTSConfig } from './config.js';
 import { TanMediaRequirement, TanProcess } from './codes.js';
 import { HttpClient } from './httpClient.js';
-import { CustomerMessage, CustomerOrderMessage, Message } from './message.js';
-import { SegmentWithContinuationMark } from './segment.js';
+import { CustomerMessage, CustomerOrderMessage, type Message } from './message.js';
+import type { SegmentWithContinuationMark } from './segment.js';
 import { HKIDN } from './segments/HKIDN.js';
-import { HKTAN, HKTANSegment } from './segments/HKTAN.js';
-import { HNHBK, HNHBKSegment } from './segments/HNHBK.js';
+import { HKTAN, type HKTANSegment } from './segments/HKTAN.js';
+import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
 import { decode } from './segment.js';
-import { PARTED, PartedSegment } from './partedSegment.js';
+import { PARTED, type PartedSegment } from './partedSegment.js';
 import {
-	ClientResponse,
-	CustomerInteraction,
+	type ClientResponse,
+	type CustomerInteraction,
 	CustomerOrderInteraction,
 } from './interactions/customerInteraction.js';
 import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
@@ -175,7 +175,7 @@ export class Dialog {
 			: new CustomerMessage(this.dialogId, this.lastMessageNumber);
 
 		const tanMethod = this.config.selectedTanMethod;
-		let isScaSupported = tanMethod && tanMethod.version >= 6;
+		const isScaSupported = tanMethod && tanMethod.version >= 6;
 		let isTanMethodNeeded = isScaSupported;
 
 		if (isCustomerOrder) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HKIDN, HKIDNSegment } from '../segments/HKIDN.js';
+import { HKIDN, type HKIDNSegment } from '../segments/HKIDN.js';
 import { registerSegments } from '../segments/registry.js';
 import { decode, encode } from '../segment.js';
 

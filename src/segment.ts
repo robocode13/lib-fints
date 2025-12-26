@@ -1,8 +1,8 @@
 import { decodeElements } from './decoder.js';
-import { UnknownSegment, UnkownId } from './unknownSegment.js';
+import { type UnknownSegment, UnkownId } from './unknownSegment.js';
 import { getSegmentDefinition } from './segments/registry.js';
 import { SegmentDefinition } from './segmentDefinition.js';
-import { SegmentHeader } from './segmentHeader.js';
+import type { SegmentHeader } from './segmentHeader.js';
 
 export type Segment = {
 	header: SegmentHeader;
@@ -69,7 +69,7 @@ export function segmentToString(segment: Segment): string {
 
 	const segmentDefinition = getSegmentDefinition(segment.header.segId)!;
 
-	let texts = segmentDefinition.getElementsForVersion(segment.header.version).map((element) => {
+	const texts = segmentDefinition.getElementsForVersion(segment.header.version).map((element) => {
 		if (element.maxCount > 1) {
 			const array = keyedSegment[element.name] ?? [];
 			const texts = array.map((value: any) => element.toString(value));

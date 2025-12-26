@@ -1,9 +1,9 @@
 import { Digits } from '../dataElements/Digits.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
-import { Answer } from './HIRMG.js';
+import type { Answer } from './HIRMG.js';
 
 export type HIRMSSegment = Segment & {
 	answers: Answer[];

@@ -1,28 +1,28 @@
 import {
-	ClientResponse,
+	type ClientResponse,
 	CustomerInteraction,
 	CustomerOrderInteraction,
 } from './customerInteraction.js';
-import { Message } from '../message.js';
-import { Segment } from '../segment.js';
-import { FinTSConfig } from '../config.js';
-import { HKIDN, HKIDNSegment } from '../segments/HKIDN.js';
-import { BankMessage, BankingInformation } from '../bankingInformation.js';
-import { HKVVB, HKVVBSegment } from '../segments/HKVVB.js';
+import type { Message } from '../message.js';
+import type { Segment } from '../segment.js';
+import type { FinTSConfig } from '../config.js';
+import { HKIDN, type HKIDNSegment } from '../segments/HKIDN.js';
+import type { BankMessage, BankingInformation } from '../bankingInformation.js';
+import { HKVVB, type HKVVBSegment } from '../segments/HKVVB.js';
 import { Language, SyncMode, TanMediaRequirement } from '../codes.js';
-import { HKSYN, HKSYNSegment } from '../segments/HKSYN.js';
-import { HISYN, HISYNSegment } from '../segments/HISYN.js';
-import { BankAnswer } from '../bankAnswer.js';
-import { HIBPA, HIBPASegment } from '../segments/HIBPA.js';
-import { HITANS, HITANSSegment, HitansTanMethod } from '../segments/HITANS.js';
-import { TanMethod } from '../tanMethod.js';
-import { HIKOM, HIKOMSegment } from '../segments/HIKOM.js';
-import { HIPINS, HIPINSSegment } from '../segments/HIPINS.js';
-import { BankTransaction } from '../bankTransaction.js';
-import { HIUPA, HIUPASegment } from '../segments/HIUPA.js';
-import { BankAccount, finTsAccountTypeToEnum } from '../bankAccount.js';
-import { HIKIMSegment, HIKIM } from '../segments/HIKIM.js';
-import { HIUPDSegment, HIUPD } from '../segments/HIUPD.js';
+import { HKSYN, type HKSYNSegment } from '../segments/HKSYN.js';
+import { HISYN, type HISYNSegment } from '../segments/HISYN.js';
+import type { BankAnswer } from '../bankAnswer.js';
+import { HIBPA, type HIBPASegment } from '../segments/HIBPA.js';
+import { HITANS, type HITANSSegment, type HitansTanMethod } from '../segments/HITANS.js';
+import type { TanMethod } from '../tanMethod.js';
+import { HIKOM, type HIKOMSegment } from '../segments/HIKOM.js';
+import { HIPINS, type HIPINSSegment } from '../segments/HIPINS.js';
+import type { BankTransaction } from '../bankTransaction.js';
+import { HIUPA, type HIUPASegment } from '../segments/HIUPA.js';
+import { type BankAccount, finTsAccountTypeToEnum } from '../bankAccount.js';
+import { type HIKIMSegment, HIKIM } from '../segments/HIKIM.js';
+import { type HIUPDSegment, HIUPD } from '../segments/HIUPD.js';
 import { HKTAB } from '../segments/HKTAB.js';
 import { TanMediaInteraction } from './tanMediaInteraction.js';
 import { HKSPA } from '../segments/HKSPA.js';

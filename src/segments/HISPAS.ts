@@ -1,9 +1,9 @@
 import {
 	BusinessTransactionParameter,
-	BusinessTransactionParameterSegment,
+	type BusinessTransactionParameterSegment,
 } from './businessTransactionParameter.js';
 import {
-	SepaAccountParameters,
+	type SepaAccountParameters,
 	SepaAccountParametersGroup,
 } from '../dataGroups/SepaAccountParameters.js';
 

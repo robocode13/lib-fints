@@ -1,4 +1,4 @@
-import { TanMediaRequirement } from './codes.js';
+import type { TanMediaRequirement } from './codes.js';
 
 /**
  * Represents a TAN (Transaction Authentication Number) method used to approve transactions.

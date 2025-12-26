@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { registerSegments } from '../segments/registry.js';
 import { decode, encode } from '../segment.js';
-import { HICAZSSegment } from '../segments/HICAZS.js';
+import type { HICAZSSegment } from '../segments/HICAZS.js';
 
 registerSegments();
 

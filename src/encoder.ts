@@ -1,4 +1,4 @@
-import { DataElement } from './dataElements/DataElement.js';
+import type { DataElement } from './dataElements/DataElement.js';
 
 export function encodeElements(
 	values: any,
@@ -30,7 +30,7 @@ export function encodeElements(
 		);
 	}
 
-	let textValues = [];
+	const textValues = [];
 	let elementIndex = 0;
 
 	while (elementIndex < elements.length) {

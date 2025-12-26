@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerSegments } from '../segments/registry.js';
-import { HIPINSSegment } from '../segments/HIPINS.js';
+import type { HIPINSSegment } from '../segments/HIPINS.js';
 import { decode, encode } from '../segment.js';
 
 registerSegments();

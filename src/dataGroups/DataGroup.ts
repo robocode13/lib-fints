@@ -55,7 +55,7 @@ export class DataGroup extends DataElement {
 			return '';
 		}
 
-		let texts = this.elements.map((element) => {
+		const texts = this.elements.map((element) => {
 			if (element.maxCount > 1) {
 				if (this.elements.length === 1) {
 					return values.map((value: any) => element.toString(value)).join('; ');

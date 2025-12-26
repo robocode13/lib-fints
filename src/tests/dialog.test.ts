@@ -1,14 +1,14 @@
-import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Dialog } from '../dialog.js';
 import { FinTSConfig } from '../config.js';
 import { Message, CustomerMessage } from '../message.js';
 import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
-import { ClientResponse, CustomerOrderInteraction } from '../interactions/customerInteraction.js';
-import { TanMethod } from '../tanMethod.js';
+import type { ClientResponse, CustomerOrderInteraction } from '../interactions/customerInteraction.js';
+import type { TanMethod } from '../tanMethod.js';
 import { Language, TanMediaRequirement } from '../codes.js';
-import { BankingInformation } from '../bankingInformation.js';
-import { BPD } from '../bpd.js';
-import { BankTransaction } from '../bankTransaction.js';
+import type { BankingInformation } from '../bankingInformation.js';
+import type { BPD } from '../bpd.js';
+import type { BankTransaction } from '../bankTransaction.js';
 import { SepaAccountInteraction } from '../interactions/sepaAccountInteraction.js';
 import { registerSegments } from '../segments/registry.js';
 

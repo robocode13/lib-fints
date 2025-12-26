@@ -1,4 +1,4 @@
-import { TanMediaRequirement } from '../codes.js';
+import type { TanMediaRequirement } from '../codes.js';
 import { YesNo } from '../dataElements/YesNo.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
@@ -6,7 +6,7 @@ import { Identification } from '../dataElements/Identification.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
 import {
 	BusinessTransactionParameter,
-	BusinessTransactionParameterSegment,
+	type BusinessTransactionParameterSegment,
 } from './businessTransactionParameter.js';
 
 export type HITANSSegment = BusinessTransactionParameterSegment<HITANSParameter>;

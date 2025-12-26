@@ -1,6 +1,6 @@
 import { encodeElements } from './encoder.js';
-import { DataElement } from './dataElements/DataElement.js';
-import { Segment } from './segment.js';
+import type { DataElement } from './dataElements/DataElement.js';
+import type { Segment } from './segment.js';
 import { SegmentHeaderGroup } from './segmentHeader.js';
 
 export abstract class SegmentDefinition {

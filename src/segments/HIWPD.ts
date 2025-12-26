@@ -1,4 +1,4 @@
-import { SegmentHeader } from '../segmentHeader.js';
+import type { SegmentHeader } from '../segmentHeader.js';
 import { Binary } from '../dataElements/Binary.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 

@@ -4,7 +4,7 @@ import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
 import {
 	BusinessTransactionParameter,
-	BusinessTransactionParameterSegment,
+	type BusinessTransactionParameterSegment,
 } from './businessTransactionParameter.js';
 
 export type HIPINSSegment = BusinessTransactionParameterSegment<HIPINSParameter>;

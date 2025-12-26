@@ -2,11 +2,11 @@ import { Time } from '../dataElements/Time.js';
 import { Dat } from '../dataElements/Dat.js';
 import { Binary } from '../dataElements/Binary.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { TimeStamp } from '../dataGroups/TimeStamp.js';
+import type { TimeStamp } from '../dataGroups/TimeStamp.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
-import { TanProcess } from '../codes.js';
+import type { TanProcess } from '../codes.js';
 
 export type HITANSegment = Segment & {
 	tanProcess: TanProcess;

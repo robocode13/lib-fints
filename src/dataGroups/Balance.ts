@@ -2,7 +2,7 @@ import { Time } from '../dataElements/Time.js';
 import { Dat } from '../dataElements/Dat.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from './DataGroup.js';
-import { Money, MoneyGroup } from './Money.js';
+import { type Money, MoneyGroup } from './Money.js';
 
 export type Balance = {
 	creditDebit: string;

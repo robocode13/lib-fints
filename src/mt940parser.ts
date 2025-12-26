@@ -30,7 +30,7 @@ const tokens: { [key in TokenType]: RegExp } = {
 	PurposeTag: /^[A-Z]{4}\+/,
 	SingleAlpha: /^[A-Z]/,
 	StatementNumber: /^\d+\/?\d*/,
-	CustomerReference: /^[^\/\r\n]+/,
+	CustomerReference: /^[^/\r\n]+/,
 	BankReference: /^\/\/([^\r\n]+)/,
 	CreditDebit: /^C|D|RC|RD/,
 	Date: /^\d{6}/,
@@ -38,7 +38,7 @@ const tokens: { [key in TokenType]: RegExp } = {
 	Decimal: /^\d+,\d*/,
 	Currency: /^[A-Z]{3}/,
 	TextToEndOfLine: /^[^\r\n]+/,
-	TextToNextSubTag: /^[^\?]+/,
+	TextToNextSubTag: /^[^?]+/,
 	TextToNextPurposeTag: /^(.*?)(?=\s[A-Z]{4}\+|$)/,
 	NextNonTagLine: /^\r\n([^:][^\r\n]*)/,
 	TransactionType: /^[A-Z][0-9A-Z]{3}/,
@@ -65,7 +65,7 @@ export class Mt940Parser {
 				continue;
 			}
 
-			let tag = this.tokenizer.parseNextToken(TokenType.Tag, false);
+			const tag = this.tokenizer.parseNextToken(TokenType.Tag, false);
 
 			if (tag) {
 				switch (tag) {
@@ -112,10 +112,10 @@ export class Mt940Parser {
 						}
 						this.currentStatement.forwardBalances.push(this.parseBalance());
 						break;
-					case ':61:':
+					case ':61:': {
 						const valueDate = this.parseDate(true);
 						let entryDate = valueDate;
-						let entryDateString = this.tokenizer.parseNextToken(TokenType.ShortDate, false);
+						const entryDateString = this.tokenizer.parseNextToken(TokenType.ShortDate, false);
 						if (entryDateString) {
 							const valueYear = valueDate.getFullYear();
 							const valueMonth = valueDate.getMonth() + 1;
@@ -154,7 +154,8 @@ export class Mt940Parser {
 
 						this.currentStatement.transactions!.push(this.currentTransaction);
 						break;
-					case ':86:':
+					}
+					case ':86:': {
 						let infoToAccountOwner = this.tokenizer.parseNextToken(TokenType.TextToEndOfLine, true);
 
 						let nextLine;
@@ -167,6 +168,7 @@ export class Mt940Parser {
 
 						this.parseInfoToAccountOwner(infoToAccountOwner);
 						break;
+					}
 					default:
 						this.tokenizer.parseNextToken(TokenType.TextToEndOfLine, false);
 						break;
@@ -221,7 +223,7 @@ export class Mt940Parser {
 					case '?60':
 					case '?61':
 					case '?62':
-					case '?63':
+					case '?63': {
 						if (!this.currentTransaction.purpose) {
 							this.currentTransaction.purpose = '';
 						}
@@ -240,6 +242,7 @@ export class Mt940Parser {
 							true,
 						);
 						break;
+					}
 					case '?30':
 						this.currentTransaction.remoteBankId = subFieldTokenizer.parseNextToken(
 							TokenType.TextToNextSubTag,
@@ -359,7 +362,7 @@ export class Mt940Tokenizer {
 	constructor(private input: string) {}
 
 	parseNextToken(type: TokenType, isMandatory: boolean): string {
-		let matched = this.match(tokens[type]);
+		const matched = this.match(tokens[type]);
 		if (matched) {
 			this.position += matched[0].length;
 			this.lastToken = matched.length > 1 ? matched[1] : matched[0];

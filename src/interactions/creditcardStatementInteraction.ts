@@ -1,11 +1,11 @@
-import { ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
-import { Message } from '../message.js';
-import { DKKKU, DKKKUSegment } from '../segments/DKKKU.js';
-import { DIKKU, DIKKUSegment } from '../segments/DIKKU.js';
-import { Segment } from '../segment.js';
-import { CreditCardStatement } from '../creditCardStatement.js';
-import { FinTSConfig } from '../config.js';
-import { AccountBalance } from '../accountBalance.js';
+import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
+import type { Message } from '../message.js';
+import { DKKKU, type DKKKUSegment } from '../segments/DKKKU.js';
+import { DIKKU, type DIKKUSegment } from '../segments/DIKKU.js';
+import type { Segment } from '../segment.js';
+import type { CreditCardStatement } from '../creditCardStatement.js';
+import type { FinTSConfig } from '../config.js';
+import type { AccountBalance } from '../accountBalance.js';
 
 export interface CreditCardStatementResponse extends ClientResponse {
 	balance: AccountBalance;
@@ -90,7 +90,7 @@ export class CreditCardStatementInteraction extends CustomerOrderInteraction {
 					let purpose = '';
 					let pIdx = 11;
 					do {
-						let partPurpose = parts[pIdx].trim();
+						const partPurpose = parts[pIdx].trim();
 						if (partPurpose === 'J') {
 							break;
 						}

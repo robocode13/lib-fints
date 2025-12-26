@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerSegments } from '../segments/registry.js';
-import { HKTAN, HKTANSegment } from '../segments/HKTAN.js';
+import { HKTAN, type HKTANSegment } from '../segments/HKTAN.js';
 import { decode, encode } from '../segment.js';
 import { TanProcess } from '../codes.js';
 

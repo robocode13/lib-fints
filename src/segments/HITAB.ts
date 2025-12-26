@@ -1,15 +1,15 @@
-import { TanMediaClass, TanStatus, TanUsage } from '../codes.js';
+import type { TanMediaClass, TanStatus, TanUsage } from '../codes.js';
 import { Dat } from '../dataElements/Dat.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import {
-	InternationalAccount,
+	type InternationalAccount,
 	InternationalAccountGroup,
 } from '../dataGroups/InternationalAccount.js';
-import { Account, AccountGroup } from '../dataGroups/Account.js';
+import { type Account, AccountGroup } from '../dataGroups/Account.js';
 import { Identification } from '../dataElements/Identification.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HITABSegment = Segment & {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerSegments } from '../segments/registry.js';
-import { HKSAL, HKSALSegment } from '../segments/HKSAL.js';
+import { HKSAL, type HKSALSegment } from '../segments/HKSAL.js';
 import { decode, encode } from '../segment.js';
 
 registerSegments();

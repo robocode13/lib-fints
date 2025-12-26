@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerSegments } from '../segments/registry.js';
-import { HIBPA, HIBPASegment } from '../segments/HIBPA.js';
+import { HIBPA, type HIBPASegment } from '../segments/HIBPA.js';
 import { decode, encode } from '../segment.js';
 
 registerSegments();

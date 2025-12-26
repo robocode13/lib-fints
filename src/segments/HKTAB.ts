@@ -1,7 +1,7 @@
-import { TanMediaClass, TanMediaType } from '../codes.js';
+import type { TanMediaClass, TanMediaType } from '../codes.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HKTABSegment = Segment & {

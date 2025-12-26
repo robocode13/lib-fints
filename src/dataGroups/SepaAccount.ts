@@ -2,7 +2,7 @@ import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from './DataGroup.js';
 import { Identification } from '../dataElements/Identification.js';
 import { BankIdentification } from './BankIdentification.js';
-import { Account } from './Account.js';
+import type { Account } from './Account.js';
 import { YesNo } from '../dataElements/YesNo.js';
 
 export type SepaAccount = Account & {

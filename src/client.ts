@@ -1,18 +1,18 @@
 import { Dialog } from './dialog.js';
 import { StatementInteractionMT940 } from './interactions/statementInteractionMT940.js';
 import { StatementInteractionCAMT } from './interactions/statementInteractionCAMT.js';
-import { StatementResponse } from './interactions/customerInteraction.js';
-import { AccountBalanceResponse, BalanceInteraction } from './interactions/balanceInteraction.js';
-import { PortfolioResponse, PortfolioInteraction } from './interactions/portfolioInteraction.js';
+import type { StatementResponse } from './interactions/customerInteraction.js';
+import { type AccountBalanceResponse, BalanceInteraction } from './interactions/balanceInteraction.js';
+import { type PortfolioResponse, PortfolioInteraction } from './interactions/portfolioInteraction.js';
 import { FinTSConfig } from './config.js';
-import { ClientResponse, CustomerOrderInteraction } from './interactions/customerInteraction.js';
-import { TanMethod } from './tanMethod.js';
+import type { ClientResponse, CustomerOrderInteraction } from './interactions/customerInteraction.js';
+import type { TanMethod } from './tanMethod.js';
 import { HKSAL } from './segments/HKSAL.js';
 import { HKKAZ } from './segments/HKKAZ.js';
 import { HKCAZ } from './segments/HKCAZ.js';
 import { HKWPD } from './segments/HKWPD.js';
 import { DKKKU } from './segments/DKKKU.js';
-import { InitResponse } from './interactions/initDialogInteraction.js';
+import type { InitResponse } from './interactions/initDialogInteraction.js';
 import { CreditCardStatementInteraction } from './interactions/creditcardStatementInteraction.js';
 import { HKIDN } from './segments/HKIDN.js';
 

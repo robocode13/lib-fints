@@ -1,8 +1,8 @@
 import { Numeric } from '../dataElements/Numeric.js';
-import { Bank } from '../dataGroups/Account.js';
+import type { Bank } from '../dataGroups/Account.js';
 import { BankIdentification } from '../dataGroups/BankIdentification.js';
 import { Identification } from '../dataElements/Identification.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HKIDNSegment = Segment & {

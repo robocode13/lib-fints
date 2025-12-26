@@ -1,7 +1,7 @@
 import { Digits } from '../dataElements/Digits.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HIRMGSegment = Segment & {

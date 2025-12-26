@@ -2,7 +2,7 @@ import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from './DataGroup.js';
 import { Identification } from '../dataElements/Identification.js';
 import { BankIdentification } from './BankIdentification.js';
-import { Bank } from './Account.js';
+import type { Bank } from './Account.js';
 
 export type InternationalAccount = {
 	iban?: string;

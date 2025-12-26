@@ -1,15 +1,15 @@
 import {
 	ClientResponse,
 	CustomerOrderInteraction,
-	StatementResponse,
+	type StatementResponse,
 } from './customerInteraction.js';
-import { Message } from '../message.js';
-import { HKCAZ, HKCAZSegment } from '../segments/HKCAZ.js';
-import { HICAZ, HICAZSegment } from '../segments/HICAZ.js';
+import type { Message } from '../message.js';
+import { HKCAZ, type HKCAZSegment } from '../segments/HKCAZ.js';
+import { HICAZ, type HICAZSegment } from '../segments/HICAZ.js';
 import { CamtParser } from '../camtParser.js';
-import { Statement } from '../statement.js';
-import { Segment } from '../segment.js';
-import { FinTSConfig } from '../config.js';
+import type { Statement } from '../statement.js';
+import type { Segment } from '../segment.js';
+import type { FinTSConfig } from '../config.js';
 
 export class StatementInteractionCAMT extends CustomerOrderInteraction {
 	private acceptedCamtFormats: string[] = ['urn:iso:std:iso:20022:tech:xsd:camt.052.001.08'];

@@ -3,13 +3,13 @@ import { Binary } from '../dataElements/Binary.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import {
-	InternationalAccount,
+	type InternationalAccount,
 	InternationalAccountGroup,
 } from '../dataGroups/InternationalAccount.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
-import { TanProcess } from '../codes.js';
+import type { TanProcess } from '../codes.js';
 
 export type HKTANSegment = Segment & {
 	tanProcess: TanProcess;
