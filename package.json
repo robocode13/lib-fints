@@ -1,49 +1,50 @@
 {
-  "name": "lib-fints",
-  "version": "1.4.1",
-  "description": "Typescript/Javascript client library for Online-Banking via the FinTS 3.0 protocol with PIN/TAN",
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "main": "./dist/index.js",
-  "types": "./dist/types/index.d.ts",
-  "files": [
-    "./dist"
-  ],
-  "type": "module",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/types/index.d.ts",
-        "default": "./dist/index.js"
-      }
-    }
-  },
-  "scripts": {
-    "build": "rm -rf ./dist && tsc",
-    "pack": "pnpm run build && pnpm pack --pack-destination ~/npm-repo",
-    "test": "vitest",
-    "preprepare": "pnpm run build"
-  },
-  "keywords": [
-    "FinTS",
-    "HBCI",
-    "Online Banking",
-    "Home Banking",
-    "PIN/TAN"
-  ],
-  "author": "Robert Weber <robocode@outlook.com>",
-  "license": "LGPL-2.1-or-later",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/robocode13/lib-fints.git"
-  },
-  "devDependencies": {
-    "@types/node": "^20.19.26",
-    "typescript": "^5.3.3",
-    "vitest": "^1.6.0"
-  },
-  "dependencies": {
-    "fast-xml-parser": "^5.3.3"
-  }
+	"name": "lib-fints",
+	"version": "1.4.1",
+	"description": "Typescript/Javascript client library for Online-Banking via the FinTS 3.0 protocol with PIN/TAN",
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/types/index.d.ts",
+	"files": [
+		"./dist"
+	],
+	"type": "module",
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/types/index.d.ts",
+				"default": "./dist/index.js"
+			}
+		}
+	},
+	"scripts": {
+		"build": "rm -rf ./dist && tsc",
+		"pack": "pnpm run build && pnpm pack --pack-destination ~/npm-repo",
+		"test": "vitest",
+		"preprepare": "pnpm run build"
+	},
+	"keywords": [
+		"FinTS",
+		"HBCI",
+		"Online Banking",
+		"Home Banking",
+		"PIN/TAN"
+	],
+	"author": "Robert Weber <robocode@outlook.com>",
+	"license": "LGPL-2.1-or-later",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/robocode13/lib-fints.git"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.10",
+		"@types/node": "^20.19.26",
+		"typescript": "^5.3.3",
+		"vitest": "^1.6.0"
+	},
+	"dependencies": {
+		"fast-xml-parser": "^5.3.3"
+	}
 }
