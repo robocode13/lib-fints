@@ -1,6 +1,6 @@
-import type { SegmentHeader } from '../segmentHeader.js';
 import { Binary } from '../dataElements/Binary.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
+import type { SegmentHeader } from '../segmentHeader.js';
 
 export type HIWPDSegment = {
 	header: SegmentHeader;

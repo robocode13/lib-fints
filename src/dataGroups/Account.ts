@@ -1,6 +1,6 @@
-import { DataGroup } from './DataGroup.js';
 import { Identification } from '../dataElements/Identification.js';
 import { BankIdentification } from './BankIdentification.js';
+import { DataGroup } from './DataGroup.js';
 
 export type Bank = {
 	country: number;

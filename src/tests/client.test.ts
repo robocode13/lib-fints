@@ -1,15 +1,15 @@
-import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import { AccountType } from '../bankAccount.js';
 import { FinTSClient } from '../client.js';
-import { Dialog } from '../dialog.js';
-import { FinTSConfig } from '../config.js';
 import { Language } from '../codes.js';
+import { FinTSConfig } from '../config.js';
+import { Dialog } from '../dialog.js';
 import type {
 	AccountBalanceResponse,
 	ClientResponse,
-	StatementResponse,
 	PortfolioResponse,
+	StatementResponse,
 } from '../index.js';
-import { AccountType } from '../bankAccount.js';
 
 describe('FinTSClient', () => {
 	const client = new FinTSClient(

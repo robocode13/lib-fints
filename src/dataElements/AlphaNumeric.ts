@@ -1,5 +1,5 @@
-import { DataElement } from './DataElement.js';
 import { finTsDecode, finTsEncode } from '../format.js';
+import { DataElement } from './DataElement.js';
 
 export class AlphaNumeric extends DataElement {
 	constructor(

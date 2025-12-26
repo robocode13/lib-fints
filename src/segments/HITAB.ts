@@ -1,14 +1,14 @@
 import type { TanMediaClass, TanStatus, TanUsage } from '../codes.js';
-import { Dat } from '../dataElements/Dat.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { Dat } from '../dataElements/Dat.js';
+import { Identification } from '../dataElements/Identification.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import { type Account, AccountGroup } from '../dataGroups/Account.js';
+import { DataGroup } from '../dataGroups/DataGroup.js';
 import {
 	type InternationalAccount,
 	InternationalAccountGroup,
 } from '../dataGroups/InternationalAccount.js';
-import { type Account, AccountGroup } from '../dataGroups/Account.js';
-import { Identification } from '../dataElements/Identification.js';
-import { DataGroup } from '../dataGroups/DataGroup.js';
 import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 

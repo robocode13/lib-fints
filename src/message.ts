@@ -1,20 +1,20 @@
+import type { BankAnswer } from './bankAnswer.js';
 import { HashAlgorithm } from './codes.js';
 import { splitBySeparator } from './parser.js';
-import { HNHBS, type HNHBSSegment } from './segments/HNHBS.js';
-import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
-import { HNVSK, type HNVSKSegment } from './segments/HNVSK.js';
-import { HNSHK, type HNSHKSegment } from './segments/HNSHK.js';
-import { HNVSD, type HNVSDSegment } from './segments/HNVSD.js';
-import { HNSHA, type HNSHASegment } from './segments/HNSHA.js';
-import { HIRMS, type HIRMSSegment } from './segments/HIRMS.js';
-import { HIRMG, type HIRMGSegment } from './segments/HIRMG.js';
-import type { BankAnswer } from './bankAnswer.js';
+import { PARTED, type PartedSegment } from './partedSegment.js';
 import type { Segment } from './segment.js';
-import { type UnknownSegment, UnkownId } from './unknownSegment.js';
 import { decode, encode, segmentToString } from './segment.js';
 import { SegmentDefinition } from './segmentDefinition.js';
-import { PARTED, type PartedSegment } from './partedSegment.js';
+import { HIRMG, type HIRMGSegment } from './segments/HIRMG.js';
+import { HIRMS, type HIRMSSegment } from './segments/HIRMS.js';
+import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
+import { HNHBS, type HNHBSSegment } from './segments/HNHBS.js';
+import { HNSHA, type HNSHASegment } from './segments/HNSHA.js';
+import { HNSHK, type HNSHKSegment } from './segments/HNSHK.js';
+import { HNVSD, type HNVSDSegment } from './segments/HNVSD.js';
+import { HNVSK, type HNVSKSegment } from './segments/HNVSK.js';
 import { getSegmentDefinition } from './segments/registry.js';
+import { type UnknownSegment, UnkownId } from './unknownSegment.js';
 
 export class Message {
 	constructor(public segments: Segment[]) {}

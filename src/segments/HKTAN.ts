@@ -1,15 +1,15 @@
-import { YesNo } from '../dataElements/YesNo.js';
+import type { TanProcess } from '../codes.js';
+import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { Binary } from '../dataElements/Binary.js';
 import { Numeric } from '../dataElements/Numeric.js';
-import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { YesNo } from '../dataElements/YesNo.js';
+import { DataGroup } from '../dataGroups/DataGroup.js';
 import {
 	type InternationalAccount,
 	InternationalAccountGroup,
 } from '../dataGroups/InternationalAccount.js';
-import { DataGroup } from '../dataGroups/DataGroup.js';
 import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
-import type { TanProcess } from '../codes.js';
 
 export type HKTANSegment = Segment & {
 	tanProcess: TanProcess;

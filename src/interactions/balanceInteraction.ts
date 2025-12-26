@@ -1,16 +1,16 @@
-import {
-	type ClientResponse,
-	CustomerInteraction,
-	CustomerOrderInteraction,
-} from './customerInteraction.js';
+import type { AccountBalance } from '../accountBalance.js';
 import { CreditDebit } from '../codes.js';
+import type { FinTSConfig } from '../config.js';
 import type { Balance } from '../dataGroups/Balance.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
 import { HISAL, type HISALSegment } from '../segments/HISAL.js';
 import { HKSAL, type HKSALSegment } from '../segments/HKSAL.js';
-import type { AccountBalance } from '../accountBalance.js';
-import type { FinTSConfig } from '../config.js';
+import {
+	type ClientResponse,
+	CustomerInteraction,
+	CustomerOrderInteraction,
+} from './customerInteraction.js';
 
 export interface AccountBalanceResponse extends ClientResponse {
 	balance?: AccountBalance;

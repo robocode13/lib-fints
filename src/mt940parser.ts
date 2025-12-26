@@ -1,4 +1,4 @@
-import { Statement, Transaction, Balance } from './statement.js';
+import { Balance, Statement, Transaction } from './statement.js';
 
 export { Statement, Transaction, Balance };
 

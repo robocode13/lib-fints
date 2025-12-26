@@ -1,20 +1,20 @@
-import type { FinTSConfig } from './config.js';
 import { TanMediaRequirement, TanProcess } from './codes.js';
+import type { FinTSConfig } from './config.js';
 import { HttpClient } from './httpClient.js';
-import { CustomerMessage, CustomerOrderMessage, type Message } from './message.js';
-import type { SegmentWithContinuationMark } from './segment.js';
-import { HKIDN } from './segments/HKIDN.js';
-import { HKTAN, type HKTANSegment } from './segments/HKTAN.js';
-import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
-import { decode } from './segment.js';
-import { PARTED, type PartedSegment } from './partedSegment.js';
 import {
 	type ClientResponse,
 	type CustomerInteraction,
 	CustomerOrderInteraction,
 } from './interactions/customerInteraction.js';
-import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
 import { EndDialogInteraction } from './interactions/endDialogInteraction.js';
+import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
+import { CustomerMessage, CustomerOrderMessage, type Message } from './message.js';
+import { PARTED, type PartedSegment } from './partedSegment.js';
+import type { SegmentWithContinuationMark } from './segment.js';
+import { decode } from './segment.js';
+import { HKIDN } from './segments/HKIDN.js';
+import { HKTAN, type HKTANSegment } from './segments/HKTAN.js';
+import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
 
 export class Dialog {
 	dialogId: string = '0';

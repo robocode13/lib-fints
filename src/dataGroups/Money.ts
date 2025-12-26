@@ -1,6 +1,6 @@
-import { DataGroup } from './DataGroup.js';
 import { Amount } from '../dataElements/Amount.js';
 import { Currency } from '../dataElements/Currency.js';
+import { DataGroup } from './DataGroup.js';
 
 export type Money = {
 	value: number;

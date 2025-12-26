@@ -1,6 +1,6 @@
 import type { Language } from '../codes.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { Numeric } from '../dataElements/Numeric.js';
 import type { Bank } from '../dataGroups/Account.js';
 import { BankIdentification } from '../dataGroups/BankIdentification.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';

@@ -1,11 +1,11 @@
 import type { Language } from '../codes.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { DataGroup } from '../dataGroups/DataGroup.js';
-import { SegmentDefinition } from '../segmentDefinition.js';
-import type { Segment } from '../segment.js';
+import { Numeric } from '../dataElements/Numeric.js';
 import type { Bank } from '../dataGroups/Account.js';
 import { BankIdentification } from '../dataGroups/BankIdentification.js';
+import { DataGroup } from '../dataGroups/DataGroup.js';
+import type { Segment } from '../segment.js';
+import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HIBPASegment = Segment & {
 	bpdVersion: number;

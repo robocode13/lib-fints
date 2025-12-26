@@ -1,5 +1,5 @@
-import { Time } from '../dataElements/Time.js';
 import { Dat } from '../dataElements/Dat.js';
+import { Time } from '../dataElements/Time.js';
 import { DataGroup } from './DataGroup.js';
 
 export type TimeStamp = {

@@ -1,12 +1,12 @@
 import { Binary } from '../dataElements/Binary.js';
 import { Text } from '../dataElements/Text.js';
+import { DataGroup } from '../dataGroups/DataGroup.js';
 import {
 	type InternationalAccount,
 	InternationalAccountGroup,
 } from '../dataGroups/InternationalAccount.js';
-import { DataGroup } from '../dataGroups/DataGroup.js';
-import { SegmentDefinition } from '../segmentDefinition.js';
 import type { Segment } from '../segment.js';
+import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HICAZSegment = Segment & {
 	account: InternationalAccount;

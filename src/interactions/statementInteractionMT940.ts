@@ -1,10 +1,10 @@
-import { CustomerOrderInteraction, type StatementResponse } from './customerInteraction.js';
+import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
-import { HKKAZ, type HKKAZSegment } from '../segments/HKKAZ.js';
-import { HIKAZ, type HIKAZSegment } from '../segments/HIKAZ.js';
 import { Mt940Parser } from '../mt940parser.js';
 import type { Segment } from '../segment.js';
-import type { FinTSConfig } from '../config.js';
+import { HIKAZ, type HIKAZSegment } from '../segments/HIKAZ.js';
+import { HKKAZ, type HKKAZSegment } from '../segments/HKKAZ.js';
+import { CustomerOrderInteraction, type StatementResponse } from './customerInteraction.js';
 
 export class StatementInteractionMT940 extends CustomerOrderInteraction {
 	constructor(

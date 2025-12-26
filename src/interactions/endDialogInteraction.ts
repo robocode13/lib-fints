@@ -1,12 +1,12 @@
+import type { FinTSConfig } from '../config.js';
+import type { Message } from '../message.js';
+import type { Segment } from '../segment.js';
+import { HKEND, type HKENDSegment } from '../segments/HKEND.js';
 import {
 	type ClientResponse,
 	CustomerInteraction,
 	CustomerOrderInteraction,
 } from './customerInteraction.js';
-import type { Message } from '../message.js';
-import type { Segment } from '../segment.js';
-import type { FinTSConfig } from '../config.js';
-import { HKEND, type HKENDSegment } from '../segments/HKEND.js';
 
 export interface TanMediaResponse extends ClientResponse {
 	tanMediaList: string[];

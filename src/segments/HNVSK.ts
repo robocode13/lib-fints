@@ -1,10 +1,10 @@
-import { Time } from '../dataElements/Time.js';
-import { Dat } from '../dataElements/Dat.js';
-import { Binary } from '../dataElements/Binary.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { BankIdentification } from '../dataGroups/BankIdentification.js';
+import { Binary } from '../dataElements/Binary.js';
+import { Dat } from '../dataElements/Dat.js';
 import { Identification } from '../dataElements/Identification.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import { Time } from '../dataElements/Time.js';
+import { BankIdentification } from '../dataGroups/BankIdentification.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
 import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';

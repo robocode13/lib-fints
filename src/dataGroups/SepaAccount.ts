@@ -1,9 +1,9 @@
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { DataGroup } from './DataGroup.js';
 import { Identification } from '../dataElements/Identification.js';
-import { BankIdentification } from './BankIdentification.js';
-import type { Account } from './Account.js';
 import { YesNo } from '../dataElements/YesNo.js';
+import type { Account } from './Account.js';
+import { BankIdentification } from './BankIdentification.js';
+import { DataGroup } from './DataGroup.js';
 
 export type SepaAccount = Account & {
 	isSepaAccount?: boolean;

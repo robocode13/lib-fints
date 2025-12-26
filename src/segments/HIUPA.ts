@@ -1,9 +1,9 @@
 import type { UpdUsage } from '../codes.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { SegmentDefinition } from '../segmentDefinition.js';
-import type { Segment } from '../segment.js';
 import { Identification } from '../dataElements/Identification.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import type { Segment } from '../segment.js';
+import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HIUPASegment = Segment & {
 	internalUserId: string;

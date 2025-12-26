@@ -1,6 +1,6 @@
 import { Binary } from '../dataElements/Binary.js';
-import { SegmentDefinition } from '../segmentDefinition.js';
 import type { Segment } from '../segment.js';
+import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HIKAZSegment = Segment & {
 	bookedTransactions: string;

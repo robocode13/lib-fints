@@ -1,8 +1,8 @@
-import type { SegmentHeader } from '../segmentHeader.js';
-import { type Account, AccountGroup } from '../dataGroups/Account.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { Numeric } from '../dataElements/Numeric.js';
+import { type Account, AccountGroup } from '../dataGroups/Account.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
+import type { SegmentHeader } from '../segmentHeader.js';
 
 export type HKWPDSegment = {
 	header: SegmentHeader;

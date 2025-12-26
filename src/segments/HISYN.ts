@@ -1,5 +1,5 @@
-import { Numeric } from '../dataElements/Numeric.js';
 import { Identification } from '../dataElements/Identification.js';
+import { Numeric } from '../dataElements/Numeric.js';
 import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 

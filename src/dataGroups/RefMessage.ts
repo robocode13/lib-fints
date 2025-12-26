@@ -1,6 +1,6 @@
+import { Identification } from '../dataElements/Identification.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { DataGroup } from './DataGroup.js';
-import { Identification } from '../dataElements/Identification.js';
 
 export type RefMessage = {
 	dialogId: string;

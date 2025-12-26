@@ -1,5 +1,5 @@
-import type { Statement, Transaction, Balance } from './statement.js';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import type { Balance, Statement, Transaction } from './statement.js';
 
 export class CamtParsingError extends Error {
 	constructor(

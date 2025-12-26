@@ -1,9 +1,9 @@
 import { Binary } from '../dataElements/Binary.js';
-import { SegmentDefinition } from '../segmentDefinition.js';
-import type { Segment } from '../segment.js';
 import { Identification } from '../dataElements/Identification.js';
 import { Text } from '../dataElements/Text.js';
-import { BalanceGroup, type Balance } from '../dataGroups/Balance.js';
+import { type Balance, BalanceGroup } from '../dataGroups/Balance.js';
+import type { Segment } from '../segment.js';
+import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type DIKKUSegment = Segment & {
 	balance: Balance;

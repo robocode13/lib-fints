@@ -1,7 +1,7 @@
-import type { TanMethod } from './tanMethod.js';
+import type { BankAccount } from './bankAccount.js';
 import type { BankingInformation } from './bankingInformation.js';
 import { getSegmentDefinition } from './segments/registry.js';
-import type { BankAccount } from './bankAccount.js';
+import type { TanMethod } from './tanMethod.js';
 
 /**
  * Configuration for the FinTS client

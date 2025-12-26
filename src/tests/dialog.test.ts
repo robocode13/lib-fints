@@ -1,16 +1,19 @@
-import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Dialog } from '../dialog.js';
-import { FinTSConfig } from '../config.js';
-import { Message, CustomerMessage } from '../message.js';
-import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
-import type { ClientResponse, CustomerOrderInteraction } from '../interactions/customerInteraction.js';
-import type { TanMethod } from '../tanMethod.js';
-import { Language, TanMediaRequirement } from '../codes.js';
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import type { BankingInformation } from '../bankingInformation.js';
-import type { BPD } from '../bpd.js';
 import type { BankTransaction } from '../bankTransaction.js';
+import type { BPD } from '../bpd.js';
+import { Language, TanMediaRequirement } from '../codes.js';
+import { FinTSConfig } from '../config.js';
+import { Dialog } from '../dialog.js';
+import type {
+	ClientResponse,
+	CustomerOrderInteraction,
+} from '../interactions/customerInteraction.js';
+import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
 import { SepaAccountInteraction } from '../interactions/sepaAccountInteraction.js';
+import { CustomerMessage, Message } from '../message.js';
 import { registerSegments } from '../segments/registry.js';
+import type { TanMethod } from '../tanMethod.js';
 
 // Mock HttpClient to prevent real HTTP calls
 vi.mock('../httpClient.js', () => ({

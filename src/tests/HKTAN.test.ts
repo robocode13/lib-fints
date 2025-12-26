@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { registerSegments } from '../segments/registry.js';
-import { HKTAN, type HKTANSegment } from '../segments/HKTAN.js';
-import { decode, encode } from '../segment.js';
+import { describe, expect, it } from 'vitest';
 import { TanProcess } from '../codes.js';
+import { decode, encode } from '../segment.js';
+import { HKTAN, type HKTANSegment } from '../segments/HKTAN.js';
+import { registerSegments } from '../segments/registry.js';
 
 registerSegments();
 

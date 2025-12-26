@@ -1,11 +1,11 @@
 import {
-	BusinessTransactionParameter,
-	type BusinessTransactionParameterSegment,
-} from './businessTransactionParameter.js';
-import {
 	type SepaAccountParameters,
 	SepaAccountParametersGroup,
 } from '../dataGroups/SepaAccountParameters.js';
+import {
+	BusinessTransactionParameter,
+	type BusinessTransactionParameterSegment,
+} from './businessTransactionParameter.js';
 
 export type HISPASSegment = BusinessTransactionParameterSegment<SepaAccountParameters>;
 

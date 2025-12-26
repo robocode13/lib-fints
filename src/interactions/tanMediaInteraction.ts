@@ -1,14 +1,14 @@
+import { TanMediaClass, TanMediaType } from '../codes.js';
+import type { FinTSConfig } from '../config.js';
+import type { Message } from '../message.js';
+import type { Segment } from '../segment.js';
+import { HITAB, type HITABSegment } from '../segments/HITAB.js';
+import { HKTAB, type HKTABSegment } from '../segments/HKTAB.js';
 import {
 	type ClientResponse,
 	CustomerInteraction,
 	CustomerOrderInteraction,
 } from './customerInteraction.js';
-import type { Message } from '../message.js';
-import type { Segment } from '../segment.js';
-import type { FinTSConfig } from '../config.js';
-import { HKTAB, type HKTABSegment } from '../segments/HKTAB.js';
-import { HITAB, type HITABSegment } from '../segments/HITAB.js';
-import { TanMediaClass, TanMediaType } from '../codes.js';
 
 export interface TanMediaResponse extends ClientResponse {
 	tanMediaList: string[];

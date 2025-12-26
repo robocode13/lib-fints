@@ -1,10 +1,10 @@
-import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
+import type { FinTSConfig } from '../config.js';
+import type { SepaAccount } from '../dataGroups/SepaAccount.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
 import { HISPA, type HISPASegment } from '../segments/HISPA.js';
 import { HKSPA, type HKSPASegment } from '../segments/HKSPA.js';
-import type { FinTSConfig } from '../config.js';
-import type { SepaAccount } from '../dataGroups/SepaAccount.js';
+import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
 
 export interface SepaAccountResponse extends ClientResponse {
 	sepaAccounts?: SepaAccount[];

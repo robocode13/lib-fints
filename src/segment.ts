@@ -1,8 +1,8 @@
 import { decodeElements } from './decoder.js';
-import { type UnknownSegment, UnkownId } from './unknownSegment.js';
-import { getSegmentDefinition } from './segments/registry.js';
 import { SegmentDefinition } from './segmentDefinition.js';
 import type { SegmentHeader } from './segmentHeader.js';
+import { getSegmentDefinition } from './segments/registry.js';
+import { type UnknownSegment, UnkownId } from './unknownSegment.js';
 
 export type Segment = {
 	header: SegmentHeader;

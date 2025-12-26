@@ -1,20 +1,29 @@
-import { Dialog } from './dialog.js';
-import { StatementInteractionMT940 } from './interactions/statementInteractionMT940.js';
-import { StatementInteractionCAMT } from './interactions/statementInteractionCAMT.js';
-import type { StatementResponse } from './interactions/customerInteraction.js';
-import { type AccountBalanceResponse, BalanceInteraction } from './interactions/balanceInteraction.js';
-import { type PortfolioResponse, PortfolioInteraction } from './interactions/portfolioInteraction.js';
 import { FinTSConfig } from './config.js';
-import type { ClientResponse, CustomerOrderInteraction } from './interactions/customerInteraction.js';
-import type { TanMethod } from './tanMethod.js';
-import { HKSAL } from './segments/HKSAL.js';
-import { HKKAZ } from './segments/HKKAZ.js';
-import { HKCAZ } from './segments/HKCAZ.js';
-import { HKWPD } from './segments/HKWPD.js';
-import { DKKKU } from './segments/DKKKU.js';
-import type { InitResponse } from './interactions/initDialogInteraction.js';
+import { Dialog } from './dialog.js';
+import {
+	type AccountBalanceResponse,
+	BalanceInteraction,
+} from './interactions/balanceInteraction.js';
 import { CreditCardStatementInteraction } from './interactions/creditcardStatementInteraction.js';
+import type {
+	ClientResponse,
+	CustomerOrderInteraction,
+	StatementResponse,
+} from './interactions/customerInteraction.js';
+import type { InitResponse } from './interactions/initDialogInteraction.js';
+import {
+	PortfolioInteraction,
+	type PortfolioResponse,
+} from './interactions/portfolioInteraction.js';
+import { StatementInteractionCAMT } from './interactions/statementInteractionCAMT.js';
+import { StatementInteractionMT940 } from './interactions/statementInteractionMT940.js';
+import { DKKKU } from './segments/DKKKU.js';
+import { HKCAZ } from './segments/HKCAZ.js';
 import { HKIDN } from './segments/HKIDN.js';
+import { HKKAZ } from './segments/HKKAZ.js';
+import { HKSAL } from './segments/HKSAL.js';
+import { HKWPD } from './segments/HKWPD.js';
+import type { TanMethod } from './tanMethod.js';
 
 export interface SynchronizeResponse extends InitResponse {}
 

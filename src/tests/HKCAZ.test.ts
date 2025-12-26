@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { registerSegments } from '../segments/registry.js';
-import { HKCAZ, type HKCAZSegment } from '../segments/HKCAZ.js';
+import { describe, expect, it } from 'vitest';
 import { decode, encode } from '../segment.js';
+import { HKCAZ, type HKCAZSegment } from '../segments/HKCAZ.js';
+import { registerSegments } from '../segments/registry.js';
 
 registerSegments();
 

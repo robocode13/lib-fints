@@ -1,5 +1,5 @@
-import { YesNo } from '../dataElements/YesNo.js';
 import { Numeric } from '../dataElements/Numeric.js';
+import { YesNo } from '../dataElements/YesNo.js';
 import {
 	BusinessTransactionParameter,
 	type BusinessTransactionParameterSegment,

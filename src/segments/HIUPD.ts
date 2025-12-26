@@ -1,11 +1,11 @@
 import type { LimitType } from '../codes.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { type Account, AccountGroup } from '../dataGroups/Account.js';
-import { type Money, MoneyGroup } from '../dataGroups/Money.js';
 import { Currency } from '../dataElements/Currency.js';
 import { Identification } from '../dataElements/Identification.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import { type Account, AccountGroup } from '../dataGroups/Account.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
+import { type Money, MoneyGroup } from '../dataGroups/Money.js';
 import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 

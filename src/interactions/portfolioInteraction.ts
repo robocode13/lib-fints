@@ -1,10 +1,10 @@
-import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
 import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
+import { type Holding, Mt535Parser, type StatementOfHoldings } from '../mt535parser.js';
 import type { Segment } from '../segment.js';
-import { HKWPD, type HKWPDSegment } from '../segments/HKWPD.js';
 import { HIWPD, type HIWPDSegment } from '../segments/HIWPD.js';
-import { Mt535Parser, type StatementOfHoldings, type Holding } from '../mt535parser.js';
+import { HKWPD, type HKWPDSegment } from '../segments/HKWPD.js';
+import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
 
 /**
  * Represents a single holding within a stock portfolio.

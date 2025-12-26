@@ -1,6 +1,6 @@
-import { YesNo } from '../dataElements/YesNo.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import { YesNo } from '../dataElements/YesNo.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
 import {
 	BusinessTransactionParameter,

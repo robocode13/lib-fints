@@ -1,10 +1,10 @@
-import { Dat } from '../dataElements/Dat.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { InternationalAccountGroup } from '../dataGroups/InternationalAccount.js';
+import { Currency } from '../dataElements/Currency.js';
+import { Dat } from '../dataElements/Dat.js';
 import { AccountGroup } from '../dataGroups/Account.js';
 import { type Balance, BalanceGroup } from '../dataGroups/Balance.js';
+import { InternationalAccountGroup } from '../dataGroups/InternationalAccount.js';
 import { type Money, MoneyGroup } from '../dataGroups/Money.js';
-import { Currency } from '../dataElements/Currency.js';
 import { type TimeStamp, TimeStampGroup } from '../dataGroups/TimeStamp.js';
 import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';

@@ -1,6 +1,6 @@
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { DataGroup } from './DataGroup.js';
 import { Country } from '../dataElements/Country.js';
+import { DataGroup } from './DataGroup.js';
 
 export class BankIdentification extends DataGroup {
 	constructor(name: string, minCount = 0, maxCount = 1, minVersion?: number, maxVersion?: number) {

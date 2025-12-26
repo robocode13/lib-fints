@@ -1,6 +1,6 @@
+import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { Binary } from '../dataElements/Binary.js';
 import { Text } from '../dataElements/Text.js';
-import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
 import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
