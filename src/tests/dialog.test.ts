@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } fr
 import type { BankingInformation } from '../bankingInformation.js';
 import type { BankTransaction } from '../bankTransaction.js';
 import type { BPD } from '../bpd.js';
-import { Language, TanMediaRequirement } from '../codes.js';
+import { Language } from '../codes.js';
 import { FinTSConfig } from '../config.js';
 import { Dialog } from '../dialog.js';
 import type {
@@ -13,7 +13,6 @@ import { InitDialogInteraction } from '../interactions/initDialogInteraction.js'
 import { SepaAccountInteraction } from '../interactions/sepaAccountInteraction.js';
 import { Message } from '../message.js';
 import { registerSegments } from '../segments/registry.js';
-import type { TanMethod } from '../tanMethod.js';
 
 // Mock HttpClient to prevent real HTTP calls
 vi.mock('../httpClient.js', () => ({
@@ -49,16 +48,24 @@ describe('Dialog', () => {
 				supportedTanMethods: [
 					{
 						id: 940,
-						tanProcess: 1,
-						name: 'chipTAN',
-						version: 6,
+						name: 'ChipTAN',
+						version: 1,
 						isDecoupled: false,
 						activeTanMediaCount: 1,
-						activeTanMedia: ['TEST_MEDIA'],
-						tanMediaRequirement: TanMediaRequirement.Optional,
-					} as TanMethod,
+						activeTanMedia: ['TAN-Generator 123'],
+						tanMediaRequirement: 0,
+					},
+					{
+						id: 941,
+						name: 'pushTAN',
+						version: 1,
+						isDecoupled: true,
+						activeTanMediaCount: 1,
+						activeTanMedia: ['Mobile App'],
+						tanMediaRequirement: 1,
+					},
 				],
-				availableTanMethodIds: [940],
+				availableTanMethodIds: [940, 941],
 				supportedLanguages: [Language.German],
 				maxTransactionsPerMessage: 1,
 			} as BPD,
@@ -71,7 +78,7 @@ describe('Dialog', () => {
 			'testuser',
 			'12345',
 			940, // tanMethodId
-			'TEST_MEDIA', // tanMediaName
+			'TAN-Generator 123', // tanMediaName
 		);
 
 		// Create dialog instance
@@ -231,8 +238,7 @@ describe('Dialog', () => {
 		});
 
 		it('successfully continues decoupled TAN method without TAN', async () => {
-			dialog.config.bankingInformation.bpd?.supportedTanMethods[0].isDecoupled = true;
-
+			config.selectTanMethod(941);
 			const responses = await dialog.continue('TAN_REF_123');
 			expect(responses).toBeInstanceOf(Map);
 			expect(responses.size).toBe(2);
