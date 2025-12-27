@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  build-and-test:
+  build-lint-and-test:
     runs-on: ubuntu-latest
 
     strategy:
@@ -37,6 +37,9 @@ jobs:
 
       - name: Run build (TypeScript compilation)
         run: pnpm run build
+
+      - name: Run Biome (linter and formatter)
+        run: pnpm exec biome ci
 
       - name: Run tests (Vitest)
         run: pnpm run test -- --run
