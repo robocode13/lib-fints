@@ -53,8 +53,7 @@ export class FinTSClient {
 	 * @returns the selected TAN method
 	 */
 	selectTanMethod(tanMethodId: number): TanMethod {
-		this.config.selectTanMethod(tanMethodId);
-		return this.config.selectedTanMethod!;
+		return this.config.selectTanMethod(tanMethodId);
 	}
 
 	/**
@@ -296,7 +295,14 @@ export class FinTSClient {
 		if (response) {
 			return response;
 		} else {
-			return [...responses.values()].at(-1)!;
+			const lastResponse = [...responses.values()].at(-1);
+			if (lastResponse) {
+				return lastResponse;
+			} else {
+				throw new Error(
+					`No response received for customer interaction with segment ID '${interaction.segId}'`,
+				);
+			}
 		}
 	}
 
@@ -318,6 +324,13 @@ export class FinTSClient {
 			}
 		}
 
-		return [...responses.values()].at(-1)!;
+		const lastResponse = [...responses.values()].at(-1);
+		if (lastResponse) {
+			return lastResponse;
+		} else {
+			throw new Error(
+				`No response received for customer interaction with segment IDs '${segIds.join(', ')}'`,
+			);
+		}
 	}
 }

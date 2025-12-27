@@ -26,7 +26,7 @@ export class DataGroup extends DataElement {
 		return this.elements.reduce((count, element) => count + element.maxValueCount(version), 0);
 	}
 
-	encode(values: any, context: string[], version: number): string {
+	encode(values: unknown[] | Record<string, unknown>, context: string[], version: number): string {
 		if (!version) {
 			throw new Error('version is required for encoding an element group');
 		}
@@ -38,7 +38,7 @@ export class DataGroup extends DataElement {
 		]);
 	}
 
-	decode(text: string, version: number): any {
+	decode(text: string, version: number): unknown[] | Record<string, unknown> | undefined {
 		if (!text.replaceAll(':', '')) {
 			return undefined;
 		}
@@ -50,23 +50,25 @@ export class DataGroup extends DataElement {
 		return decodeElements(text, this.elements, ':', version, this.name);
 	}
 
-	toString(values: any) {
+	toString(values: unknown[] | Record<string, unknown> | undefined): string {
 		if (!values) {
 			return '';
 		}
 
 		const texts = this.elements.map((element) => {
 			if (element.maxCount > 1) {
-				if (this.elements.length === 1) {
-					return values.map((value: any) => element.toString(value)).join('; ');
-				} else {
-					return (
-						values[element.name]?.map((value: any) => element.toString(value)).join('; ') ?? ''
-					);
+				if (this.elements.length === 1 && Array.isArray(values)) {
+					return values.map((value: unknown) => element.toString(value)).join('; ');
+				} else if (!Array.isArray(values)) {
+					const currentValue = values[element.name];
+					return Array.isArray(currentValue)
+						? currentValue.map((value: unknown) => element.toString(value)).join('; ')
+						: element.toString(currentValue);
 				}
-			} else {
+			} else if (!Array.isArray(values)) {
 				return element.toString(values[element.name]);
 			}
+			return element.toString(undefined);
 		});
 
 		return `[${texts.filter((text) => !!text).join(', ')}]`;

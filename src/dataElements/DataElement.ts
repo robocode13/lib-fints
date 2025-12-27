@@ -15,8 +15,8 @@ export abstract class DataElement {
 		}
 	}
 
-	abstract encode(value: any, context: string[], version: number): string;
-	abstract decode(text: string, version: number): any;
+	abstract encode(value: unknown, context: string[], version: number): string;
+	abstract decode(text: string, version: number): unknown;
 
 	maxValueCount(version: number): number {
 		return this.isInVersion(version) ? 1 : 0;
@@ -29,7 +29,7 @@ export abstract class DataElement {
 		);
 	}
 
-	toString(value: any) {
+	toString(value: unknown): string {
 		if (value !== undefined && value !== null && value !== '') {
 			return `${this.name}: ${value}`;
 		} else if (this.minCount > 0) {

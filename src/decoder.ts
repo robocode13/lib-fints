@@ -8,7 +8,7 @@ export function decodeElements(
 	context: string,
 ) {
 	const isResultArray = elements.length === 1 && elements[0].maxCount > 1;
-	let result: any = isResultArray ? [] : {};
+	let result: unknown[] | Record<string, unknown> = isResultArray ? [] : {};
 
 	const textValues = splitBySeparator(text, separator);
 	let valueIndex = 0;
@@ -31,7 +31,7 @@ export function decodeElements(
 				valueIndex++;
 			}
 
-			let value;
+			let value: unknown[] | Record<string, unknown> | undefined;
 
 			if (!textValue) {
 				value = undefined;
@@ -44,21 +44,21 @@ export function decodeElements(
 				value = element.decode(textValue, version);
 			}
 
-			if (isResultArray) {
+			if (Array.isArray(result)) {
 				if (element.maxCount > 1) {
 					if (elements.length === 1) {
 						result = [...result, value];
 					} else {
-						result[elementIndex] = result[elementIndex]
-							? [...result[elementIndex], value]
-							: [value];
+						const currentValue = result[elementIndex];
+						result[elementIndex] = Array.isArray(currentValue) ? [...currentValue, value] : [value];
 					}
 				} else {
 					result[elementIndex] = value;
 				}
 			} else {
 				if (element.maxCount > 1) {
-					result[element.name] = result[element.name] ? [...result[element.name], value] : [value];
+					const currentValue = result[element.name];
+					result[element.name] = Array.isArray(currentValue) ? [...currentValue, value] : [value];
 				} else {
 					result[element.name] = value;
 				}

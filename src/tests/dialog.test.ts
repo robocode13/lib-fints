@@ -89,7 +89,7 @@ describe('Dialog', () => {
 			success: true,
 			requiresTan: false,
 			bankAnswers: [{ code: 20, text: 'Success' }],
-		} as any);
+		} as ClientResponse);
 
 		vi.spyOn(
 			dialog.interactions[dialog.interactions.length - 1],
@@ -99,7 +99,7 @@ describe('Dialog', () => {
 			success: true,
 			requiresTan: false,
 			bankAnswers: [{ code: 100, text: 'Dialog ended' }],
-		} as any);
+		} as ClientResponse);
 
 		// Mock the HttpClient.sendMessage method
 		httpClientSendMessageMock = vi.mocked(dialog.httpClient.sendMessage);
@@ -132,7 +132,9 @@ describe('Dialog', () => {
 		});
 
 		it('throws error when no config is provided', () => {
-			expect(() => new Dialog(null as any)).toThrow('configuration must be provided');
+			expect(() => new Dialog(null as unknown as FinTSConfig)).toThrow(
+				'configuration must be provided',
+			);
 		});
 	});
 
@@ -151,7 +153,7 @@ describe('Dialog', () => {
 				success: true,
 				requiresTan: false,
 				bankAnswers: [{ code: 20, text: 'Success' }],
-			} as any);
+			} as ClientResponse);
 
 			dialog.addCustomerInteraction(sepaInteraction);
 			const responses = await dialog.start();

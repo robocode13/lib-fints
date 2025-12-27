@@ -49,8 +49,8 @@ export class BalanceInteraction extends CustomerOrderInteraction {
 			clientResponse.balance = {
 				date: hisal.balance.date,
 				currency: hisal.currency,
-				balance: balanceToValue(hisal.balance)!,
-				notedBalance: balanceToValue(hisal.notedBalance),
+				balance: balanceToValue(hisal.balance),
+				notedBalance: hisal.notedBalance ? balanceToValue(hisal.notedBalance) : undefined,
 				creditLimit: hisal.creditLimit?.value,
 				availableAmount: hisal.availableAmount?.value,
 			};
@@ -58,9 +58,6 @@ export class BalanceInteraction extends CustomerOrderInteraction {
 	}
 }
 
-function balanceToValue(balance?: Balance): number | undefined {
-	if (!balance) {
-		return undefined;
-	}
+function balanceToValue(balance: Balance): number {
 	return balance.creditDebit === CreditDebit.Credit ? balance.amount.value : -balance.amount.value;
 }

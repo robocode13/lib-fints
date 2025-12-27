@@ -20,7 +20,7 @@ export function decode(text: string): Segment {
 
 	const headerText = text.slice(0, text.indexOf('+'));
 	const contentText = text.slice(text.indexOf('+') + 1);
-	const header: SegmentHeader = SegmentDefinition.header.decode(headerText, 1);
+	const header: SegmentHeader = SegmentDefinition.header.decode(headerText, 1) as SegmentHeader;
 	const definition = getSegmentDefinition(header.segId);
 
 	if (!definition || definition.version < header.version) {
@@ -31,15 +31,22 @@ export function decode(text: string): Segment {
 		};
 	}
 
-	let data = decodeElements(contentText, definition.elements, '+', header.version, header.segId);
+	let data = decodeElements(
+		contentText,
+		definition.elements,
+		'+',
+		header.version,
+		header.segId,
+	) as Segment;
+
+	data.header = header;
 
 	if (Array.isArray(data)) {
-		const object: any = {};
+		const object: Record<string, unknown> & Segment = { header: header };
 		object[definition.elements[0].name] = data;
 		data = object;
 	}
 
-	data.header = header;
 	return data;
 }
 
@@ -54,7 +61,7 @@ export function encode(data: Segment): string {
 }
 
 export function segmentToString(segment: Segment): string {
-	const keyedSegment = segment as { [key: string]: any };
+	const keyedSegment = segment as { [key: string]: unknown };
 
 	const number = segment.header.segNr?.toString() ?? '?';
 	const segId =
@@ -67,12 +74,16 @@ export function segmentToString(segment: Segment): string {
 		text += ` RefSeg: ${segment.header.refSegNr}`;
 	}
 
-	const segmentDefinition = getSegmentDefinition(segment.header.segId)!;
+	const segmentDefinition = getSegmentDefinition(segment.header.segId);
+
+	if (!segmentDefinition) {
+		return `${text} (unknown segment)`;
+	}
 
 	const texts = segmentDefinition.getElementsForVersion(segment.header.version).map((element) => {
 		if (element.maxCount > 1) {
-			const array = keyedSegment[element.name] ?? [];
-			const texts = array.map((value: any) => element.toString(value));
+			const array = (keyedSegment[element.name] as unknown[]) ?? [];
+			const texts = array.map((value: unknown) => element.toString(value));
 			return texts.filter((text: string) => !!text).join('; ');
 		} else {
 			return element.toString(keyedSegment[element.name]);

@@ -5,6 +5,7 @@ import { PARTED, type PartedSegment } from './partedSegment.js';
 import type { Segment } from './segment.js';
 import { decode, encode, segmentToString } from './segment.js';
 import { SegmentDefinition } from './segmentDefinition.js';
+import type { SegmentHeader } from './segmentHeader.js';
 import { HIRMG, type HIRMGSegment } from './segments/HIRMG.js';
 import { HIRMS, type HIRMSSegment } from './segments/HIRMS.js';
 import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
@@ -106,7 +107,10 @@ export class Message {
 	static decodeSegment(text: string, partedResponseSegId?: string): Segment {
 		if (partedResponseSegId && text.startsWith(partedResponseSegId)) {
 			const partedSegment: PartedSegment = {
-				header: { ...SegmentDefinition.header.decode(text, 1), segId: PARTED.Id },
+				header: {
+					...(SegmentDefinition.header.decode(text, 1) as SegmentHeader),
+					segId: PARTED.Id,
+				},
 				originalId: partedResponseSegId,
 				rawData: text,
 			};

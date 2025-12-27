@@ -99,10 +99,11 @@ export class InitDialogInteraction extends CustomerInteraction {
 							tanMediaRequirement: method.tanMediaRequired,
 							decoupled: isDecoupledTanMethod(method)
 								? {
-										maxStatusRequests: method.decoupledMaxStatusRequests!,
+										maxStatusRequests: method.decoupledMaxStatusRequests ?? 0,
 										waitingSecondsBeforeFirstStatusRequest:
-											method.decoupledWaitBeforeFirstStatusRequest!,
-										waitingSecondsBetweenStatusRequests: method.decoupledWaitBetweenStatusRequests!,
+											method.decoupledWaitBeforeFirstStatusRequest ?? 0,
+										waitingSecondsBetweenStatusRequests:
+											method.decoupledWaitBetweenStatusRequests ?? 0,
 										manualConfirmationAllowed: method.decoupledManualConfirmationAllowed ?? false,
 										autoConfirmationAllowed: method.decoupledAutoConfirmationAllowed ?? false,
 									}

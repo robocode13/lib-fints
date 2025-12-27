@@ -137,21 +137,21 @@ export class FinTSConfig {
 	 * The FinTS URL of the bank
 	 */
 	get bankingUrl(): string {
-		return this.bankingInformation.bpd?.url ?? this.url!;
+		return this.bankingInformation.bpd?.url ?? this.url ?? '';
 	}
 
 	/**
 	 * The country code of the bank
 	 */
 	get countryCode(): number {
-		return this.bankingInformation.bpd?.countryCode ?? this.country!;
+		return this.bankingInformation.bpd?.countryCode ?? this.country ?? 280;
 	}
 
 	/**
 	 * The bank ID (BLZ)
 	 */
 	get bankId(): string {
-		return this.bankingInformation.bpd?.bankId ?? this.bankIdentification!;
+		return this.bankingInformation.bpd?.bankId ?? this.bankIdentification ?? '';
 	}
 
 	/**
@@ -169,12 +169,14 @@ export class FinTSConfig {
 	 * Selects a TAN method by its ID for the user, see also FinTSConfig#availableTanMethods
 	 * @param tanMethodId The ID of the TAN method to select, corresponding to an ID in availableTanMethods
 	 */
-	selectTanMethod(tanMethodId: number) {
-		if (!this.availableTanMethods.find((method) => method.id === tanMethodId)) {
+	selectTanMethod(tanMethodId: number): TanMethod {
+		const tanMethod = this.availableTanMethods.find((method) => method.id === tanMethodId);
+		if (!tanMethod) {
 			throw new Error(`TAN Method '${tanMethodId}' is not supported`);
 		}
 
 		this.tanMethodId = tanMethodId;
+		return tanMethod;
 	}
 
 	/**

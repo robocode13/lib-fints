@@ -296,7 +296,7 @@ export class CamtParser {
 
 		for (let i = 0; i < entryArray.length; i++) {
 			try {
-				const transaction = this.parseTransaction(entryArray[i], reportNumber, i + 1);
+				const transaction = this.parseTransaction(entryArray[i]);
 				if (transaction) {
 					transactions.push(transaction);
 				}
