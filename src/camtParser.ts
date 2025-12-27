@@ -1,6 +1,154 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import type { Balance, Statement, Transaction } from './statement.js';
 
+// Type definitions for CAMT XML structure
+type GenericXMLObject = Record<string, unknown>;
+
+interface XMLDocument {
+	[key: string]: unknown;
+	Document?: CamtDocument;
+	camt?: CamtDocument;
+}
+
+interface CamtDocument extends GenericXMLObject {
+	BkToCstmrAcctRpt?: {
+		Rpt?: CamtReport | CamtReport[];
+	};
+}
+
+interface CamtReport extends GenericXMLObject {
+	Id?: string | { '#text': string };
+	ElctrncSeqNb?: string | { '#text': string };
+	Acct?: {
+		Id?: {
+			IBAN?: string | { '#text': string };
+		};
+	};
+	Bal?: CamtBalance | CamtBalance[];
+	Ntry?: CamtEntry | CamtEntry[];
+}
+
+interface CamtBalance extends GenericXMLObject {
+	Tp?: {
+		CdOrPrtry?: {
+			Cd?: string | { '#text': string };
+		};
+	};
+	Amt?:
+		| {
+				'@Ccy'?: string;
+				'#text'?: string;
+		  }
+		| string;
+	CdtDbtInd?: string | { '#text': string };
+	Dt?:
+		| {
+				Dt?: string | { '#text': string };
+		  }
+		| string
+		| { '#text': string };
+}
+
+interface CamtEntry extends GenericXMLObject {
+	Amt?:
+		| {
+				'#text'?: string;
+		  }
+		| string;
+	CdtDbtInd?: string | { '#text': string };
+	BookgDt?:
+		| {
+				Dt?: string | { '#text': string };
+		  }
+		| string
+		| { '#text': string };
+	ValDt?:
+		| {
+				Dt?: string | { '#text': string };
+		  }
+		| string
+		| { '#text': string };
+	AcctSvcrRef?: string | { '#text': string };
+	AddtlNtryInf?: string | { '#text': string };
+	BkTxCd?: CamtBankTransactionCode;
+	NtryDtls?: {
+		TxDtls?: CamtTransactionDetails;
+	};
+}
+
+interface CamtTransactionDetails extends GenericXMLObject {
+	Refs?: {
+		EndToEndId?: string | { '#text': string };
+		MndtId?: string | { '#text': string };
+	};
+	RmtInf?: {
+		Ustrd?: string | { '#text': string };
+	};
+	RltdPties?: {
+		Dbtr?: CamtParty;
+		DbtrAcct?: CamtAccount;
+		Cdtr?: CamtParty;
+		CdtrAcct?: CamtAccount;
+	};
+	RltdAgts?: {
+		DbtrAgt?: {
+			FinInstnId?: CamtBankIdentification;
+		};
+		CdtrAgt?: {
+			FinInstnId?: CamtBankIdentification;
+		};
+	};
+	BkTxCd?: CamtBankTransactionCode;
+}
+
+interface CamtParty extends GenericXMLObject {
+	Nm?: string | { '#text': string };
+	Pty?: {
+		Nm?: string | { '#text': string };
+	};
+	Id?: {
+		OrgId?: {
+			Nm?: string | { '#text': string };
+			Othr?: {
+				Id?: string | { '#text': string };
+			};
+		};
+		PrvtId?: {
+			Nm?: string | { '#text': string };
+		};
+	};
+	PstlAdr?: {
+		AdrLine?: string | { '#text': string };
+	};
+}
+
+interface CamtAccount extends GenericXMLObject {
+	Id?: {
+		IBAN?: string | { '#text': string };
+	};
+}
+
+interface CamtBankIdentification extends GenericXMLObject {
+	BIC?: string | { '#text': string };
+	BICFI?: string | { '#text': string };
+	ClrSysMmbId?: {
+		MmbId?: string | { '#text': string };
+	};
+	Othr?: {
+		Id?: string | { '#text': string };
+	};
+}
+
+interface CamtBankTransactionCode extends GenericXMLObject {
+	Domn?: {
+		Cd?: string | { '#text': string };
+		Fmly?: {
+			Cd?: string | { '#text': string };
+			SubFmlyCd?: string | { '#text': string };
+		};
+	};
+}
+
 export class CamtParsingError extends Error {
 	constructor(
 		message: string,
@@ -81,7 +229,7 @@ export class CamtParser {
 		}
 	}
 
-	private getDocumentObject(document: any): any {
+	private getDocumentObject(document: XMLDocument): CamtDocument {
 		// Handle different possible XML root structures
 		if (document.Document) {
 			return document.Document;
@@ -91,14 +239,18 @@ export class CamtParser {
 		}
 		// Look for any object with BkToCstmrAcctRpt property
 		for (const key in document) {
-			if (document[key]?.BkToCstmrAcctRpt) {
-				return document[key];
+			if (
+				document[key] &&
+				typeof document[key] === 'object' &&
+				(document[key] as CamtDocument)?.BkToCstmrAcctRpt
+			) {
+				return document[key] as CamtDocument;
 			}
 		}
 		throw new CamtParsingError('No valid CAMT document structure found');
 	}
 
-	private getReports(docObj: any): any[] {
+	private getReports(docObj: CamtDocument): CamtReport[] {
 		const bkToCstmrAcctRpt = docObj.BkToCstmrAcctRpt;
 		if (!bkToCstmrAcctRpt) {
 			throw new CamtParsingError('No BkToCstmrAcctRpt element found in CAMT document');
@@ -113,7 +265,7 @@ export class CamtParser {
 		return Array.isArray(rpt) ? rpt : [rpt];
 	}
 
-	private parseReport(report: any, reportNumber: number): Statement | null {
+	private parseReport(report: CamtReport, reportNumber: number): Statement | null {
 		try {
 			// Extract account information
 			const account = this.getValueFromPath(report, 'Acct.Id.IBAN');
@@ -158,12 +310,19 @@ export class CamtParser {
 			// Parse transactions
 			const transactions = this.parseTransactions(report, reportNumber);
 
+			// At this point we should have both balances, otherwise throw an error
+			if (!openingBalance || !closingBalance) {
+				throw new CamtParsingError(
+					`Unable to determine required balances for CAMT report ${reportNumber}`,
+				);
+			}
+
 			return {
 				account,
 				number,
 				transactionReference,
-				openingBalance: openingBalance!,
-				closingBalance: closingBalance!,
+				openingBalance,
+				closingBalance,
 				availableBalance: balances.availableBalance,
 				transactions,
 			};
@@ -178,13 +337,13 @@ export class CamtParser {
 		}
 	}
 
-	private getValueFromPath(obj: any, path: string): string | undefined {
+	private getValueFromPath(obj: GenericXMLObject, path: string): string | undefined {
 		const pathParts = path.split('.');
-		let current = obj;
+		let current: unknown = obj;
 
 		for (const part of pathParts) {
-			if (current && typeof current === 'object' && current[part] !== undefined) {
-				current = current[part];
+			if (current && typeof current === 'object' && current !== null && part in current) {
+				current = (current as Record<string, unknown>)[part];
 			} else {
 				return undefined;
 			}
@@ -193,15 +352,15 @@ export class CamtParser {
 		if (typeof current === 'string' || typeof current === 'number') {
 			return String(current);
 		}
-		if (current && typeof current === 'object' && current['#text'] !== undefined) {
-			return String(current['#text']);
+		if (current && typeof current === 'object' && current !== null && '#text' in current) {
+			return String((current as { '#text': unknown })['#text']);
 		}
 
 		return undefined;
 	}
 
 	private parseBalances(
-		report: any,
+		report: CamtReport,
 		reportNumber: number,
 	): {
 		openingBalance?: Balance;
@@ -225,7 +384,10 @@ export class CamtParser {
 				const typeCode = this.getValueFromPath(balanceObj, 'Tp.CdOrPrtry.Cd');
 
 				// Extract amount and currency
-				const currency = balanceObj.Amt?.['@Ccy'] || 'EUR';
+				let currency = 'EUR';
+				if (balanceObj.Amt && typeof balanceObj.Amt === 'object' && '@Ccy' in balanceObj.Amt) {
+					currency = (balanceObj.Amt['@Ccy'] as string) || 'EUR';
+				}
 				const value = parseFloat(this.getValueFromPath(balanceObj, 'Amt') || '0');
 
 				const creditDebitInd = this.getValueFromPath(balanceObj, 'CdtDbtInd');
@@ -284,7 +446,7 @@ export class CamtParser {
 		}
 	}
 
-	private parseTransactions(report: any, reportNumber: number): Transaction[] {
+	private parseTransactions(report: CamtReport, reportNumber: number): Transaction[] {
 		const transactions: Transaction[] = [];
 		const entries = report.Ntry;
 
@@ -313,7 +475,7 @@ export class CamtParser {
 		return transactions;
 	}
 
-	private parseTransaction(entry: any): Transaction | null {
+	private parseTransaction(entry: CamtEntry): Transaction | null {
 		try {
 			// Extract amount and credit/debit indicator
 			const amountValue = parseFloat(this.getValueFromPath(entry, 'Amt') || '0');
@@ -395,7 +557,7 @@ export class CamtParser {
 	 * Extract party name from various possible CAMT structures
 	 * Handles both direct name (<Dbtr><Nm>) and party structure (<Dbtr><Pty><Nm>)
 	 */
-	private extractPartyName(txDtls: any, partyPath: string): string {
+	private extractPartyName(txDtls: CamtTransactionDetails, partyPath: string): string {
 		// Strategy 1: Direct name structure (e.g., RltdPties.Dbtr.Nm)
 		let name = this.getValueFromPath(txDtls, `${partyPath}.Nm`);
 		if (name) {
@@ -439,7 +601,7 @@ export class CamtParser {
 	 * Extract bank identification code from various possible CAMT structures
 	 * Handles both BIC and BICFI elements
 	 */
-	private extractBankId(txDtls: any, bankPath: string): string {
+	private extractBankId(txDtls: CamtTransactionDetails, bankPath: string): string {
 		// Strategy 1: Standard BIC element
 		let bankId = this.getValueFromPath(txDtls, `${bankPath}.BIC`);
 		if (bankId) {
@@ -484,7 +646,7 @@ export class CamtParser {
 		return new Date(dateStr);
 	}
 
-	private parseBankTransactionCode(entry: any): {
+	private parseBankTransactionCode(entry: CamtEntry | CamtTransactionDetails): {
 		domainCode?: string;
 		familyCode?: string;
 		subFamilyCode?: string;

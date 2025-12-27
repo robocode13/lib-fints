@@ -31,7 +31,7 @@ export function decodeElements(
 				valueIndex++;
 			}
 
-			let value: unknown[] | Record<string, unknown> | undefined;
+			let value: unknown | unknown[] | Record<string, unknown> | undefined;
 
 			if (!textValue) {
 				value = undefined;

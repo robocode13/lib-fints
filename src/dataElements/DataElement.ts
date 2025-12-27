@@ -16,7 +16,7 @@ export abstract class DataElement {
 	}
 
 	abstract encode(value: unknown, context: string[], version: number): string;
-	abstract decode(text: string, version: number): unknown;
+	abstract decode(text: string, version: number): unknown | unknown[] | Record<string, unknown>;
 
 	maxValueCount(version: number): number {
 		return this.isInVersion(version) ? 1 : 0;
