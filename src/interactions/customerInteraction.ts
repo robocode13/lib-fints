@@ -77,7 +77,7 @@ export abstract class CustomerInteraction {
 		}
 		const countAsString = Array.from(bytes.slice(offset, 2), (b) => String(b)).join('');
 		offset += 2;
-		const count = parseInt(countAsString);
+		const count = parseInt(countAsString, 10);
 		const mimeTypeArray = bytes.slice(offset, offset + count);
 		const mimeType = new TextDecoder('iso-8859-1').decode(mimeTypeArray);
 		offset += count;

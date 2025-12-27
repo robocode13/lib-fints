@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decode, encode } from '../segment.js';
-import { HIWPD, type HIWPDSegment } from '../segments/HIWPD.js';
+import type { HIWPDSegment } from '../segments/HIWPD.js';
 import { registerSegments } from '../segments/registry.js';
 
 registerSegments();

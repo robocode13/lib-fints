@@ -37,7 +37,7 @@ export class StatementInteractionMT940 extends CustomerOrderInteraction {
 
 	handleResponse(response: Message, clientResponse: StatementResponse) {
 		const hikaz = response.findSegment<HIKAZSegment>(HIKAZ.Id);
-		if (hikaz && hikaz.bookedTransactions) {
+		if (hikaz?.bookedTransactions) {
 			try {
 				const parser = new Mt940Parser(hikaz.bookedTransactions);
 				clientResponse.statements = parser.parse();

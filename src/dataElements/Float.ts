@@ -22,7 +22,7 @@ export class Float extends DataElement {
 		}
 
 		const text = value.toString().replace('.', ',');
-		return text.indexOf(',') >= 0 ? text : text + ',';
+		return text.indexOf(',') >= 0 ? text : `${text},`;
 	}
 
 	decode(text: string) {

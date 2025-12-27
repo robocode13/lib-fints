@@ -8,7 +8,7 @@ export function splitBySeparator(text: string, separator: string): string[] {
 
 		if (char === '@' && !isEscaped(text, index)) {
 			const next = text.indexOf('@', index + 1);
-			const size = Number.parseInt(text.slice(index + 1, next));
+			const size = Number.parseInt(text.slice(index + 1, next), 10);
 			if (size) {
 				index = next + size;
 			}

@@ -11,7 +11,7 @@ import type {
 } from '../interactions/customerInteraction.js';
 import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
 import { SepaAccountInteraction } from '../interactions/sepaAccountInteraction.js';
-import { CustomerMessage, Message } from '../message.js';
+import { Message } from '../message.js';
 import { registerSegments } from '../segments/registry.js';
 import type { TanMethod } from '../tanMethod.js';
 
@@ -193,8 +193,8 @@ describe('Dialog', () => {
 			expect(dialog.hasEnded).toBe(false);
 			const response = responses.get(dialog.currentInteraction.segId);
 			expect(response).toBeDefined();
-			expect(response!.requiresTan).toBe(true);
-			expect(response!.tanReference).toBe('TAN_REF_123');
+			expect(response?.requiresTan).toBe(true);
+			expect(response?.tanReference).toBe('TAN_REF_123');
 		});
 	});
 
@@ -231,7 +231,7 @@ describe('Dialog', () => {
 		});
 
 		it('successfully continues decoupled TAN method without TAN', async () => {
-			dialog.config.bankingInformation.bpd!.supportedTanMethods[0].isDecoupled = true;
+			dialog.config.bankingInformation.bpd?.supportedTanMethods[0].isDecoupled = true;
 
 			const responses = await dialog.continue('TAN_REF_123');
 			expect(responses).toBeInstanceOf(Map);

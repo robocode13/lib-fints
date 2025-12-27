@@ -29,6 +29,6 @@ export class Digits extends DataElement {
 	}
 
 	decode(text: string) {
-		return Number.parseInt(text);
+		return Number.parseInt(text, 10);
 	}
 }

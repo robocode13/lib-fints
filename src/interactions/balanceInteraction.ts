@@ -6,11 +6,7 @@ import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
 import { HISAL, type HISALSegment } from '../segments/HISAL.js';
 import { HKSAL, type HKSALSegment } from '../segments/HKSAL.js';
-import {
-	type ClientResponse,
-	CustomerInteraction,
-	CustomerOrderInteraction,
-} from './customerInteraction.js';
+import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
 
 export interface AccountBalanceResponse extends ClientResponse {
 	balance?: AccountBalance;

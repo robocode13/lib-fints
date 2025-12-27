@@ -79,6 +79,6 @@ export function segmentToString(segment: Segment): string {
 		}
 	});
 
-	text += '; ' + texts.filter((text) => !!text).join('; ');
+	text += `; ${texts.filter((text) => !!text).join('; ')}`;
 	return text;
 }

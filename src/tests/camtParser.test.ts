@@ -493,8 +493,8 @@ describe('CamtParser', () => {
 
 		// Test available balance (ITBD)
 		expect(statement.availableBalance).toBeDefined();
-		expect(statement.availableBalance!.value).toBe(4500.0);
-		expect(statement.availableBalance!.currency).toBe('EUR');
+		expect(statement.availableBalance?.value).toBe(4500.0);
+		expect(statement.availableBalance?.currency).toBe('EUR');
 
 		// Test transaction with comprehensive fields
 		expect(statement.transactions).toHaveLength(1);

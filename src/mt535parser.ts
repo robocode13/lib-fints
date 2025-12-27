@@ -45,14 +45,14 @@ const tokens535: { [key in TokenType535]: RegExp } = {
 export class Mt535Parser {
 	private cleanedRawData: string;
 
-	constructor(private rawData: string) {
+	constructor(rawData: string) {
 		// The divider can be either \r\n or @@
 		const crlfCount = (rawData.match(/\r\n-/g) || []).length;
 		const atAtCount = (rawData.match(/@@-/g) || []).length;
 		const divider = crlfCount > atAtCount ? '\r\n' : '@@';
 
 		// Remove dividers that are not followed by a colon (tag indicator)
-		const regex = new RegExp(divider + '([^:])', 'gms');
+		const regex = new RegExp(`${divider}([^:])`, 'gms');
 		this.cleanedRawData = rawData.replace(regex, '$1');
 	}
 
@@ -220,9 +220,9 @@ export class Mt535Parser {
 					const timeMatch = content.match(tokens535[TokenType535.TimeString]);
 					if (timeMatch) {
 						parsedDate.setHours(
-							parseInt(timeMatch[1]),
-							parseInt(timeMatch[2]),
-							parseInt(timeMatch[3]),
+							parseInt(timeMatch[1], 10),
+							parseInt(timeMatch[2], 10),
+							parseInt(timeMatch[3], 10),
 						);
 					}
 				} else {
@@ -241,7 +241,7 @@ export class Mt535Parser {
 		}
 
 		try {
-			return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+			return new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10));
 		} catch (error) {
 			throw new Error(`Invalid date: ${dateString}`, { cause: error });
 		}

@@ -104,7 +104,7 @@ export class HNVSK extends SegmentDefinition {
 		),
 	];
 
-	setSegmentNumber(segmentNumber: number): number {
+	setSegmentNumber(_segmentNumber: number): number {
 		return 0;
 	}
 }

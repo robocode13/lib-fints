@@ -29,10 +29,10 @@ export class Numeric extends DataElement {
 	}
 
 	decode(text: string) {
-		return Number.parseInt(text);
+		return Number.parseInt(text, 10);
 	}
 
 	static decode(text: string): number {
-		return Number.parseInt(text);
+		return Number.parseInt(text, 10);
 	}
 }

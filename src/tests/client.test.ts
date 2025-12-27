@@ -230,7 +230,7 @@ describe('FinTSClient', () => {
 			expect(response.success).toBe(true);
 			expect(response.requiresTan).toBe(false);
 			expect(response.balance).toBeDefined();
-			expect(response.balance!.balance).toBe(2500.0);
+			expect(response.balance?.balance).toBe(2500.0);
 			expect(dialogContinueMock).toHaveBeenCalledWith('TANREF123', '123456');
 		});
 	});
@@ -382,8 +382,8 @@ describe('FinTSClient', () => {
 
 			expect(response.success).toBe(true);
 			expect(response.statements).toBeDefined();
-			expect(response.statements!.length).toBe(1);
-			expect(response.statements![0].account).toBe('1234567890');
+			expect(response.statements?.length).toBe(1);
+			expect(response.statements?.[0].account).toBe('1234567890');
 		});
 
 		it('throws error when account does not support statements', async () => {
@@ -445,8 +445,8 @@ describe('FinTSClient', () => {
 
 			expect(response.success).toBe(true);
 			expect(response.statements).toBeDefined();
-			expect(response.statements!.length).toBe(1);
-			expect(response.statements![0].account).toBe('1234567890');
+			expect(response.statements?.length).toBe(1);
+			expect(response.statements?.[0].account).toBe('1234567890');
 		});
 	});
 
@@ -528,8 +528,8 @@ describe('FinTSClient', () => {
 
 			expect(response.success).toBe(true);
 			expect(response.portfolioStatement?.holdings).toBeDefined();
-			expect(response.portfolioStatement!.holdings.length).toBe(1);
-			expect(response.portfolioStatement!.totalValue).toBe(2550.0);
+			expect(response.portfolioStatement?.holdings.length).toBe(1);
+			expect(response.portfolioStatement?.totalValue).toBe(2550.0);
 		});
 
 		it('fetches portfolio with optional parameters', async () => {
@@ -576,9 +576,9 @@ describe('FinTSClient', () => {
 			)) as PortfolioResponse;
 
 			expect(response.success).toBe(true);
-			expect(response.portfolioStatement!.holdings).toBeDefined();
-			expect(response.portfolioStatement!.holdings.length).toBe(1);
-			expect(response.portfolioStatement!.holdings[0].isin).toBe('DE0001234567');
+			expect(response.portfolioStatement?.holdings).toBeDefined();
+			expect(response.portfolioStatement?.holdings.length).toBe(1);
+			expect(response.portfolioStatement?.holdings[0].isin).toBe('DE0001234567');
 		});
 	});
 
@@ -652,8 +652,8 @@ describe('FinTSClient', () => {
 
 			expect(response.success).toBe(true);
 			expect(response.statements).toBeDefined();
-			expect(response.statements!.length).toBe(1);
-			expect(response.statements![0].closingBalance?.value).toBe(-150.0);
+			expect(response.statements?.length).toBe(1);
+			expect(response.statements?.[0].closingBalance?.value).toBe(-150.0);
 		});
 	});
 

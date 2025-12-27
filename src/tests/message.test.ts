@@ -102,6 +102,6 @@ describe('CustomerMessage', () => {
 		customerMessage.sign(280, '12030000', '12345678', '123', '0', 900, '12345');
 		const encodedMessage = customerMessage.encode();
 
-		const message = Message.decode(encodedMessage);
+		const _message = Message.decode(encodedMessage);
 	});
 });

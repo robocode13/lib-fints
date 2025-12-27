@@ -81,12 +81,12 @@ export class CreditCardStatementInteraction extends CustomerOrderInteraction {
 					const depositMarker = parts[10];
 					const amount = parseGermanFloat(parts[8]) * (depositMarker === 'D' ? -1 : 1);
 
-					const tYear = parseInt(transactionDateStr.substring(0, 4));
-					const tMonth = parseInt(transactionDateStr.substring(4, 6));
-					const tDay = parseInt(transactionDateStr.substring(6, 8));
-					const vYear = parseInt(valueDateStr.substring(0, 4));
-					const vMonth = parseInt(valueDateStr.substring(4, 6));
-					const vDay = parseInt(valueDateStr.substring(6, 8));
+					const tYear = parseInt(transactionDateStr.substring(0, 4), 10);
+					const tMonth = parseInt(transactionDateStr.substring(4, 6), 10);
+					const tDay = parseInt(transactionDateStr.substring(6, 8), 10);
+					const vYear = parseInt(valueDateStr.substring(0, 4), 10);
+					const vMonth = parseInt(valueDateStr.substring(4, 6), 10);
+					const vDay = parseInt(valueDateStr.substring(6, 8), 10);
 					let purpose = '';
 					let pIdx = 11;
 					do {
@@ -96,9 +96,9 @@ export class CreditCardStatementInteraction extends CustomerOrderInteraction {
 						}
 						purpose = purpose + partPurpose;
 						if (purpose.endsWith('Betrag?')) {
-							purpose = purpose.slice(0, purpose.length - 7) + ' Betrag ';
+							purpose = `${purpose.slice(0, purpose.length - 7)} Betrag `;
 						} else if (purpose[purpose.length - 1] === '?') {
-							purpose = purpose.slice(0, purpose.length - 1) + ' ';
+							purpose = `${purpose.slice(0, purpose.length - 1)} `;
 						} else {
 							break;
 						}

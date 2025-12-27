@@ -20,11 +20,7 @@ import { HKSYN, type HKSYNSegment } from '../segments/HKSYN.js';
 import { HKTAB } from '../segments/HKTAB.js';
 import { HKVVB, type HKVVBSegment } from '../segments/HKVVB.js';
 import type { TanMethod } from '../tanMethod.js';
-import {
-	type ClientResponse,
-	CustomerInteraction,
-	CustomerOrderInteraction,
-} from './customerInteraction.js';
+import { type ClientResponse, CustomerInteraction } from './customerInteraction.js';
 import { SepaAccountInteraction } from './sepaAccountInteraction.js';
 import { TanMediaInteraction } from './tanMediaInteraction.js';
 
@@ -78,7 +74,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 	handleResponse(response: Message, clientResponse: InitResponse) {
 		const hisyn = response.findSegment<HISYNSegment>(HISYN.Id);
-		if (hisyn && hisyn.systemId) {
+		if (hisyn?.systemId) {
 			this.config.bankingInformation.systemId = hisyn.systemId;
 		}
 
@@ -123,7 +119,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 			if (hikom) {
 				bankingUrl = hikom?.comParams.address;
 				if (!bankingUrl.toLowerCase().startsWith('https://')) {
-					bankingUrl = 'https://' + bankingUrl;
+					bankingUrl = `https://${bankingUrl}`;
 				}
 			}
 
@@ -141,7 +137,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 			bankTransactions.forEach((transaction) => {
 				if (transaction.transId.startsWith('HK') || transaction.transId.startsWith('DK')) {
-					const paramSegId = 'HI' + transaction.transId.slice(2) + 'S';
+					const paramSegId = `HI${transaction.transId.slice(2)}S`;
 					const paramSegments = [
 						...response.findAllSegments(paramSegId),
 						...response.findAllUnknownSegments(paramSegId),
@@ -176,7 +172,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 		if (tanMethodMessaqe && this.config.bankingInformation.bpd) {
 			this.config.bankingInformation.bpd.availableTanMethodIds =
-				tanMethodMessaqe.params?.map((p) => Number.parseInt(p)) ?? [];
+				tanMethodMessaqe.params?.map((p) => Number.parseInt(p, 10)) ?? [];
 		}
 
 		const hiupa = response.findSegment<HIUPASegment>(HIUPA.Id);
@@ -223,7 +219,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 			this.config.selectedTanMethod.tanMediaRequirement > TanMediaRequirement.NotAllowed &&
 			this.config.isTransactionSupported(HKTAB.Id)
 		) {
-			this.dialog!.addCustomerInteraction(new TanMediaInteraction(), true);
+			this.dialog?.addCustomerInteraction(new TanMediaInteraction(), true);
 		}
 
 		const bankAccounts = this.config.bankingInformation?.upd?.bankAccounts;
@@ -233,7 +229,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 				bankAccounts.some((account) => account.isSepaAccount === undefined) &&
 				this.config.isTransactionSupported(HKSPA.Id)
 			) {
-				this.dialog!.addCustomerInteraction(new SepaAccountInteraction(), true);
+				this.dialog?.addCustomerInteraction(new SepaAccountInteraction(), true);
 			}
 		}
 	}

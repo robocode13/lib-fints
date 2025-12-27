@@ -313,11 +313,7 @@ export class CamtParser {
 		return transactions;
 	}
 
-	private parseTransaction(
-		entry: any,
-		reportNumber: number,
-		transactionNumber: number,
-	): Transaction | null {
+	private parseTransaction(entry: any): Transaction | null {
 		try {
 			// Extract amount and credit/debit indicator
 			const amountValue = parseFloat(this.getValueFromPath(entry, 'Amt') || '0');
@@ -474,7 +470,7 @@ export class CamtParser {
 	private parseDate(dateStr: string): Date {
 		// Parse ISO date format (YYYY-MM-DD)
 		if (dateStr.length === 10 && dateStr.includes('-')) {
-			return new Date(dateStr + 'T12:00:00'); // Set time to noon to avoid timezone issues
+			return new Date(`${dateStr}T12:00:00`); // Set time to noon to avoid timezone issues
 		}
 
 		// Parse CAMT date format (YYYYMMDD)

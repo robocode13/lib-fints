@@ -5,11 +5,7 @@ import type { Segment } from '../segment.js';
 import { HICAZ, type HICAZSegment } from '../segments/HICAZ.js';
 import { HKCAZ, type HKCAZSegment } from '../segments/HKCAZ.js';
 import type { Statement } from '../statement.js';
-import {
-	ClientResponse,
-	CustomerOrderInteraction,
-	type StatementResponse,
-} from './customerInteraction.js';
+import { CustomerOrderInteraction, type StatementResponse } from './customerInteraction.js';
 
 export class StatementInteractionCAMT extends CustomerOrderInteraction {
 	private acceptedCamtFormats: string[] = ['urn:iso:std:iso:20022:tech:xsd:camt.052.001.08'];
@@ -43,7 +39,7 @@ export class StatementInteractionCAMT extends CustomerOrderInteraction {
 
 	handleResponse(response: Message, clientResponse: StatementResponse) {
 		const hicaz = response.findSegment<HICAZSegment>(HICAZ.Id);
-		if (hicaz && hicaz.bookedTransactions && hicaz.bookedTransactions.length > 0) {
+		if (hicaz?.bookedTransactions && hicaz.bookedTransactions.length > 0) {
 			try {
 				// Parse all CAMT messages (one per booking day) and combine statements
 				const allStatements: Statement[] = [];
