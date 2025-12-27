@@ -1,7 +1,7 @@
 import type { DataElement } from './dataElements/DataElement.js';
 
 export function encodeElements(
-	values: any,
+	values: unknown[] | Record<string, unknown>,
 	elements: DataElement[],
 	separator: string,
 	version: number,
@@ -50,20 +50,26 @@ export function encodeElements(
 				}
 			}
 			if (element.maxCount > 1) {
+				const elementValue = values[elementIndex];
 				textValues.push(
-					values[elementIndex]
-						?.map((value: any) => element.encode(value, context, version))
-						.join(separator),
+					Array.isArray(elementValue)
+						? elementValue
+								.map((value: unknown) => element.encode(value, context, version))
+								.join(separator)
+						: undefined,
 				);
 			} else {
 				textValues.push(element.encode(values[elementIndex], context, version));
 			}
 		} else {
 			if (element.maxCount > 1) {
+				const elementValue = values[element.name];
 				textValues.push(
-					values[element.name]
-						?.map((value: any) => element.encode(value, context, version))
-						.join(separator),
+					Array.isArray(elementValue)
+						? elementValue
+								.map((value: unknown) => element.encode(value, context, version))
+								.join(separator)
+						: undefined,
 				);
 			} else {
 				textValues.push(element.encode(values[element.name], context, version));

@@ -39,7 +39,7 @@ export class Message {
 		const hirmg = this.findSegment<HIRMGSegment>(HIRMG.Id);
 		const hirmsList = this.findAllSegments<HIRMSSegment>(HIRMS.Id);
 		return (
-			(hirmg && hirmg.answers.some((answer) => answer.code === code)) ||
+			hirmg?.answers.some((answer) => answer.code === code) ||
 			hirmsList.some((hirms) => hirms.answers.some((answer) => answer.code === code))
 		);
 	}
@@ -48,7 +48,9 @@ export class Message {
 		const hirmg = this.findSegment<HIRMGSegment>(HIRMG.Id);
 		const hirmsList = this.findAllSegments<HIRMSSegment>(HIRMS.Id);
 		const allAnswers = hirmg ? [...hirmg.answers] : [];
-		hirmsList.forEach((hirms) => allAnswers.push(...hirms.answers));
+		hirmsList.forEach((hirms) => {
+			allAnswers.push(...hirms.answers);
+		});
 		return allAnswers.reduce((max, answer) => (answer.code > max ? answer.code : max), 0);
 	}
 
@@ -56,27 +58,27 @@ export class Message {
 		const bankAnswers: BankAnswer[] = [];
 		const hirmgSegments = this.findAllSegments<HIRMGSegment>(HIRMG.Id);
 
-		hirmgSegments.forEach((hirmg) =>
+		hirmgSegments.forEach((hirmg) => {
 			bankAnswers.push(
 				...hirmg.answers.map((message) => ({
 					code: message.code,
 					text: message.text,
 					params: message.params,
 				})),
-			),
-		);
+			);
+		});
 
 		const hirmsSegments = this.findAllSegments<HIRMSSegment>(HIRMS.Id);
 
-		hirmsSegments.forEach((hirms) =>
+		hirmsSegments.forEach((hirms) => {
 			bankAnswers.push(
 				...hirms.answers.map((message) => ({
 					code: message.code,
 					text: message.text,
 					params: message.params,
 				})),
-			),
-		);
+			);
+		});
 
 		return bankAnswers;
 	}
@@ -169,6 +171,10 @@ export class CustomerMessage extends Message {
 		if (this.lastSignatureNumber > 0) {
 			const firstSignature = this.findSegment<HNSHKSegment>(HNSHK.Id);
 
+			if (!firstSignature) {
+				throw new Error('no signature segment found in message');
+			}
+
 			const now = new Date();
 
 			const hnvsk: HNVSKSegment = {
@@ -176,7 +182,7 @@ export class CustomerMessage extends Message {
 				secProfile: { secMethod: 'PIN', secVersion: 1 },
 				secFunc: 998,
 				secRole: 1,
-				secId: { partyType: 1, partyId: firstSignature!.secId.partyId },
+				secId: { partyType: 1, partyId: firstSignature.secId.partyId },
 				dateTime: { type: 1, date: now, time: now },
 				encryption: {
 					use: 2,
@@ -187,8 +193,8 @@ export class CustomerMessage extends Message {
 					initParamName: 1,
 				},
 				key: {
-					bank: firstSignature!.key.bank,
-					userId: firstSignature!.key.userId,
+					bank: firstSignature.key.bank,
+					userId: firstSignature.key.userId,
 					keyType: 'S',
 					keyNr: 0,
 					keyVersion: 0,

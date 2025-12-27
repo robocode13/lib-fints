@@ -7,7 +7,7 @@ import {
 	CustomerOrderInteraction,
 } from './interactions/customerInteraction.js';
 import { EndDialogInteraction } from './interactions/endDialogInteraction.js';
-import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
+import { InitDialogInteraction } from './interactions/initDialogInteraction.js';
 import { CustomerMessage, CustomerOrderMessage, type Message } from './message.js';
 import { PARTED, type PartedSegment } from './partedSegment.js';
 import type { SegmentWithContinuationMark } from './segment.js';
@@ -198,11 +198,13 @@ export class Dialog {
 		}
 
 		const segments = this.currentInteraction.getSegments(this.config);
-		segments.forEach((segment) => message.addSegment(segment));
+		segments.forEach((segment) => {
+			message.addSegment(segment);
+		});
 
 		if (this.config.userId && this.config.pin && isTanMethodNeeded) {
 			const hktan: HKTANSegment = {
-				header: { segId: HKTAN.Id, segNr: 0, version: tanMethod!.version },
+				header: { segId: HKTAN.Id, segNr: 0, version: tanMethod?.version ?? 0 },
 				tanProcess: TanProcess.Process4,
 				segId: HKIDN.Id,
 			};
@@ -223,7 +225,7 @@ export class Dialog {
 				this.config.bankId,
 				this.config.userId,
 				this.config.pin,
-				this.config.bankingInformation!.systemId,
+				this.config.bankingInformation?.systemId,
 				this.config.tanMethodId,
 				tan,
 			);
@@ -231,7 +233,7 @@ export class Dialog {
 
 		if (this.config.userId && this.config.pin && this.config.tanMethodId) {
 			const hktan: HKTANSegment = {
-				header: { segId: HKTAN.Id, segNr: 0, version: this.config.selectedTanMethod!.version },
+				header: { segId: HKTAN.Id, segNr: 0, version: this.config.selectedTanMethod?.version ?? 0 },
 				tanProcess: this.config.selectedTanMethod?.isDecoupled
 					? TanProcess.Status
 					: TanProcess.Process2,
@@ -239,7 +241,8 @@ export class Dialog {
 				orderRef: tanOrderReference,
 				nextTan: false,
 				tanMedia:
-					this.config.selectedTanMethod!.tanMediaRequirement >= TanMediaRequirement.Optional
+					(this.config.selectedTanMethod?.tanMediaRequirement ??
+					TanMediaRequirement.NotAllowed >= TanMediaRequirement.Optional)
 						? this.config.tanMediaName
 						: undefined,
 			};
@@ -268,8 +271,20 @@ export class Dialog {
 					);
 				}
 
-				segmentWithContinuation.continuationMark = answers.find((a) => a.code === 3040)!.params![0];
-				message.findSegment<HNHBKSegment>(HNHBK.Id)!.msgNr = ++this.lastMessageNumber;
+				const answer = answers.find((a) => a.code === 3040);
+
+				if (!answer || !answer.params || answer.params.length === 0) {
+					throw new Error(
+						'Expected bank answer to contain continuation mark parameters (code 3040)',
+					);
+				}
+
+				segmentWithContinuation.continuationMark = answer.params[0];
+				const hnhbkSegment = message.findSegment<HNHBKSegment>(HNHBK.Id);
+				if (!hnhbkSegment) {
+					throw new Error('HNHBK segment not found in message');
+				}
+				hnhbkSegment.msgNr = ++this.lastMessageNumber;
 				const nextResponseMessage = await this.httpClient.sendMessage(message);
 				const nextPartedSegment = nextResponseMessage.findSegment<PartedSegment>(PARTED.Id);
 

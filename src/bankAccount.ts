@@ -1,4 +1,3 @@
-import { Account } from './dataGroups/Account.js';
 import type { SepaAccount } from './dataGroups/SepaAccount.js';
 import type { AccountLimit, AllowedTransactions } from './segments/HIUPD.js';
 

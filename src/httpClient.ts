@@ -45,7 +45,7 @@ export class HttpClient {
 					if (this.debugRaw) {
 						console.log(responseText.split("'").join('\n'));
 					} else {
-						console.log('Response Message:\n' + responseMessage.toString(true) + '\n');
+						console.log(`Response Message:\n${responseMessage.toString(true)}\n`);
 					}
 				}
 				return responseMessage;

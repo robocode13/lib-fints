@@ -55,7 +55,7 @@ export class Mt940Parser {
 	};
 	currentTransaction: Transaction | undefined;
 
-	constructor(private input: string) {
+	constructor(input: string) {
 		this.tokenizer = new Mt940Tokenizer(input);
 	}
 
@@ -119,8 +119,8 @@ export class Mt940Parser {
 						if (entryDateString) {
 							const valueYear = valueDate.getFullYear();
 							const valueMonth = valueDate.getMonth() + 1;
-							const entryMonth = parseInt(entryDateString.substring(0, 2));
-							const entryDay = parseInt(entryDateString.substring(2, 4));
+							const entryMonth = parseInt(entryDateString.substring(0, 2), 10);
+							const entryDay = parseInt(entryDateString.substring(2, 4), 10);
 							const entryYear = entryMonth <= valueMonth ? valueYear : valueYear - 1;
 							entryDate = new Date(entryYear, entryMonth - 1, entryDay);
 						} else {
@@ -152,13 +152,13 @@ export class Mt940Parser {
 							additionalInformation: additionalInformation,
 						};
 
-						this.currentStatement.transactions!.push(this.currentTransaction);
+						this.currentStatement.transactions?.push(this.currentTransaction);
 						break;
 					}
 					case ':86:': {
 						let infoToAccountOwner = this.tokenizer.parseNextToken(TokenType.TextToEndOfLine, true);
 
-						let nextLine;
+						let nextLine: string;
 						do {
 							nextLine = this.tokenizer.parseNextToken(TokenType.NextNonTagLine, false);
 							if (nextLine) {
@@ -193,7 +193,7 @@ export class Mt940Parser {
 			false,
 		);
 
-		let subTag;
+		let subTag: string;
 		do {
 			subTag = subFieldTokenizer.parseNextToken(TokenType.SubTag, false);
 			if (subTag) {
@@ -340,9 +340,9 @@ export class Mt940Parser {
 	parseDate(isMandatory = true): Date {
 		const date = this.tokenizer.parseNextToken(TokenType.Date, isMandatory);
 
-		const year = parseInt(date.substring(0, 2)) + 2000;
-		const month = parseInt(date.substring(2, 4));
-		const day = parseInt(date.substring(4, 6));
+		const year = parseInt(date.substring(0, 2), 10) + 2000;
+		const month = parseInt(date.substring(2, 4), 10);
+		const day = parseInt(date.substring(4, 6), 10);
 
 		return new Date(year, month - 1, day);
 	}
@@ -350,7 +350,7 @@ export class Mt940Parser {
 	parseAmount(creditDebit: string, isMandatory = true): number {
 		const amount = this.tokenizer.parseNextToken(TokenType.Decimal, isMandatory);
 		return (
-			parseFloat(amount.replace(',', '.')) * (creditDebit === 'D' || creditDebit == 'RC' ? -1 : 1)
+			parseFloat(amount.replace(',', '.')) * (creditDebit === 'D' || creditDebit === 'RC' ? -1 : 1)
 		);
 	}
 }
