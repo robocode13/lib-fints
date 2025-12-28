@@ -12,7 +12,7 @@ import { CustomerMessage, CustomerOrderMessage, type Message } from './message.j
 import { PARTED, type PartedSegment } from './partedSegment.js';
 import type { SegmentWithContinuationMark } from './segment.js';
 import { decode } from './segment.js';
-import { HKIDN } from './segments/HKIDN.js';
+import { HKEND } from './segments/HKEND.js';
 import { HKTAN, type HKTANSegment } from './segments/HKTAN.js';
 import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
 
@@ -176,14 +176,14 @@ export class Dialog {
 
 		const tanMethod = this.config.selectedTanMethod;
 		const isScaSupported = tanMethod && tanMethod.version >= 6;
-		let isTanMethodNeeded = isScaSupported;
+		let isTanMethodNeeded = isScaSupported && this.currentInteraction.segId !== HKEND.Id;
 
 		if (isCustomerOrder) {
 			const bankTransaction = this.config.bankingInformation.bpd?.allowedTransactions.find(
 				(t) => t.transId === this.currentInteraction.segId,
 			);
 
-			isTanMethodNeeded = isScaSupported && bankTransaction?.tanRequired;
+			isTanMethodNeeded = isTanMethodNeeded && bankTransaction?.tanRequired;
 		}
 
 		if (this.config.userId && this.config.pin) {
@@ -206,7 +206,7 @@ export class Dialog {
 			const hktan: HKTANSegment = {
 				header: { segId: HKTAN.Id, segNr: 0, version: tanMethod?.version ?? 0 },
 				tanProcess: TanProcess.Process4,
-				segId: HKIDN.Id,
+				segId: this.currentInteraction.segId,
 			};
 
 			message.addSegment(hktan);
