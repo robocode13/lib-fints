@@ -1,10 +1,10 @@
-import { Language } from '../codes.js';
-import { Numeric } from '../dataElements/Numeric.js';
+import type { Language } from '../codes.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { Bank } from '../dataGroups/Account.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import type { Bank } from '../dataGroups/Account.js';
 import { BankIdentification } from '../dataGroups/BankIdentification.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HIKOMSegment = Segment & {
@@ -43,7 +43,7 @@ export class HIKOM extends SegmentDefinition {
 				new Numeric('filterVer', 0, 1, 3),
 			],
 			1,
-			1
+			1,
 		),
 	];
 }

@@ -1,10 +1,10 @@
-import { Dat } from '../dataElements/Dat.js';
-import { YesNo } from '../dataElements/YesNo.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { Dat } from '../dataElements/Dat.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import { YesNo } from '../dataElements/YesNo.js';
+import { type Account, AccountGroup } from '../dataGroups/Account.js';
 import { InternationalAccountGroup } from '../dataGroups/InternationalAccount.js';
-import { Account, AccountGroup } from '../dataGroups/Account.js';
-import { SegmentWithContinuationMark } from '../segment.js';
+import type { SegmentWithContinuationMark } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HKKAZSegment = SegmentWithContinuationMark & {

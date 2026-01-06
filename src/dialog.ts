@@ -1,16 +1,20 @@
-import { FinTSConfig } from './config.js';
 import { TanMediaRequirement, TanProcess } from './codes.js';
+import type { FinTSConfig } from './config.js';
 import { HttpClient } from './httpClient.js';
-import { CustomerMessage, CustomerOrderMessage, Message } from './message.js';
-import { SegmentWithContinuationMark } from './segment.js';
-import { HKIDN } from './segments/HKIDN.js';
-import { HKTAN, HKTANSegment } from './segments/HKTAN.js';
-import { HNHBK, HNHBKSegment } from './segments/HNHBK.js';
-import { decode } from './segment.js';
-import { PARTED, PartedSegment } from './partedSegment.js';
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './interactions/customerInteraction.js';
-import { InitDialogInteraction, InitResponse } from './interactions/initDialogInteraction.js';
+import {
+	type ClientResponse,
+	type CustomerInteraction,
+	CustomerOrderInteraction,
+} from './interactions/customerInteraction.js';
 import { EndDialogInteraction } from './interactions/endDialogInteraction.js';
+import { InitDialogInteraction } from './interactions/initDialogInteraction.js';
+import { CustomerMessage, CustomerOrderMessage, type Message } from './message.js';
+import { PARTED, type PartedSegment } from './partedSegment.js';
+import type { SegmentWithContinuationMark } from './segment.js';
+import { decode } from './segment.js';
+import { HKEND } from './segments/HKEND.js';
+import { HKTAN, type HKTANSegment } from './segments/HKTAN.js';
+import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
 
 export class Dialog {
 	dialogId: string = '0';
@@ -22,7 +26,10 @@ export class Dialog {
 	hasEnded = false;
 	httpClient: HttpClient;
 
-	constructor(public config: FinTSConfig, syncSystemId: boolean = false) {
+	constructor(
+		public config: FinTSConfig,
+		syncSystemId: boolean = false,
+	) {
 		if (!this.config) {
 			throw new Error('configuration must be provided');
 		}
@@ -139,7 +146,9 @@ export class Dialog {
 		const isCustomerOrder = interaction instanceof CustomerOrderInteraction;
 
 		if (isCustomerOrder && !this.config.isTransactionSupported(interaction.segId)) {
-			throw Error(`customer order transaction ${interaction.segId} is not supported according to the BPD`);
+			throw Error(
+				`customer order transaction ${interaction.segId} is not supported according to the BPD`,
+			);
 		}
 
 		interaction.dialog = this;
@@ -161,20 +170,20 @@ export class Dialog {
 					this.currentInteraction.segId,
 					this.currentInteraction.responseSegId,
 					this.dialogId,
-					this.lastMessageNumber
-			  )
+					this.lastMessageNumber,
+				)
 			: new CustomerMessage(this.dialogId, this.lastMessageNumber);
 
 		const tanMethod = this.config.selectedTanMethod;
-		let isScaSupported = tanMethod && tanMethod.version >= 6;
-		let isTanMethodNeeded = isScaSupported;
+		const isScaSupported = tanMethod && tanMethod.version >= 6;
+		let isTanMethodNeeded = isScaSupported && this.currentInteraction.segId !== HKEND.Id;
 
 		if (isCustomerOrder) {
 			const bankTransaction = this.config.bankingInformation.bpd?.allowedTransactions.find(
-				(t) => t.transId === this.currentInteraction.segId
+				(t) => t.transId === this.currentInteraction.segId,
 			);
 
-			isTanMethodNeeded = isScaSupported && bankTransaction?.tanRequired;
+			isTanMethodNeeded = isTanMethodNeeded && bankTransaction?.tanRequired;
 		}
 
 		if (this.config.userId && this.config.pin) {
@@ -184,18 +193,20 @@ export class Dialog {
 				this.config.userId,
 				this.config.pin,
 				this.config.bankingInformation.systemId,
-				isScaSupported ? this.config.tanMethodId : undefined
+				isScaSupported ? this.config.tanMethodId : undefined,
 			);
 		}
 
 		const segments = this.currentInteraction.getSegments(this.config);
-		segments.forEach((segment) => message.addSegment(segment));
+		segments.forEach((segment) => {
+			message.addSegment(segment);
+		});
 
 		if (this.config.userId && this.config.pin && isTanMethodNeeded) {
 			const hktan: HKTANSegment = {
-				header: { segId: HKTAN.Id, segNr: 0, version: tanMethod!.version },
+				header: { segId: HKTAN.Id, segNr: 0, version: tanMethod?.version ?? 0 },
 				tanProcess: TanProcess.Process4,
-				segId: HKIDN.Id,
+				segId: this.currentInteraction.segId,
 			};
 
 			message.addSegment(hktan);
@@ -214,21 +225,24 @@ export class Dialog {
 				this.config.bankId,
 				this.config.userId,
 				this.config.pin,
-				this.config.bankingInformation!.systemId,
+				this.config.bankingInformation?.systemId,
 				this.config.tanMethodId,
-				tan
+				tan,
 			);
 		}
 
 		if (this.config.userId && this.config.pin && this.config.tanMethodId) {
 			const hktan: HKTANSegment = {
-				header: { segId: HKTAN.Id, segNr: 0, version: this.config.selectedTanMethod!.version },
-				tanProcess: this.config.selectedTanMethod?.isDecoupled ? TanProcess.Status : TanProcess.Process2,
+				header: { segId: HKTAN.Id, segNr: 0, version: this.config.selectedTanMethod?.version ?? 0 },
+				tanProcess: this.config.selectedTanMethod?.isDecoupled
+					? TanProcess.Status
+					: TanProcess.Process2,
 				segId: this.currentInteraction.segId,
 				orderRef: tanOrderReference,
 				nextTan: false,
 				tanMedia:
-					this.config.selectedTanMethod!.tanMediaRequirement >= TanMediaRequirement.Optional
+					(this.config.selectedTanMethod?.tanMediaRequirement ??
+					TanMediaRequirement.NotAllowed >= TanMediaRequirement.Optional)
 						? this.config.tanMediaName
 						: undefined,
 			};
@@ -241,7 +255,7 @@ export class Dialog {
 	private async handlePartedMessages(
 		message: CustomerMessage,
 		responseMessage: Message,
-		interaction: CustomerInteraction
+		interaction: CustomerInteraction,
 	) {
 		let partedSegment = responseMessage.findSegment<PartedSegment>(PARTED.Id);
 
@@ -249,22 +263,35 @@ export class Dialog {
 			while (responseMessage.hasReturnCode(3040)) {
 				const answers = responseMessage.getBankAnswers();
 				const segmentWithContinuation = message.segments.find(
-					(s) => s.header.segId === interaction.segId
+					(s) => s.header.segId === interaction.segId,
 				) as SegmentWithContinuationMark;
 				if (!segmentWithContinuation) {
 					throw new Error(
-						`Response contains segment with further information, but corresponding segment could not be found or is not specified`
+						`Response contains segment with further information, but corresponding segment could not be found or is not specified`,
 					);
 				}
 
-				segmentWithContinuation.continuationMark = answers.find((a) => a.code === 3040)!.params![0];
-				message.findSegment<HNHBKSegment>(HNHBK.Id)!.msgNr = ++this.lastMessageNumber;
+				const answer = answers.find((a) => a.code === 3040);
+
+				if (!answer || !answer.params || answer.params.length === 0) {
+					throw new Error(
+						'Expected bank answer to contain continuation mark parameters (code 3040)',
+					);
+				}
+
+				segmentWithContinuation.continuationMark = answer.params[0];
+				const hnhbkSegment = message.findSegment<HNHBKSegment>(HNHBK.Id);
+				if (!hnhbkSegment) {
+					throw new Error('HNHBK segment not found in message');
+				}
+				hnhbkSegment.msgNr = ++this.lastMessageNumber;
 				const nextResponseMessage = await this.httpClient.sendMessage(message);
 				const nextPartedSegment = nextResponseMessage.findSegment<PartedSegment>(PARTED.Id);
 
 				if (nextPartedSegment) {
 					nextPartedSegment.rawData =
-						partedSegment.rawData + nextPartedSegment.rawData.slice(nextPartedSegment.rawData.indexOf('+') + 1);
+						partedSegment.rawData +
+						nextPartedSegment.rawData.slice(nextPartedSegment.rawData.indexOf('+') + 1);
 					partedSegment = nextPartedSegment;
 				}
 

@@ -1,11 +1,11 @@
-import { BankAnswer } from '../bankAnswer.js';
-import { Dialog } from '../dialog.js';
-import { FinTSConfig } from '../config.js';
-import { Message } from '../message.js';
-import { Segment } from '../segment.js';
-import { Statement } from '../statement.js';
-import { HITAN, HITANSegment } from '../segments/HITAN.js';
-import { HNHBK, HNHBKSegment } from '../segments/HNHBK.js';
+import type { BankAnswer } from '../bankAnswer.js';
+import type { FinTSConfig } from '../config.js';
+import type { Dialog } from '../dialog.js';
+import type { Message } from '../message.js';
+import type { Segment } from '../segment.js';
+import { HITAN, type HITANSegment } from '../segments/HITAN.js';
+import { HNHBK, type HNHBKSegment } from '../segments/HNHBK.js';
+import type { Statement } from '../statement.js';
 
 export interface PhotoTan {
 	mimeType: string;
@@ -51,7 +51,9 @@ export abstract class CustomerInteraction {
 	handleClientResponse(message: Message): ClientResponse {
 		const clientResponse = this.handleBaseResponse(message);
 
-		const currentBankingInformationSnapshot = JSON.stringify(this.dialog?.config.bankingInformation);
+		const currentBankingInformationSnapshot = JSON.stringify(
+			this.dialog?.config.bankingInformation,
+		);
 
 		if (clientResponse.success && !clientResponse.requiresTan) {
 			this.handleResponse(message, clientResponse);
@@ -75,7 +77,7 @@ export abstract class CustomerInteraction {
 		}
 		const countAsString = Array.from(bytes.slice(offset, 2), (b) => String(b)).join('');
 		offset += 2;
-		const count = parseInt(countAsString);
+		const count = parseInt(countAsString, 10);
 		const mimeTypeArray = bytes.slice(offset, offset + count);
 		const mimeType = new TextDecoder('iso-8859-1').decode(mimeTypeArray);
 		offset += count;
@@ -118,7 +120,9 @@ export abstract class CustomerInteraction {
 					tanMediaName: hitan.tanMedia,
 				};
 			} else {
-				throw new Error('HITAN segment not found in response, despite return code indicating security approval');
+				throw new Error(
+					'HITAN segment not found in response, despite return code indicating security approval',
+				);
 			}
 		}
 
@@ -133,7 +137,10 @@ export abstract class CustomerInteraction {
 }
 
 export abstract class CustomerOrderInteraction extends CustomerInteraction {
-	constructor(segId: string, public responseSegId: string) {
+	constructor(
+		segId: string,
+		public responseSegId: string,
+	) {
 		super(segId);
 	}
 }

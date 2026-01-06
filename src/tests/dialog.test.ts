@@ -1,15 +1,17 @@
-import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Dialog } from '../dialog.js';
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import type { BankingInformation } from '../bankingInformation.js';
+import type { BankTransaction } from '../bankTransaction.js';
+import type { BPD } from '../bpd.js';
+import { Language } from '../codes.js';
 import { FinTSConfig } from '../config.js';
-import { Message, CustomerMessage } from '../message.js';
+import { Dialog } from '../dialog.js';
+import type {
+	ClientResponse,
+	CustomerOrderInteraction,
+} from '../interactions/customerInteraction.js';
 import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
-import { ClientResponse, CustomerOrderInteraction } from '../interactions/customerInteraction.js';
-import { TanMethod } from '../tanMethod.js';
-import { Language, TanMediaRequirement } from '../codes.js';
-import { BankingInformation } from '../bankingInformation.js';
-import { BPD } from '../bpd.js';
-import { BankTransaction } from '../bankTransaction.js';
 import { SepaAccountInteraction } from '../interactions/sepaAccountInteraction.js';
+import { Message } from '../message.js';
 import { registerSegments } from '../segments/registry.js';
 
 // Mock HttpClient to prevent real HTTP calls
@@ -46,16 +48,24 @@ describe('Dialog', () => {
 				supportedTanMethods: [
 					{
 						id: 940,
-						tanProcess: 1,
-						name: 'chipTAN',
-						version: 6,
+						name: 'ChipTAN',
+						version: 1,
 						isDecoupled: false,
 						activeTanMediaCount: 1,
-						activeTanMedia: ['TEST_MEDIA'],
-						tanMediaRequirement: TanMediaRequirement.Optional,
-					} as TanMethod,
+						activeTanMedia: ['TAN-Generator 123'],
+						tanMediaRequirement: 0,
+					},
+					{
+						id: 941,
+						name: 'pushTAN',
+						version: 1,
+						isDecoupled: true,
+						activeTanMediaCount: 1,
+						activeTanMedia: ['Mobile App'],
+						tanMediaRequirement: 1,
+					},
 				],
-				availableTanMethodIds: [940],
+				availableTanMethodIds: [940, 941],
 				supportedLanguages: [Language.German],
 				maxTransactionsPerMessage: 1,
 			} as BPD,
@@ -68,7 +78,7 @@ describe('Dialog', () => {
 			'testuser',
 			'12345',
 			940, // tanMethodId
-			'TEST_MEDIA' // tanMediaName
+			'TAN-Generator 123', // tanMediaName
 		);
 
 		// Create dialog instance
@@ -79,14 +89,17 @@ describe('Dialog', () => {
 			success: true,
 			requiresTan: false,
 			bankAnswers: [{ code: 20, text: 'Success' }],
-		} as any);
+		} as ClientResponse);
 
-		vi.spyOn(dialog.interactions[dialog.interactions.length - 1], 'handleClientResponse').mockReturnValue({
+		vi.spyOn(
+			dialog.interactions[dialog.interactions.length - 1],
+			'handleClientResponse',
+		).mockReturnValue({
 			dialogId: 'MOCK_DIALOG_123',
 			success: true,
 			requiresTan: false,
 			bankAnswers: [{ code: 100, text: 'Dialog ended' }],
-		} as any);
+		} as ClientResponse);
 
 		// Mock the HttpClient.sendMessage method
 		httpClientSendMessageMock = vi.mocked(dialog.httpClient.sendMessage);
@@ -119,7 +132,9 @@ describe('Dialog', () => {
 		});
 
 		it('throws error when no config is provided', () => {
-			expect(() => new Dialog(null as any)).toThrow('configuration must be provided');
+			expect(() => new Dialog(null as unknown as FinTSConfig)).toThrow(
+				'configuration must be provided',
+			);
 		});
 	});
 
@@ -138,7 +153,7 @@ describe('Dialog', () => {
 				success: true,
 				requiresTan: false,
 				bankAnswers: [{ code: 20, text: 'Success' }],
-			} as any);
+			} as ClientResponse);
 
 			dialog.addCustomerInteraction(sepaInteraction);
 			const responses = await dialog.start();
@@ -166,7 +181,9 @@ describe('Dialog', () => {
 		it('throws error when lastMessageNumber > 0', async () => {
 			dialog.lastMessageNumber = 1;
 
-			await expect(dialog.start()).rejects.toThrow('dialog start can only be called on a new dialog');
+			await expect(dialog.start()).rejects.toThrow(
+				'dialog start can only be called on a new dialog',
+			);
 		});
 
 		it('handles TAN requirement correctly', async () => {
@@ -185,8 +202,8 @@ describe('Dialog', () => {
 			expect(dialog.hasEnded).toBe(false);
 			const response = responses.get(dialog.currentInteraction.segId);
 			expect(response).toBeDefined();
-			expect(response!.requiresTan).toBe(true);
-			expect(response!.tanReference).toBe('TAN_REF_123');
+			expect(response?.requiresTan).toBe(true);
+			expect(response?.tanReference).toBe('TAN_REF_123');
 		});
 	});
 
@@ -223,8 +240,7 @@ describe('Dialog', () => {
 		});
 
 		it('successfully continues decoupled TAN method without TAN', async () => {
-			dialog.config.bankingInformation.bpd!.supportedTanMethods[0].isDecoupled = true;
-
+			config.selectTanMethod(941);
 			const responses = await dialog.continue('TAN_REF_123');
 			expect(responses).toBeInstanceOf(Map);
 			expect(responses.size).toBe(2);
@@ -234,14 +250,14 @@ describe('Dialog', () => {
 
 		it('throws error when tanOrderReference is missing', async () => {
 			await expect(dialog.continue('')).rejects.toThrow(
-				'tanOrderReference must be provided to continue a customer order with a TAN'
+				'tanOrderReference must be provided to continue a customer order with a TAN',
 			);
 		});
 
 		it('throws error when TAN is missing for non-decoupled method', async () => {
 			// The default config already has a non-decoupled TAN method
 			await expect(dialog.continue('TAN_REF_123')).rejects.toThrow(
-				'TAN must be provided for non-decoupled TAN methods'
+				'TAN must be provided for non-decoupled TAN methods',
 			);
 		});
 
@@ -249,7 +265,7 @@ describe('Dialog', () => {
 			dialog.hasEnded = true;
 
 			await expect(dialog.continue('TAN_REF_123', '123456')).rejects.toThrow(
-				'cannot continue a customer order when dialog has already ended'
+				'cannot continue a customer order when dialog has already ended',
 			);
 		});
 
@@ -257,7 +273,7 @@ describe('Dialog', () => {
 			dialog.currentInteractionIndex = dialog.interactions.length;
 
 			await expect(dialog.continue('TAN_REF_123', '123456')).rejects.toThrow(
-				'there is no running customer interaction in this dialog to continue'
+				'there is no running customer interaction in this dialog to continue',
 			);
 		});
 	});
@@ -293,7 +309,7 @@ describe('Dialog', () => {
 			dialog.hasEnded = true;
 
 			expect(() => dialog.addCustomerInteraction(sepaAccountInteraction)).toThrow(
-				'cannot queue another customer interaction when dialog has already ended'
+				'cannot queue another customer interaction when dialog has already ended',
 			);
 		});
 
@@ -302,7 +318,7 @@ describe('Dialog', () => {
 			sepaAccountInteraction.segId = 'UNSUPPORTED';
 
 			expect(() => dialog.addCustomerInteraction(sepaAccountInteraction)).toThrow(
-				'customer order transaction UNSUPPORTED is not supported according to the BPD'
+				'customer order transaction UNSUPPORTED is not supported according to the BPD',
 			);
 		});
 	});

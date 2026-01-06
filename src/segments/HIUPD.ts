@@ -1,12 +1,12 @@
-import { LimitType } from '../codes.js';
-import { Numeric } from '../dataElements/Numeric.js';
+import type { LimitType } from '../codes.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { Account, AccountGroup } from '../dataGroups/Account.js';
-import { Money, MoneyGroup } from '../dataGroups/Money.js';
 import { Currency } from '../dataElements/Currency.js';
 import { Identification } from '../dataElements/Identification.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import { type Account, AccountGroup } from '../dataGroups/Account.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import { type Money, MoneyGroup } from '../dataGroups/Money.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HIUPDSegment = Segment & {
@@ -57,9 +57,13 @@ export class HIUPD extends SegmentDefinition {
 		new AlphaNumeric('accountProduct', 0, 1, 30),
 		new DataGroup(
 			'accountLimit',
-			[new AlphaNumeric('limitType', 1, 1, 1), new MoneyGroup('limitAmount', 0, 1), new Numeric('limitDays', 0, 1, 3)],
+			[
+				new AlphaNumeric('limitType', 1, 1, 1),
+				new MoneyGroup('limitAmount', 0, 1),
+				new Numeric('limitDays', 0, 1, 3),
+			],
 			0,
-			1
+			1,
 		),
 		new DataGroup(
 			'allowedTransactions',
@@ -71,7 +75,7 @@ export class HIUPD extends SegmentDefinition {
 				new Numeric('limitDays', 0, 1, 3),
 			],
 			0,
-			999
+			999,
 		),
 		new AlphaNumeric('accountExtension', 0, 1, 2048),
 	];

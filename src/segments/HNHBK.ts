@@ -1,8 +1,8 @@
 import { Digits } from '../dataElements/Digits.js';
-import { Numeric } from '../dataElements/Numeric.js';
-import { RefMessageGroup, RefMessage } from '../dataGroups/RefMessage.js';
 import { Identification } from '../dataElements/Identification.js';
-import { Segment } from '../segment.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import { type RefMessage, RefMessageGroup } from '../dataGroups/RefMessage.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HNHBKSegment = Segment & {

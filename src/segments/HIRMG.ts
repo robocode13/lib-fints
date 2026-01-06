@@ -1,7 +1,7 @@
-import { Digits } from '../dataElements/Digits.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { Digits } from '../dataElements/Digits.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HIRMGSegment = Segment & {
@@ -35,7 +35,7 @@ export class HIRMG extends SegmentDefinition {
 				new AlphaNumeric('params', 0, 10, 35),
 			],
 			1,
-			99
+			99,
 		),
 	];
 }

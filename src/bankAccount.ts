@@ -1,6 +1,5 @@
-import { Account } from './dataGroups/Account.js';
-import { SepaAccount } from './dataGroups/SepaAccount.js';
-import { AccountLimit, AllowedTransactions } from './segments/HIUPD.js';
+import type { SepaAccount } from './dataGroups/SepaAccount.js';
+import type { AccountLimit, AllowedTransactions } from './segments/HIUPD.js';
 
 export enum AccountType {
 	CheckingAccount = 'CheckingAccount',

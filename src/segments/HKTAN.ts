@@ -1,12 +1,15 @@
-import { YesNo } from '../dataElements/YesNo.js';
+import type { TanProcess } from '../codes.js';
+import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { Binary } from '../dataElements/Binary.js';
 import { Numeric } from '../dataElements/Numeric.js';
-import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { InternationalAccount, InternationalAccountGroup } from '../dataGroups/InternationalAccount.js';
+import { YesNo } from '../dataElements/YesNo.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import {
+	type InternationalAccount,
+	InternationalAccountGroup,
+} from '../dataGroups/InternationalAccount.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
-import { TanProcess } from '../codes.js';
 
 export type HKTANSegment = Segment & {
 	tanProcess: TanProcess;
@@ -63,7 +66,7 @@ export class HKTAN extends SegmentDefinition {
 				new Binary('chipTanVersion', 1, 1, 256),
 			],
 			0,
-			1
+			1,
 		),
 	];
 }

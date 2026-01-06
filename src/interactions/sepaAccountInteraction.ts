@@ -1,10 +1,10 @@
-import { ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
-import { Message } from '../message.js';
-import { Segment } from '../segment.js';
-import { HISPA, HISPASegment } from '../segments/HISPA.js';
-import { HKSPA, HKSPASegment } from '../segments/HKSPA.js';
-import { FinTSConfig } from '../config.js';
-import { SepaAccount } from '../dataGroups/SepaAccount.js';
+import type { FinTSConfig } from '../config.js';
+import type { SepaAccount } from '../dataGroups/SepaAccount.js';
+import type { Message } from '../message.js';
+import type { Segment } from '../segment.js';
+import { HISPA, type HISPASegment } from '../segments/HISPA.js';
+import { HKSPA, type HKSPASegment } from '../segments/HKSPA.js';
+import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
 
 export interface SepaAccountResponse extends ClientResponse {
 	sepaAccounts?: SepaAccount[];
@@ -13,7 +13,7 @@ export interface SepaAccountResponse extends ClientResponse {
 export class SepaAccountInteraction extends CustomerOrderInteraction {
 	constructor(
 		public accounts?: string[], // optional specific account numbers
-		public maxEntries?: number
+		public maxEntries?: number,
 	) {
 		super(HKSPA.Id, HISPA.Id);
 	}
@@ -47,12 +47,12 @@ export class SepaAccountInteraction extends CustomerOrderInteraction {
 		if (hispa) {
 			clientResponse.sepaAccounts = hispa.sepaAccounts || [];
 
-			this.dialog!.config.bankingInformation.upd!.bankAccounts.forEach((bankAccount) => {
+			this.dialog?.config.bankingInformation.upd?.bankAccounts.forEach((bankAccount) => {
 				bankAccount.isSepaAccount = false;
 			});
 
 			clientResponse.sepaAccounts.forEach((sepaAccount) => {
-				const bankAccount = this.dialog!.config.getBankAccount(sepaAccount.accountNumber);
+				const bankAccount = this.dialog?.config.getBankAccount(sepaAccount.accountNumber);
 				if (bankAccount) {
 					bankAccount.isSepaAccount = sepaAccount.isSepaAccount;
 					bankAccount.iban = sepaAccount.iban;

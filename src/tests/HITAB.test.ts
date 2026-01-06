@@ -1,8 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { registerSegments } from '../segments/registry.js';
-import { HITAB, HITABSegment } from '../segments/HITAB.js';
+import { describe, expect, it } from 'vitest';
 import { decode, encode, segmentToString } from '../segment.js';
-import exp from 'constants';
+import { HITAB, type HITABSegment } from '../segments/HITAB.js';
+import { registerSegments } from '../segments/registry.js';
 
 registerSegments();
 
@@ -12,8 +11,8 @@ describe('HITAB', () => {
 		const segment = decode(text) as HITABSegment;
 
 		expect(segment.mediaList).toBeDefined();
-		expect(segment.mediaList!.length).toBe(2);
-		expect(segment.mediaList![0].name).toBe('Media1');
+		expect(segment.mediaList?.length).toBe(2);
+		expect(segment.mediaList?.[0].name).toBe('Media1');
 	});
 
 	it('decode and encode roundtrip matches', () => {

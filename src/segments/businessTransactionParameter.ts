@@ -1,7 +1,7 @@
+import type { DataElement } from '../dataElements/DataElement.js';
 import { Numeric } from '../dataElements/Numeric.js';
-import { DataElement } from '../dataElements/DataElement.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type BusinessTransactionParameterSegment<TParams> = Segment & {
@@ -17,7 +17,11 @@ export type BusinessTransactionParameterSegment<TParams> = Segment & {
 export abstract class BusinessTransactionParameter extends SegmentDefinition {
 	elements: DataElement[];
 
-	constructor(id: string, public paramElements: DataElement[], secClassMinVersion = 1) {
+	constructor(
+		id: string,
+		public paramElements: DataElement[],
+		secClassMinVersion = 1,
+	) {
 		super(id);
 		this.elements = [
 			new Numeric('maxTrans', 1, 1, 3),

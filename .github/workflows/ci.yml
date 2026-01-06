@@ -1,26 +1,37 @@
-name: Publish Package to NPM
+name: CI and Publish
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  publish-npm:
+  ci-and-publish:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+        include:
+          - node-version: 22.x
+            publish: true
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: latest
-      
-      - name: Setup Node.js
+
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4 
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
       - name: Install dependencies with pnpm
@@ -29,10 +40,14 @@ jobs:
       - name: Run build (TypeScript compilation)
         run: pnpm run build
 
+      - name: Run Biome (linter and formatter)
+        run: pnpm exec biome ci
+
       - name: Run tests (Vitest)
         run: pnpm run test -- --run
 
       - name: Publish to NPM
+        if: matrix.publish && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}

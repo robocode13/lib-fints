@@ -1,4 +1,4 @@
-[![Node.js CI with pnpm](https://github.com/robocode13/lib-fints/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/robocode13/lib-fints/actions/workflows/build-test.yml)
+[![Node.js CI with pnpm](https://github.com/robocode13/lib-fints/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/robocode13/lib-fints/actions/workflows/ci.yml)
 
 # Lib-FinTS
 

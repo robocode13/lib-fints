@@ -1,6 +1,6 @@
-import { YesNo } from '../dataElements/YesNo.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import { YesNo } from '../dataElements/YesNo.js';
 import { DataGroup } from './DataGroup.js';
 
 export type SepaAccountParameters = {
@@ -27,7 +27,7 @@ export class SepaAccountParametersGroup extends DataGroup {
 			minCount,
 			maxCount,
 			minVersion,
-			maxVersion
+			maxVersion,
 		);
 	}
 }

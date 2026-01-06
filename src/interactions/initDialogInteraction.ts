@@ -1,35 +1,38 @@
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './customerInteraction.js';
-import { Message } from '../message.js';
-import { Segment } from '../segment.js';
-import { FinTSConfig } from '../config.js';
-import { HKIDN, HKIDNSegment } from '../segments/HKIDN.js';
-import { BankMessage, BankingInformation } from '../bankingInformation.js';
-import { HKVVB, HKVVBSegment } from '../segments/HKVVB.js';
+import { type BankAccount, finTsAccountTypeToEnum } from '../bankAccount.js';
+import type { BankAnswer } from '../bankAnswer.js';
+import type { BankingInformation, BankMessage } from '../bankingInformation.js';
+import type { BankTransaction } from '../bankTransaction.js';
 import { Language, SyncMode, TanMediaRequirement } from '../codes.js';
-import { HKSYN, HKSYNSegment } from '../segments/HKSYN.js';
-import { HISYN, HISYNSegment } from '../segments/HISYN.js';
-import { BankAnswer } from '../bankAnswer.js';
-import { HIBPA, HIBPASegment } from '../segments/HIBPA.js';
-import { HITANS, HITANSSegment, HitansTanMethod } from '../segments/HITANS.js';
-import { TanMethod } from '../tanMethod.js';
-import { HIKOM, HIKOMSegment } from '../segments/HIKOM.js';
-import { HIPINS, HIPINSSegment } from '../segments/HIPINS.js';
-import { BankTransaction } from '../bankTransaction.js';
-import { HIUPA, HIUPASegment } from '../segments/HIUPA.js';
-import { BankAccount, finTsAccountTypeToEnum } from '../bankAccount.js';
-import { HIKIMSegment, HIKIM } from '../segments/HIKIM.js';
-import { HIUPDSegment, HIUPD } from '../segments/HIUPD.js';
-import { HKTAB } from '../segments/HKTAB.js';
-import { TanMediaInteraction } from './tanMediaInteraction.js';
+import type { FinTSConfig } from '../config.js';
+import type { Message } from '../message.js';
+import type { Segment } from '../segment.js';
+import { HIBPA, type HIBPASegment } from '../segments/HIBPA.js';
+import { HIKIM, type HIKIMSegment } from '../segments/HIKIM.js';
+import { HIKOM, type HIKOMSegment } from '../segments/HIKOM.js';
+import { HIPINS, type HIPINSSegment } from '../segments/HIPINS.js';
+import { HISYN, type HISYNSegment } from '../segments/HISYN.js';
+import { HITANS, type HITANSSegment, type HitansTanMethod } from '../segments/HITANS.js';
+import { HIUPA, type HIUPASegment } from '../segments/HIUPA.js';
+import { HIUPD, type HIUPDSegment } from '../segments/HIUPD.js';
+import { HKIDN, type HKIDNSegment } from '../segments/HKIDN.js';
 import { HKSPA } from '../segments/HKSPA.js';
+import { HKSYN, type HKSYNSegment } from '../segments/HKSYN.js';
+import { HKTAB } from '../segments/HKTAB.js';
+import { HKVVB, type HKVVBSegment } from '../segments/HKVVB.js';
+import type { TanMethod } from '../tanMethod.js';
+import { type ClientResponse, CustomerInteraction } from './customerInteraction.js';
 import { SepaAccountInteraction } from './sepaAccountInteraction.js';
+import { TanMediaInteraction } from './tanMediaInteraction.js';
 
 export interface InitResponse extends ClientResponse {
 	bankingInformation?: BankingInformation;
 }
 
 export class InitDialogInteraction extends CustomerInteraction {
-	constructor(public config: FinTSConfig, public syncSystemId = false) {
+	constructor(
+		public config: FinTSConfig,
+		public syncSystemId = false,
+	) {
 		super(HKIDN.Id);
 	}
 
@@ -71,7 +74,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 	handleResponse(response: Message, clientResponse: InitResponse) {
 		const hisyn = response.findSegment<HISYNSegment>(HISYN.Id);
-		if (hisyn && hisyn.systemId) {
+		if (hisyn?.systemId) {
 			this.config.bankingInformation.systemId = hisyn.systemId;
 		}
 
@@ -96,15 +99,19 @@ export class InitDialogInteraction extends CustomerInteraction {
 							tanMediaRequirement: method.tanMediaRequired,
 							decoupled: isDecoupledTanMethod(method)
 								? {
-										maxStatusRequests: method.decoupledMaxStatusRequests!,
-										waitingSecondsBeforeFirstStatusRequest: method.decoupledWaitBeforeFirstStatusRequest!,
-										waitingSecondsBetweenStatusRequests: method.decoupledWaitBetweenStatusRequests!,
+										maxStatusRequests: method.decoupledMaxStatusRequests ?? 0,
+										waitingSecondsBeforeFirstStatusRequest:
+											method.decoupledWaitBeforeFirstStatusRequest ?? 0,
+										waitingSecondsBetweenStatusRequests:
+											method.decoupledWaitBetweenStatusRequests ?? 0,
 										manualConfirmationAllowed: method.decoupledManualConfirmationAllowed ?? false,
 										autoConfirmationAllowed: method.decoupledAutoConfirmationAllowed ?? false,
-								  }
+									}
 								: undefined,
 						}))
-						.filter((method) => !supportedTanMethods.some((existing) => existing.id === method.id)) ?? [])
+						.filter(
+							(method) => !supportedTanMethods.some((existing) => existing.id === method.id),
+						) ?? []),
 				);
 			});
 
@@ -113,14 +120,16 @@ export class InitDialogInteraction extends CustomerInteraction {
 			if (hikom) {
 				bankingUrl = hikom?.comParams.address;
 				if (!bankingUrl.toLowerCase().startsWith('https://')) {
-					bankingUrl = 'https://' + bankingUrl;
+					bankingUrl = `https://${bankingUrl}`;
 				}
 			}
 
 			const hipins = response.findSegment<HIPINSSegment>(HIPINS.Id);
 
 			if (!hipins) {
-				throw new Error('Bank does not support PIN/TAN transactions (HIPINS segment not found in BPA)');
+				throw new Error(
+					'Bank does not support PIN/TAN transactions (HIPINS segment not found in BPA)',
+				);
 			}
 
 			const bankTransactions: BankTransaction[] = hipins.params.transactions.map((t) => {
@@ -129,7 +138,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 			bankTransactions.forEach((transaction) => {
 				if (transaction.transId.startsWith('HK') || transaction.transId.startsWith('DK')) {
-					const paramSegId = 'HI' + transaction.transId.slice(2) + 'S';
+					const paramSegId = `HI${transaction.transId.slice(2)}S`;
 					const paramSegments = [
 						...response.findAllSegments(paramSegId),
 						...response.findAllUnknownSegments(paramSegId),
@@ -164,7 +173,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 		if (tanMethodMessaqe && this.config.bankingInformation.bpd) {
 			this.config.bankingInformation.bpd.availableTanMethodIds =
-				tanMethodMessaqe.params?.map((p) => Number.parseInt(p)) ?? [];
+				tanMethodMessaqe.params?.map((p) => Number.parseInt(p, 10)) ?? [];
 		}
 
 		const hiupa = response.findSegment<HIUPASegment>(HIUPA.Id);
@@ -198,7 +207,10 @@ export class InitDialogInteraction extends CustomerInteraction {
 		}
 
 		const hikimSegments = response.findAllSegments<HIKIMSegment>(HIKIM.Id);
-		const bankMessages: BankMessage[] = hikimSegments.map((s) => ({ subject: s.subject, text: s.text }));
+		const bankMessages: BankMessage[] = hikimSegments.map((s) => ({
+			subject: s.subject,
+			text: s.text,
+		}));
 		this.config.bankingInformation.bankMessages = bankMessages;
 
 		clientResponse.bankingInformation = this.config.bankingInformation;
@@ -208,7 +220,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 			this.config.selectedTanMethod.tanMediaRequirement > TanMediaRequirement.NotAllowed &&
 			this.config.isTransactionSupported(HKTAB.Id)
 		) {
-			this.dialog!.addCustomerInteraction(new TanMediaInteraction(), true);
+			this.dialog?.addCustomerInteraction(new TanMediaInteraction(), true);
 		}
 
 		const bankAccounts = this.config.bankingInformation?.upd?.bankAccounts;
@@ -218,7 +230,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 				bankAccounts.some((account) => account.isSepaAccount === undefined) &&
 				this.config.isTransactionSupported(HKSPA.Id)
 			) {
-				this.dialog!.addCustomerInteraction(new SepaAccountInteraction(), true);
+				this.dialog?.addCustomerInteraction(new SepaAccountInteraction(), true);
 			}
 		}
 	}

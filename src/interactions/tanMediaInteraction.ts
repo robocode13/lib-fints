@@ -1,10 +1,10 @@
-import { ClientResponse, CustomerInteraction, CustomerOrderInteraction } from './customerInteraction.js';
-import { Message } from '../message.js';
-import { Segment } from '../segment.js';
-import { FinTSConfig } from '../config.js';
-import { HKTAB, HKTABSegment } from '../segments/HKTAB.js';
-import { HITAB, HITABSegment } from '../segments/HITAB.js';
 import { TanMediaClass, TanMediaType } from '../codes.js';
+import type { FinTSConfig } from '../config.js';
+import type { Message } from '../message.js';
+import type { Segment } from '../segment.js';
+import { HITAB, type HITABSegment } from '../segments/HITAB.js';
+import { HKTAB, type HKTABSegment } from '../segments/HKTAB.js';
+import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
 
 export interface TanMediaResponse extends ClientResponse {
 	tanMediaList: string[];
@@ -38,7 +38,7 @@ export class TanMediaInteraction extends CustomerOrderInteraction {
 				.map((media) => media.name)
 				.filter((name) => name) as string[];
 
-			let tanMethod = this.dialog!.config.selectedTanMethod;
+			const tanMethod = this.dialog?.config.selectedTanMethod;
 			if (tanMethod) {
 				tanMethod.activeTanMedia = clientResponse.tanMediaList;
 			}

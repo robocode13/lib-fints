@@ -1,7 +1,7 @@
 import { Binary } from '../dataElements/Binary.js';
-import { Segment } from '../segment.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
-import { SegmentHeader } from '../segmentHeader.js';
+import type { SegmentHeader } from '../segmentHeader.js';
 
 export type HNVSDSegment = Segment & {
 	header: SegmentHeader & { segNr: 999 };

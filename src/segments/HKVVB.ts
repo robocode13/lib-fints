@@ -1,7 +1,7 @@
-import { Language } from '../codes.js';
-import { Numeric } from '../dataElements/Numeric.js';
+import type { Language } from '../codes.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
-import { Segment } from '../segment.js';
+import { Numeric } from '../dataElements/Numeric.js';
+import type { Segment } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HKVVBSegment = Segment & {

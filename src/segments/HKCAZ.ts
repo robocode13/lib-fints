@@ -1,11 +1,14 @@
-import { Dat } from '../dataElements/Dat.js';
-import { YesNo } from '../dataElements/YesNo.js';
-import { Numeric } from '../dataElements/Numeric.js';
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
+import { Dat } from '../dataElements/Dat.js';
+import { Numeric } from '../dataElements/Numeric.js';
 import { Text } from '../dataElements/Text.js';
-import { InternationalAccount, InternationalAccountGroup } from '../dataGroups/InternationalAccount.js';
+import { YesNo } from '../dataElements/YesNo.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
-import { SegmentWithContinuationMark } from '../segment.js';
+import {
+	type InternationalAccount,
+	InternationalAccountGroup,
+} from '../dataGroups/InternationalAccount.js';
+import type { SegmentWithContinuationMark } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HKCAZSegment = SegmentWithContinuationMark & {

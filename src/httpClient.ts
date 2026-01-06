@@ -1,7 +1,11 @@
-import { CustomerMessage, CustomerOrderMessage, Message } from './message.js';
+import { type CustomerMessage, type CustomerOrderMessage, Message } from './message.js';
 
 export class HttpClient {
-	constructor(public url: string, public debug = false, public debugRaw = false) {}
+	constructor(
+		public url: string,
+		public debug = false,
+		public debugRaw = false,
+	) {}
 
 	async sendMessage(message: CustomerMessage): Promise<Message> {
 		const encodedMessage = message.encode();
@@ -31,7 +35,9 @@ export class HttpClient {
 				const customerOrderMessage = message as CustomerOrderMessage;
 				const responseMessage = Message.decode(
 					responseText,
-					customerOrderMessage.supportsPartedResponseSegments ? customerOrderMessage.orderResponseSegId : undefined
+					customerOrderMessage.supportsPartedResponseSegments
+						? customerOrderMessage.orderResponseSegId
+						: undefined,
 				);
 				if (this.debug) {
 					console.log('Response Message:\n');
@@ -39,7 +45,7 @@ export class HttpClient {
 					if (this.debugRaw) {
 						console.log(responseText.split("'").join('\n'));
 					} else {
-						console.log('Response Message:\n' + responseMessage.toString(true) + '\n');
+						console.log(`Response Message:\n${responseMessage.toString(true)}\n`);
 					}
 				}
 				return responseMessage;

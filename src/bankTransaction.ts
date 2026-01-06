@@ -1,5 +1,5 @@
 export type BankTransaction = {
-  transId: string;
-  tanRequired: boolean;
-  versions: number[];
+	transId: string;
+	tanRequired: boolean;
+	versions: number[];
 };

@@ -1,7 +1,7 @@
-import { TanMethod } from './tanMethod.js';
-import { BankingInformation } from './bankingInformation.js';
+import type { BankAccount } from './bankAccount.js';
+import type { BankingInformation } from './bankingInformation.js';
 import { getSegmentDefinition } from './segments/registry.js';
-import { BankAccount } from './bankAccount.js';
+import type { TanMethod } from './tanMethod.js';
 
 /**
  * Configuration for the FinTS client
@@ -21,7 +21,7 @@ export class FinTSConfig {
 		public tanMethodId?: number,
 		public tanMediaName?: string,
 		public customerId?: string,
-		private country = 280
+		private country = 280,
 	) {
 		if (!productId) {
 			throw Error('productId needs to be provided in configuration');
@@ -77,7 +77,7 @@ export class FinTSConfig {
 		userId?: string,
 		pin?: string,
 		customerId?: string,
-		countryCode: number = 280
+		countryCode: number = 280,
 	): FinTSConfig {
 		return new FinTSConfig(
 			productId,
@@ -90,7 +90,7 @@ export class FinTSConfig {
 			undefined,
 			undefined,
 			customerId,
-			countryCode
+			countryCode,
 		);
 	}
 
@@ -116,7 +116,7 @@ export class FinTSConfig {
 		tanMethodId?: number,
 		tanMediaName?: string,
 		customerId?: string,
-		countryCode: number = 280
+		countryCode: number = 280,
 	): FinTSConfig {
 		return new FinTSConfig(
 			productId,
@@ -129,7 +129,7 @@ export class FinTSConfig {
 			tanMethodId,
 			tanMediaName,
 			customerId,
-			countryCode
+			countryCode,
 		);
 	}
 
@@ -137,21 +137,21 @@ export class FinTSConfig {
 	 * The FinTS URL of the bank
 	 */
 	get bankingUrl(): string {
-		return this.bankingInformation.bpd?.url ?? this.url!;
+		return this.bankingInformation.bpd?.url ?? this.url ?? '';
 	}
 
 	/**
 	 * The country code of the bank
 	 */
 	get countryCode(): number {
-		return this.bankingInformation.bpd?.countryCode ?? this.country!;
+		return this.bankingInformation.bpd?.countryCode ?? this.country ?? 280;
 	}
 
 	/**
 	 * The bank ID (BLZ)
 	 */
 	get bankId(): string {
-		return this.bankingInformation.bpd?.bankId ?? this.bankIdentification!;
+		return this.bankingInformation.bpd?.bankId ?? this.bankIdentification ?? '';
 	}
 
 	/**
@@ -160,7 +160,7 @@ export class FinTSConfig {
 	get availableTanMethods(): TanMethod[] {
 		return (
 			this.bankingInformation.bpd?.supportedTanMethods?.filter((m) =>
-				this.bankingInformation.bpd?.availableTanMethodIds?.includes(m.id)
+				this.bankingInformation.bpd?.availableTanMethodIds?.includes(m.id),
 			) ?? []
 		);
 	}
@@ -169,12 +169,14 @@ export class FinTSConfig {
 	 * Selects a TAN method by its ID for the user, see also FinTSConfig#availableTanMethods
 	 * @param tanMethodId The ID of the TAN method to select, corresponding to an ID in availableTanMethods
 	 */
-	selectTanMethod(tanMethodId: number) {
-		if (!this.availableTanMethods.find((method) => method.id === tanMethodId)) {
+	selectTanMethod(tanMethodId: number): TanMethod {
+		const tanMethod = this.availableTanMethods.find((method) => method.id === tanMethodId);
+		if (!tanMethod) {
 			throw new Error(`TAN Method '${tanMethodId}' is not supported`);
 		}
 
 		this.tanMethodId = tanMethodId;
+		return tanMethod;
 	}
 
 	/**
@@ -187,7 +189,9 @@ export class FinTSConfig {
 		}
 
 		if (tanMediaName && !this.selectedTanMethod?.activeTanMedia?.includes(tanMediaName)) {
-			throw new Error(`TAN media '${tanMediaName}' not found in the active TAN media list for the selected TAN method`);
+			throw new Error(
+				`TAN media '${tanMediaName}' not found in the active TAN media list for the selected TAN method`,
+			);
 		}
 
 		this.tanMediaName = tanMediaName;
@@ -205,7 +209,10 @@ export class FinTSConfig {
 	 * @param transId The transaction ID
 	 */
 	isTransactionSupported(transId: string): boolean {
-		return this.bankingInformation.bpd?.allowedTransactions.find((t) => t.transId === transId) !== undefined;
+		return (
+			this.bankingInformation.bpd?.allowedTransactions.find((t) => t.transId === transId) !==
+			undefined
+		);
 	}
 
 	/**
@@ -230,7 +237,8 @@ export class FinTSConfig {
 		}
 
 		const allowedVersions =
-			this.bankingInformation.bpd?.allowedTransactions.find((t) => t.transId === transId)?.versions ?? [];
+			this.bankingInformation.bpd?.allowedTransactions.find((t) => t.transId === transId)
+				?.versions ?? [];
 		const maxSupportedversion =
 			allowedVersions.sort().findLast((version) => version <= definition.version) ?? undefined;
 
@@ -242,7 +250,9 @@ export class FinTSConfig {
 	 * @param accountNumber The account number
 	 */
 	getBankAccount(accountNumber: string): BankAccount {
-		const bankAccount = this.bankingInformation.upd?.bankAccounts.find((a) => a.accountNumber === accountNumber);
+		const bankAccount = this.bankingInformation.upd?.bankAccounts.find(
+			(a) => a.accountNumber === accountNumber,
+		);
 
 		if (!bankAccount) {
 			throw Error(`Account ${accountNumber} not found in UPD`);

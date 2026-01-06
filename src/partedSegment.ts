@@ -1,5 +1,5 @@
 import { Text } from './dataElements/Text.js';
-import { Segment } from './segment.js';
+import type { Segment } from './segment.js';
 import { SegmentDefinition } from './segmentDefinition.js';
 
 export type PartedSegment = Segment & {

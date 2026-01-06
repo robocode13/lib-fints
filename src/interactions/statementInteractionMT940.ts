@@ -1,13 +1,17 @@
-import { CustomerOrderInteraction, StatementResponse } from './customerInteraction.js';
-import { Message } from '../message.js';
-import { HKKAZ, HKKAZSegment } from '../segments/HKKAZ.js';
-import { HIKAZ, HIKAZSegment } from '../segments/HIKAZ.js';
+import type { FinTSConfig } from '../config.js';
+import type { Message } from '../message.js';
 import { Mt940Parser } from '../mt940parser.js';
-import { Segment } from '../segment.js';
-import { FinTSConfig } from '../config.js';
+import type { Segment } from '../segment.js';
+import { HIKAZ, type HIKAZSegment } from '../segments/HIKAZ.js';
+import { HKKAZ, type HKKAZSegment } from '../segments/HKKAZ.js';
+import { CustomerOrderInteraction, type StatementResponse } from './customerInteraction.js';
 
 export class StatementInteractionMT940 extends CustomerOrderInteraction {
-	constructor(public accountNumber: string, public from?: Date, public to?: Date) {
+	constructor(
+		public accountNumber: string,
+		public from?: Date,
+		public to?: Date,
+	) {
 		super(HKKAZ.Id, HIKAZ.Id);
 	}
 
@@ -33,7 +37,7 @@ export class StatementInteractionMT940 extends CustomerOrderInteraction {
 
 	handleResponse(response: Message, clientResponse: StatementResponse) {
 		const hikaz = response.findSegment<HIKAZSegment>(HIKAZ.Id);
-		if (hikaz && hikaz.bookedTransactions) {
+		if (hikaz?.bookedTransactions) {
 			try {
 				const parser = new Mt940Parser(hikaz.bookedTransactions);
 				clientResponse.statements = parser.parse();
