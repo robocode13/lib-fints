@@ -728,4 +728,198 @@ describe('CamtParser', () => {
 		expect(transaction.purpose).toBe('Payment with party structure');
 		expect(transaction.amount).toBe(200.0);
 	});
+
+	it('should handle multiple entries in RmtInf (Ustrd)', () => {
+		const camtXml = `<?xml version="1.0" encoding="ISO-8859-1"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08 camt.052.001.08.xsd">
+  <BkToCstmrAcctRpt>
+    <GrpHdr>
+      <MsgId>52D20260106T1009246445830N000000000</MsgId>
+      <CreDtTm>2026-01-06T10:09:24.0+01:00</CreDtTm>
+    </GrpHdr>
+    <Rpt>
+      <Id>0752D522026010610092464000001000</Id>
+      <RptPgntn>
+        <PgNb>1</PgNb>
+        <LastPgInd>true</LastPgInd>
+      </RptPgntn>
+      <ElctrncSeqNb>000000000</ElctrncSeqNb>
+      <CreDtTm>2026-01-06T10:09:24.0+01:00</CreDtTm>
+      <Acct>
+        <Id>
+          <IBAN>DE06940594210000027227</IBAN>
+        </Id>
+        <Ccy>EUR</Ccy>
+        <Ownr>
+          <Nm>John Doe</Nm>
+        </Ownr>
+        <Svcr>
+          <FinInstnId>
+            <BICFI>BANKABC1XXX</BICFI>
+            <Nm>ABC Bank</Nm>
+            <Othr>
+              <Id>DE 123456789</Id>
+              <Issr>UmsStId</Issr>
+            </Othr>
+          </FinInstnId>
+        </Svcr>
+      </Acct>
+      <Bal>
+        <Tp>
+          <CdOrPrtry>
+            <Cd>OPBD</Cd>
+          </CdOrPrtry>
+        </Tp>
+        <Amt Ccy="EUR">27.31</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Dt>
+          <Dt>2026-01-05</Dt>
+        </Dt>
+      </Bal>
+      <Bal>
+        <Tp>
+          <CdOrPrtry>
+            <Cd>CLBD</Cd>
+          </CdOrPrtry>
+        </Tp>
+        <Amt Ccy="EUR">234.81</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Dt>
+          <Dt>2026-01-05</Dt>
+        </Dt>
+      </Bal>
+      <Ntry>
+        <Amt Ccy="EUR">179.46</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>
+          <Cd>BOOK</Cd>
+        </Sts>
+        <BookgDt>
+          <Dt>2026-01-05</Dt>
+        </BookgDt>
+        <ValDt>
+          <Dt>2026-01-05</Dt>
+        </ValDt>
+        <AcctSvcrRef>TXN003</AcctSvcrRef>
+        <BkTxCd>
+          <Domn>
+            <Cd>PMNT</Cd>
+            <Fmly>
+              <Cd>ICDT</Cd>
+              <SubFmlyCd>ESCT</SubFmlyCd>
+            </Fmly>
+          </Domn>
+          <Prtry>
+            <Cd>NTRF+116+02089</Cd>
+            <Issr>DK</Issr>
+          </Prtry>
+        </BkTxCd>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <MsgId>test msgid</MsgId>
+              <PmtInfId>VG 2025 QUARTAL IV 12345678</PmtInfId>
+              <EndToEndId>VG 2025 QUARTAL IV</EndToEndId>
+            </Refs>
+            <Amt Ccy="EUR">179.46</Amt>
+            <BkTxCd>
+              <Domn>
+                <Cd>PMNT</Cd>
+                <Fmly>
+                  <Cd>ICDT</Cd>
+                  <SubFmlyCd>ESCT</SubFmlyCd>
+                </Fmly>
+              </Domn>
+              <Prtry>
+                <Cd>NTRF+116+02189</Cd>
+                <Issr>DK</Issr>
+              </Prtry>
+            </BkTxCd>
+            <RltdPties>
+              <Dbtr>
+                <Pty>
+                  <Nm>DOE</Nm>
+                </Pty>
+              </Dbtr>
+              <DbtrAcct>
+                <Id>
+                  <IBAN>DE12345678901234567890</IBAN>
+                </Id>
+              </DbtrAcct>
+              <Cdtr>
+                <Pty>
+                  <Nm>ABC Bank</Nm>
+                </Pty>
+              </Cdtr>
+              <CdtrAcct>
+                <Id>
+                  <IBAN>DE12345678901234567891</IBAN>
+                </Id>
+              </CdtrAcct>
+            </RltdPties>
+            <RltdAgts>
+              <CdtrAgt>
+                <FinInstnId>
+                  <BICFI>BANKABC1XXX</BICFI>
+                </FinInstnId>
+              </CdtrAgt>
+            </RltdAgts>
+            <RmtInf>
+              <Ustrd>0010 VERWALTUNGSENTGELT 12345678 Q4/2025 DEPOT 9876543421 UST-ID DE12345678 NETTO 150,81EUR 19% UST. 28,65EUR EREF: VG 2025 QUARTAL IV IBAN</Ustrd>
+              <Ustrd>: DE12345678901234567891 BIC: BANKABC1XXX</Ustrd>
+            </RmtInf>
+          </TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>ENTGELT gem. Vereinbarung</AddtlNtryInf>
+      </Ntry>
+    </Rpt>
+  </BkToCstmrAcctRpt>
+</Document>`;
+
+		const parser = new CamtParser(camtXml);
+		const statements = parser.parse();
+
+		expect(statements).toHaveLength(1);
+		const statement = statements[0];
+		expect(statement.transactions).toHaveLength(1);
+
+		const transaction = statement.transactions[0];
+
+		// Check all Transaction fields filled by the parser
+		expect(transaction.amount).toBe(-179.46);
+		expect(transaction.customerReference).toBe('VG 2025 QUARTAL IV');
+		expect(transaction.bankReference).toBe('TXN003');
+		expect(transaction.purpose).toBe('0010 VERWALTUNGSENTGELT 12345678 Q4/2025 DEPOT 9876543421 UST-ID DE12345678 NETTO 150,81EUR 19% UST. 28,65EUR EREF: VG 2025 QUARTAL IV IBAN: DE12345678901234567891 BIC: BANKABC1XXX');
+		expect(transaction.remoteName).toBe('ABC Bank');
+		expect(transaction.remoteAccountNumber).toBe('DE12345678901234567891');
+		expect(transaction.remoteBankId).toBe('BANKABC1XXX');
+		expect(transaction.e2eReference).toBe('VG 2025 QUARTAL IV');
+
+		// Check date fields
+		expect(transaction.valueDate).toBeInstanceOf(Date);
+		expect(transaction.valueDate.getFullYear()).toBe(2026);
+		expect(transaction.valueDate.getMonth()).toBe(0); // November (0-based)
+		expect(transaction.valueDate.getDate()).toBe(5);
+		expect(transaction.entryDate).toBeInstanceOf(Date);
+		expect(transaction.entryDate.getFullYear()).toBe(2026);
+		expect(transaction.entryDate.getMonth()).toBe(0); // November (0-based)
+		expect(transaction.entryDate.getDate()).toBe(5);
+
+		// Check transaction type and code fields
+		expect(transaction.fundsCode).toBe('PMNT');
+		expect(transaction.transactionType).toBe('ICDT');
+		expect(transaction.transactionCode).toBe('ESCT');
+
+		// Check additional information fields
+		expect(transaction.additionalInformation).toBe('ENTGELT gem. Vereinbarung');
+		expect(transaction.bookingText).toBe('ENTGELT gem. Vereinbarung'); // Should match additionalInformation
+
+		// Verify optional fields not set in this test
+		expect(transaction.primeNotesNr).toBeUndefined();
+		expect(transaction.remoteIdentifier).toBeUndefined();
+		expect(transaction.client).toBeUndefined();
+		expect(transaction.textKeyExtension).toBeUndefined();
+	});
 });
