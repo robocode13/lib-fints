@@ -892,7 +892,7 @@ describe('CamtParser', () => {
 		expect(transaction.customerReference).toBe('VG 2025 QUARTAL IV');
 		expect(transaction.bankReference).toBe('TXN003');
 		expect(transaction.purpose).toBe(
-			'28,65EUR EREF: VG 2025 QUARTAL IV IBAN: DE12345678901234567891 BIC: BANKABC1XXX'
+			'28,65EUR EREF: VG 2025 QUARTAL IV IBAN: DE12345678901234567891 BIC: BANKABC1XXX',
 		);
 		expect(transaction.remoteName).toBe('ABC Bank');
 		expect(transaction.remoteAccountNumber).toBe('DE12345678901234567891');
