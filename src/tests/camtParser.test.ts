@@ -867,7 +867,7 @@ describe('CamtParser', () => {
               </CdtrAgt>
             </RltdAgts>
             <RmtInf>
-              <Ustrd>NETTO 150,81EUR 19% UST. 28,65EUR EREF: VG 2025 QUARTAL IV IBAN</Ustrd>
+              <Ustrd>28,65EUR EREF: VG 2025 QUARTAL IV IBAN</Ustrd>
               <Ustrd>: DE12345678901234567891 BIC: BANKABC1XXX</Ustrd>
             </RmtInf>
           </TxDtls>
@@ -891,7 +891,7 @@ describe('CamtParser', () => {
 		expect(transaction.amount).toBe(-179.46);
 		expect(transaction.customerReference).toBe('VG 2025 QUARTAL IV');
 		expect(transaction.bankReference).toBe('TXN003');
-		expect(transaction.purpose).toBe('NETTO 150,81EUR 19% UST. 28,65EUR EREF: VG 2025 QUARTAL IV IBAN: DE12345678901234567891 BIC: BANKABC1XXX');
+		expect(transaction.purpose).toBe('28,65EUR EREF: VG 2025 QUARTAL IV IBAN: DE12345678901234567891 BIC: BANKABC1XXX');
 		expect(transaction.remoteName).toBe('ABC Bank');
 		expect(transaction.remoteAccountNumber).toBe('DE12345678901234567891');
 		expect(transaction.remoteBankId).toBe('BANKABC1XXX');
