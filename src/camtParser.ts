@@ -352,6 +352,9 @@ export class CamtParser {
 		if (typeof current === 'string' || typeof current === 'number') {
 			return String(current);
 		}
+		if (Array.isArray(current)) {
+			return String(current.join(''));
+		}
 		if (current && typeof current === 'object' && current !== null && '#text' in current) {
 			return String((current as { '#text': unknown })['#text']);
 		}
