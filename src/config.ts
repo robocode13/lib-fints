@@ -205,6 +205,18 @@ export class FinTSConfig {
 	}
 
 	/**
+	 * Gets the transaction parameters for a specific transaction ID
+	 * @param transId The transaction ID
+	 * @returns The transaction parameters or undefined if not available
+	 */
+	getTransactionParameters<T>(transId: string): T | undefined {
+		const transaction = this.bankingInformation.bpd?.allowedTransactions.find(
+			(t) => t.transId === transId,
+		);
+		return transaction?.params as T | undefined;
+	}
+
+	/**
 	 * Checks if a transaction is supported by the bank
 	 * @param transId The transaction ID
 	 */

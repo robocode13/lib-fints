@@ -6,6 +6,7 @@ import { Language, SyncMode, TanMediaRequirement } from '../codes.js';
 import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
+import type { BusinessTransactionParameterSegment } from '../segments/businessTransactionParameter.js';
 import { HIBPA, type HIBPASegment } from '../segments/HIBPA.js';
 import { HIKIM, type HIKIMSegment } from '../segments/HIKIM.js';
 import { HIKOM, type HIKOMSegment } from '../segments/HIKOM.js';
@@ -140,11 +141,19 @@ export class InitDialogInteraction extends CustomerInteraction {
 				if (transaction.transId.startsWith('HK') || transaction.transId.startsWith('DK')) {
 					const paramSegId = `HI${transaction.transId.slice(2)}S`;
 					const paramSegments = [
-						...response.findAllSegments(paramSegId),
-						...response.findAllUnknownSegments(paramSegId),
+						...response.findAllSegments<BusinessTransactionParameterSegment<unknown>>(paramSegId),
 					];
 
+					const unknownParamSegments = [...response.findAllUnknownSegments(paramSegId)];
+
 					paramSegments.forEach((paramSegment) => {
+						if (paramSegment) {
+							transaction.versions.push(paramSegment.header.version);
+							transaction.params = paramSegment.params;
+						}
+					});
+
+					unknownParamSegments.forEach((paramSegment) => {
 						if (paramSegment) {
 							transaction.versions.push(paramSegment.header.version);
 						}

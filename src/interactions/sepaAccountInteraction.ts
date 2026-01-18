@@ -53,7 +53,7 @@ export class SepaAccountInteraction extends CustomerOrderInteraction {
 
 			clientResponse.sepaAccounts.forEach((sepaAccount) => {
 				const bankAccount = this.dialog?.config.getBankAccount(sepaAccount.accountNumber);
-				if (bankAccount) {
+				if (bankAccount && !bankAccount.isSepaAccount) {
 					bankAccount.isSepaAccount = sepaAccount.isSepaAccount;
 					bankAccount.iban = sepaAccount.iban;
 					bankAccount.bic = sepaAccount.bic;

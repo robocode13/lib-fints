@@ -3,13 +3,12 @@ import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
 import { HICAZ, type HICAZSegment } from '../segments/HICAZ.js';
+import type { HICAZSParameter } from '../segments/HICAZS.js';
 import { HKCAZ, type HKCAZSegment } from '../segments/HKCAZ.js';
 import type { Statement } from '../statement.js';
 import { CustomerOrderInteraction, type StatementResponse } from './customerInteraction.js';
 
 export class StatementInteractionCAMT extends CustomerOrderInteraction {
-	private acceptedCamtFormats: string[] = ['urn:iso:std:iso:20022:tech:xsd:camt.052.001.08'];
-
 	constructor(
 		public accountNumber: string,
 		public from?: Date,
@@ -25,10 +24,20 @@ export class StatementInteractionCAMT extends CustomerOrderInteraction {
 			throw Error(`There is no supported version for business transaction '${HKCAZ.Id}'`);
 		}
 
+		let acceptedCamtFormats = ['urn:iso:std:iso:20022:tech:xsd:camt.052.001.08'];
+
+		const params = init.getTransactionParameters<HICAZSParameter>(HKCAZ.Id);
+
+		if (params && params.supportedCamtFormats.length > 0) {
+			acceptedCamtFormats = params.supportedCamtFormats.filter((format) =>
+				format.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.052.001.'),
+			);
+		}
+
 		const hkcaz: HKCAZSegment = {
 			header: { segId: HKCAZ.Id, segNr: 0, version: version },
 			account: bankAccount,
-			acceptedCamtFormats: this.acceptedCamtFormats,
+			acceptedCamtFormats: acceptedCamtFormats,
 			allAccounts: false,
 			from: this.from,
 			to: this.to,
