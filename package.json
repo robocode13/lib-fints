@@ -40,9 +40,9 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.10",
-		"@types/node": "^20.19.26",
-		"typescript": "^5.3.3",
-		"vitest": "^1.6.0"
+		"@types/node": "^20.19.30",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.17"
 	},
 	"dependencies": {
 		"fast-xml-parser": "^5.3.3"

@@ -16,9 +16,15 @@ import { registerSegments } from '../segments/registry.js';
 
 // Mock HttpClient to prevent real HTTP calls
 vi.mock('../httpClient.js', () => ({
-	HttpClient: vi.fn().mockImplementation(() => ({
-		sendMessage: vi.fn(),
-	})),
+	HttpClient: class MockHttpClient {
+		constructor(
+			public url: string,
+			public debug = false,
+			public debugRaw = false,
+		) {}
+
+		sendMessage = vi.fn();
+	},
 }));
 
 describe('Dialog', () => {
