@@ -1008,7 +1008,7 @@ describe('CamtParser', () => {
                             <Ustrd>2ABCDEF9GHIJKL28</Ustrd>
                             <Ustrd>CORE / Mandatsref.:</Ustrd>
                             <Ustrd>7829857lkklag</Ustrd>
-                            <Ustrd>GlÃ¤ubiger-ID:</Ustrd>
+                            <Ustrd>Gläubiger-ID:</Ustrd>
                             <Ustrd>DE24ABC00000123456</Ustrd>
                         </RmtInf>
                     </TxDtls>
@@ -1033,7 +1033,7 @@ describe('CamtParser', () => {
         expect(transaction.customerReference).toBe('');
         expect(transaction.bankReference).toBe('5J2C21XL0470L56V/39761');
         expect(transaction.purpose).toBe(
-            '028-1234567-XXXXXXX Amazon.de 2ABCD\nEF9GFP28\nEnd-to-End-Ref.:\n2ABCDEF9GHIJKL28\nCORE / Mandatsref.:\n7829857lkklag\nGlÃ¤ubiger-ID:\nDE24ABC00000123456',
+            '028-1234567-XXXXXXX Amazon.de 2ABCD\nEF9GFP28\nEnd-to-End-Ref.:\n2ABCDEF9GHIJKL28\nCORE / Mandatsref.:\n7829857lkklag\nGläubiger-ID:\nDE24ABC00000123456',
         );
         expect(transaction.remoteName).toBe('AMAZON EU S.A R.L., NIEDERL ASSUNG DEUTSCHLAND');
         expect(transaction.remoteAccountNumber).toBe('');
