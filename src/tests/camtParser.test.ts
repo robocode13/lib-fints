@@ -1041,10 +1041,10 @@ describe('CamtParser', () => {
 		expect(transaction.e2eReference).toBe('');
 
 		// Check date fields
-        expect(transaction.valueDate).toBeInstanceOf(Date);
-        expect(transaction.valueDate.getFullYear()).toBe(2025);
-        expect(transaction.valueDate.getMonth()).toBe(11); // November (0-based)
-        expect(transaction.valueDate.getUTCDate()).toBe(10);
+		expect(transaction.valueDate).toBeInstanceOf(Date);
+		expect(transaction.valueDate.getFullYear()).toBe(2025);
+		expect(transaction.valueDate.getMonth()).toBe(11); // November (0-based)
+		expect(transaction.valueDate.getUTCDate()).toBe(10);
 		expect(transaction.entryDate).toBeInstanceOf(Date);
 		expect(transaction.entryDate.getFullYear()).toBe(2025);
 		expect(transaction.entryDate.getMonth()).toBe(11); // November (0-based)
