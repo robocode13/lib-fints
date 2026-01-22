@@ -979,10 +979,10 @@ describe('CamtParser', () => {
                 <CdtDbtInd>DBIT</CdtDbtInd>
                 <Sts>BOOK</Sts>
                 <BookgDt>
-                    <Dt>2025-12-10+01:00</Dt>
+                    <Dt>2025-12-08-01:00</Dt>
                 </BookgDt>
                 <ValDt>
-                    <DtTm>2025-12-10T00:00:00.000+01:00</DtTm>
+                    <DtTm>2025-12-10T00:00:00.000-01:00</DtTm>
                 </ValDt>
                 <AcctSvcrRef>5J2C21XL0470L56V/39761</AcctSvcrRef>
                 <BkTxCd>
@@ -1041,14 +1041,14 @@ describe('CamtParser', () => {
 		expect(transaction.e2eReference).toBe('');
 
 		// Check date fields
-		expect(transaction.valueDate).toBeInstanceOf(Date);
-		expect(transaction.valueDate.getFullYear()).toBe(2025);
-		expect(transaction.valueDate.getMonth()).toBe(11); // November (0-based)
-		expect(transaction.valueDate.getDate()).toBe(10);
+        expect(transaction.valueDate).toBeInstanceOf(Date);
+        expect(transaction.valueDate.getFullYear()).toBe(2025);
+        expect(transaction.valueDate.getMonth()).toBe(11); // November (0-based)
+        expect(transaction.valueDate.getUTCDate()).toBe(10);
 		expect(transaction.entryDate).toBeInstanceOf(Date);
 		expect(transaction.entryDate.getFullYear()).toBe(2025);
 		expect(transaction.entryDate.getMonth()).toBe(11); // November (0-based)
-		expect(transaction.entryDate.getDate()).toBe(10);
+		expect(transaction.entryDate.getUTCDate()).toBe(8);
 
 		// Check transaction type and code fields
 		expect(transaction.fundsCode).toBe('DBIT');
