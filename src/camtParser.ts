@@ -353,7 +353,7 @@ export class CamtParser {
 			return String(current);
 		}
 		if (Array.isArray(current)) {
-			return String(current.join(''));
+			return String(current.join('\n'));
 		}
 		if (current && typeof current === 'object' && current !== null && '#text' in current) {
 			return String((current as { '#text': unknown })['#text']);
@@ -488,9 +488,9 @@ export class CamtParser {
 
 			// Extract dates
 			const bookingDate =
-				this.getValueFromPath(entry, 'BookgDt.Dt') || this.getValueFromPath(entry, 'BookgDt');
+                this.getValueFromPath(entry, 'BookgDt.DtTm') || this.getValueFromPath(entry, 'BookgDt.Dt') || this.getValueFromPath(entry, 'BookgDt');
 			const valueDate =
-				this.getValueFromPath(entry, 'ValDt.Dt') || this.getValueFromPath(entry, 'ValDt');
+                this.getValueFromPath(entry, 'ValDt.DtTm') || this.getValueFromPath(entry, 'ValDt.Dt') || this.getValueFromPath(entry, 'ValDt');
 
 			const entryDate = bookingDate ? this.parseDate(bookingDate) : new Date();
 			const parsedValueDate = valueDate ? this.parseDate(valueDate) : entryDate;
@@ -633,7 +633,24 @@ export class CamtParser {
 	}
 
 	private parseDate(dateStr: string): Date {
-		// Parse ISO date format (YYYY-MM-DD)
+		let processedDateStr = dateStr;
+		// Handle date-only with timezone, e.g., "2026-01-22+01:00"
+		// The Date constructor may not parse this correctly, so we add a time part.
+		if (/^\d{4}-\d{2}-\d{2}[+-]\d{2}:\d{2}$/.test(dateStr)) {
+			processedDateStr = `${dateStr.substring(0, 10)}T00:00:00${dateStr.substring(10)}`;
+		}
+
+		// Attempt to parse as a full ISO 8601 string first, which `new Date()` handles well.
+		// This will correctly handle formats like "2023-10-26T10:00:00+02:00".
+		const isoDate = new Date(processedDateStr);
+		if (!isNaN(isoDate.getTime())) {
+			// Check if the date string contains time or timezone information to avoid misinterpreting YYYY-MM-DD
+			if (processedDateStr.includes('T') || /[-+]\d{2}:\d{2}$/.test(processedDateStr)) {
+				return isoDate;
+			}
+		}
+
+		// Fallback for date-only ISO format (YYYY-MM-DD)
 		if (dateStr.length === 10 && dateStr.includes('-')) {
 			return new Date(`${dateStr}T12:00:00`); // Set time to noon to avoid timezone issues
 		}
