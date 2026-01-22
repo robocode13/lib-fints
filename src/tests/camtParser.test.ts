@@ -729,8 +729,8 @@ describe('CamtParser', () => {
 		expect(transaction.amount).toBe(200.0);
 	});
 
-    it('should handle multiple entries in RmtInf (Ustrd)', () => {
-        const camtXml = `<?xml version="1.0" encoding="ISO-8859-1"?>
+	it('should handle multiple entries in RmtInf (Ustrd)', () => {
+		const camtXml = `<?xml version="1.0" encoding="ISO-8859-1"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08 camt.052.001.08.xsd">
@@ -878,56 +878,56 @@ describe('CamtParser', () => {
   </BkToCstmrAcctRpt>
 </Document>`;
 
-        const parser = new CamtParser(camtXml);
-        const statements = parser.parse();
+		const parser = new CamtParser(camtXml);
+		const statements = parser.parse();
 
-        expect(statements).toHaveLength(1);
-        const statement = statements[0];
-        expect(statement.transactions).toHaveLength(1);
+		expect(statements).toHaveLength(1);
+		const statement = statements[0];
+		expect(statement.transactions).toHaveLength(1);
 
-        const transaction = statement.transactions[0];
+		const transaction = statement.transactions[0];
 
-        // Check all Transaction fields filled by the parser
-        expect(transaction.amount).toBe(-179.46);
-        expect(transaction.customerReference).toBe('VG 2025 QUARTAL IV');
-        expect(transaction.bankReference).toBe('TXN003');
-        expect(transaction.purpose).toBe(
-            '28,65EUR EREF: VG 2025 QUARTAL IV IBAN\n: DE12345678901234567891 BIC: BANKABC1XXX',
-        );
-        expect(transaction.remoteName).toBe('ABC Bank');
-        expect(transaction.remoteAccountNumber).toBe('DE12345678901234567891');
-        expect(transaction.remoteBankId).toBe('BANKABC1XXX');
-        expect(transaction.e2eReference).toBe('VG 2025 QUARTAL IV');
+		// Check all Transaction fields filled by the parser
+		expect(transaction.amount).toBe(-179.46);
+		expect(transaction.customerReference).toBe('VG 2025 QUARTAL IV');
+		expect(transaction.bankReference).toBe('TXN003');
+		expect(transaction.purpose).toBe(
+			'28,65EUR EREF: VG 2025 QUARTAL IV IBAN\n: DE12345678901234567891 BIC: BANKABC1XXX',
+		);
+		expect(transaction.remoteName).toBe('ABC Bank');
+		expect(transaction.remoteAccountNumber).toBe('DE12345678901234567891');
+		expect(transaction.remoteBankId).toBe('BANKABC1XXX');
+		expect(transaction.e2eReference).toBe('VG 2025 QUARTAL IV');
 
-        // Check date fields
-        expect(transaction.valueDate).toBeInstanceOf(Date);
-        expect(transaction.valueDate.getFullYear()).toBe(2026);
-        expect(transaction.valueDate.getMonth()).toBe(0); // November (0-based)
-        expect(transaction.valueDate.getDate()).toBe(5);
-        expect(transaction.entryDate).toBeInstanceOf(Date);
-        expect(transaction.entryDate.getFullYear()).toBe(2026);
-        expect(transaction.entryDate.getMonth()).toBe(0); // November (0-based)
-        expect(transaction.entryDate.getDate()).toBe(5);
+		// Check date fields
+		expect(transaction.valueDate).toBeInstanceOf(Date);
+		expect(transaction.valueDate.getFullYear()).toBe(2026);
+		expect(transaction.valueDate.getMonth()).toBe(0); // November (0-based)
+		expect(transaction.valueDate.getDate()).toBe(5);
+		expect(transaction.entryDate).toBeInstanceOf(Date);
+		expect(transaction.entryDate.getFullYear()).toBe(2026);
+		expect(transaction.entryDate.getMonth()).toBe(0); // November (0-based)
+		expect(transaction.entryDate.getDate()).toBe(5);
 
-        // Check transaction type and code fields
-        expect(transaction.fundsCode).toBe('PMNT');
-        expect(transaction.transactionType).toBe('ICDT');
-        expect(transaction.transactionCode).toBe('ESCT');
+		// Check transaction type and code fields
+		expect(transaction.fundsCode).toBe('PMNT');
+		expect(transaction.transactionType).toBe('ICDT');
+		expect(transaction.transactionCode).toBe('ESCT');
 
-        // Check additional information fields
-        expect(transaction.additionalInformation).toBe('ENTGELT gem. Vereinbarung');
-        expect(transaction.bookingText).toBe('ENTGELT gem. Vereinbarung'); // Should match additionalInformation
+		// Check additional information fields
+		expect(transaction.additionalInformation).toBe('ENTGELT gem. Vereinbarung');
+		expect(transaction.bookingText).toBe('ENTGELT gem. Vereinbarung'); // Should match additionalInformation
 
-        // Verify optional fields not set in this test
-        expect(transaction.primeNotesNr).toBeUndefined();
-        expect(transaction.remoteIdentifier).toBeUndefined();
-        expect(transaction.client).toBeUndefined();
-        expect(transaction.textKeyExtension).toBeUndefined();
-    });
+		// Verify optional fields not set in this test
+		expect(transaction.primeNotesNr).toBeUndefined();
+		expect(transaction.remoteIdentifier).toBeUndefined();
+		expect(transaction.client).toBeUndefined();
+		expect(transaction.textKeyExtension).toBeUndefined();
+	});
 
-    it('should handle full iso date time in value date', () => {
-        // this is an example from comdirect bank in 2026-01
-        const camtXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+	it('should handle full iso date time in value date', () => {
+		// this is an example from comdirect bank in 2026-01
+		const camtXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
     <BkToCstmrAcctRpt>
         <GrpHdr>
@@ -1019,50 +1019,50 @@ describe('CamtParser', () => {
 </Document>
 `;
 
-        const parser = new CamtParser(camtXml);
-        const statements = parser.parse();
+		const parser = new CamtParser(camtXml);
+		const statements = parser.parse();
 
-        expect(statements).toHaveLength(1);
-        const statement = statements[0];
-        expect(statement.transactions).toHaveLength(1);
+		expect(statements).toHaveLength(1);
+		const statement = statements[0];
+		expect(statement.transactions).toHaveLength(1);
 
-        const transaction = statement.transactions[0];
+		const transaction = statement.transactions[0];
 
-        // Check all Transaction fields filled by the parser
-        expect(transaction.amount).toBe(-101.5);
-        expect(transaction.customerReference).toBe('');
-        expect(transaction.bankReference).toBe('5J2C21XL0470L56V/39761');
-        expect(transaction.purpose).toBe(
-            '028-1234567-XXXXXXX Amazon.de 2ABCD\nEF9GFP28\nEnd-to-End-Ref.:\n2ABCDEF9GHIJKL28\nCORE / Mandatsref.:\n7829857lkklag\nGläubiger-ID:\nDE24ABC00000123456',
-        );
-        expect(transaction.remoteName).toBe('AMAZON EU S.A R.L., NIEDERL ASSUNG DEUTSCHLAND');
-        expect(transaction.remoteAccountNumber).toBe('');
-        expect(transaction.remoteBankId).toBe('');
-        expect(transaction.e2eReference).toBe('');
+		// Check all Transaction fields filled by the parser
+		expect(transaction.amount).toBe(-101.5);
+		expect(transaction.customerReference).toBe('');
+		expect(transaction.bankReference).toBe('5J2C21XL0470L56V/39761');
+		expect(transaction.purpose).toBe(
+			'028-1234567-XXXXXXX Amazon.de 2ABCD\nEF9GFP28\nEnd-to-End-Ref.:\n2ABCDEF9GHIJKL28\nCORE / Mandatsref.:\n7829857lkklag\nGläubiger-ID:\nDE24ABC00000123456',
+		);
+		expect(transaction.remoteName).toBe('AMAZON EU S.A R.L., NIEDERL ASSUNG DEUTSCHLAND');
+		expect(transaction.remoteAccountNumber).toBe('');
+		expect(transaction.remoteBankId).toBe('');
+		expect(transaction.e2eReference).toBe('');
 
-        // Check date fields
-        expect(transaction.valueDate).toBeInstanceOf(Date);
-        expect(transaction.valueDate.getFullYear()).toBe(2025);
-        expect(transaction.valueDate.getMonth()).toBe(11); // November (0-based)
-        expect(transaction.valueDate.getDate()).toBe(10);
-        expect(transaction.entryDate).toBeInstanceOf(Date);
-        expect(transaction.entryDate.getFullYear()).toBe(2025);
-        expect(transaction.entryDate.getMonth()).toBe(11); // November (0-based)
-        expect(transaction.entryDate.getDate()).toBe(10);
+		// Check date fields
+		expect(transaction.valueDate).toBeInstanceOf(Date);
+		expect(transaction.valueDate.getFullYear()).toBe(2025);
+		expect(transaction.valueDate.getMonth()).toBe(11); // November (0-based)
+		expect(transaction.valueDate.getDate()).toBe(10);
+		expect(transaction.entryDate).toBeInstanceOf(Date);
+		expect(transaction.entryDate.getFullYear()).toBe(2025);
+		expect(transaction.entryDate.getMonth()).toBe(11); // November (0-based)
+		expect(transaction.entryDate.getDate()).toBe(10);
 
-        // Check transaction type and code fields
-        expect(transaction.fundsCode).toBe('DBIT');
-        expect(transaction.transactionType).toBe('');
-        expect(transaction.transactionCode).toBe('');
+		// Check transaction type and code fields
+		expect(transaction.fundsCode).toBe('DBIT');
+		expect(transaction.transactionType).toBe('');
+		expect(transaction.transactionCode).toBe('');
 
-        // Check additional information fields
-        expect(transaction.additionalInformation).toBe('');
-        expect(transaction.bookingText).toBe(''); // Should match additionalInformation
+		// Check additional information fields
+		expect(transaction.additionalInformation).toBe('');
+		expect(transaction.bookingText).toBe(''); // Should match additionalInformation
 
-        // Verify optional fields not set in this test
-        expect(transaction.primeNotesNr).toBeUndefined();
-        expect(transaction.remoteIdentifier).toBeUndefined();
-        expect(transaction.client).toBeUndefined();
-        expect(transaction.textKeyExtension).toBeUndefined();
-    });
+		// Verify optional fields not set in this test
+		expect(transaction.primeNotesNr).toBeUndefined();
+		expect(transaction.remoteIdentifier).toBeUndefined();
+		expect(transaction.client).toBeUndefined();
+		expect(transaction.textKeyExtension).toBeUndefined();
+	});
 });

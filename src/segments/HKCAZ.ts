@@ -3,10 +3,10 @@ import { Dat } from '../dataElements/Dat.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { Text } from '../dataElements/Text.js';
 import { YesNo } from '../dataElements/YesNo.js';
+import { type CamtAccount, CamtAccountGroup } from '../dataGroups/CamtAccount.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
 import type { SegmentWithContinuationMark } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
-import {CamtAccount, CamtAccountGroup} from "../dataGroups/CamtAccount.js";
 
 export type HKCAZSegment = SegmentWithContinuationMark & {
 	account: CamtAccount;

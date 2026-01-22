@@ -488,9 +488,13 @@ export class CamtParser {
 
 			// Extract dates
 			const bookingDate =
-                this.getValueFromPath(entry, 'BookgDt.DtTm') || this.getValueFromPath(entry, 'BookgDt.Dt') || this.getValueFromPath(entry, 'BookgDt');
+				this.getValueFromPath(entry, 'BookgDt.DtTm') ||
+				this.getValueFromPath(entry, 'BookgDt.Dt') ||
+				this.getValueFromPath(entry, 'BookgDt');
 			const valueDate =
-                this.getValueFromPath(entry, 'ValDt.DtTm') || this.getValueFromPath(entry, 'ValDt.Dt') || this.getValueFromPath(entry, 'ValDt');
+				this.getValueFromPath(entry, 'ValDt.DtTm') ||
+				this.getValueFromPath(entry, 'ValDt.Dt') ||
+				this.getValueFromPath(entry, 'ValDt');
 
 			const entryDate = bookingDate ? this.parseDate(bookingDate) : new Date();
 			const parsedValueDate = valueDate ? this.parseDate(valueDate) : entryDate;
@@ -643,7 +647,7 @@ export class CamtParser {
 		// Attempt to parse as a full ISO 8601 string first, which `new Date()` handles well.
 		// This will correctly handle formats like "2023-10-26T10:00:00+02:00".
 		const isoDate = new Date(processedDateStr);
-		if (!isNaN(isoDate.getTime())) {
+		if (!Number.isNaN(isoDate.getTime())) {
 			// Check if the date string contains time or timezone information to avoid misinterpreting YYYY-MM-DD
 			if (processedDateStr.includes('T') || /[-+]\d{2}:\d{2}$/.test(processedDateStr)) {
 				return isoDate;
