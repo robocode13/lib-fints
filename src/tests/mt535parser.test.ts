@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Mt535Parser } from '../mt535parser.js';
+import { Mt535Parser2 } from '../mt535parser2.js';
 
 describe('Mt535Parser', () => {
 	it('parses a MT535 input string with depot value and multiple holdings', () => {
@@ -24,7 +25,7 @@ describe('Mt535Parser', () => {
 			':98C::TRADTE20231101143000:\r\n' +
 			':16S:FIN\r\n';
 
-		const parser = new Mt535Parser(input);
+		const parser = new Mt535Parser2(input);
 		const statement = parser.parse();
 
 		// Test depot value
@@ -180,5 +181,55 @@ describe('Mt535Parser', () => {
 		const statement = parser.parse();
 		const holding = statement.holdings[0];
 		expect(holding.date).toEqual(new Date(2023, 9, 5, 0, 0, 0));
+	});
+
+	it('parse DKB statement correctly', () => {
+		const input =
+			':16R:GENL\r\n' +
+			':28E:1/ONLY\r\n' +
+			':20C::SEME//NONREF\r\n' +
+			':23G:NEWM\r\n' +
+			':98C::PREP//20260110153747\r\n' +
+			':98A::STAT//20260110\r\n' +
+			':22F::STTY//CUST\r\n' +
+			':97A::SAFE//12030000/123456789\r\n' +
+			':17B::ACTI//Y\r\n' +
+			':16S:GENL\r\n' +
+			':16R:FIN\r\n' +
+			':35B:ISIN LU0950674332\r\n' +
+			'/DE/A1W3CQ\r\n' +
+			'UBS MSCI WORLD SOC.RES. NAMENS-ANTE\r\n' +
+			'ILE A ACC. USD O.N.\r\n' +
+			':90B::MRKT//ACTU/EUR33,22\r\n' +
+			':98C::PRIC//20260109210244\r\n' +
+			':93B::AGGR//UNIT/652,\r\n' +
+			':16R:SUBBAL\r\n' +
+			':93C::TAVI//UNIT/AVAI/652,\r\n' +
+			':16S:SUBBAL\r\n' +
+			':19A::HOLD//EUR18669,64\r\n' +
+			':70E::HOLD//1STK++++20220902\r\n' +
+			'221,2012438+EUR\r\n' +
+			':16S:FIN\r\n' +
+			':16R:ADDINFO\r\n' +
+			':19A::HOLP//EUR18669,64\r\n' +
+			':16S:ADDINFO\r\n';
+
+		const parser = new Mt535Parser2(input);
+		const statement = parser.parse();
+
+		expect(statement.totalValue).toBe(18669.64);
+		expect(statement.currency).toBe('EUR');
+		expect(statement.holdings).toHaveLength(1);
+		const holding = statement.holdings[0];
+		expect(holding.isin).toBe('LU0950674332');
+		expect(holding.wkn).toBe('A1W3CQ');
+		expect(holding.name).toBe('UBS MSCI WORLD SOC.RES. NAMENS-ANTEILE A ACC. USD O.N.');
+		expect(holding.acquisitionDate).toEqual(new Date('2022-09-02T12:00'));
+		expect(holding.acquisitionPrice).toBe(21.2012438);
+		expect(holding.amount).toBe(652);
+		expect(holding.price).toBe(33.22);
+		expect(holding.currency).toBe('EUR');
+		expect(holding.value).toBe(18669.64);
+		expect(holding.date).toEqual(new Date(2026, 0, 9, 21, 2, 44));
 	});
 });

@@ -8,12 +8,13 @@ export interface Holding {
 	isin?: string;
 	wkn?: string;
 	name?: string;
+	date?: Date;
 	amount?: number;
 	price?: number;
-	currency?: string;
 	value?: number;
+	currency?: string;
+	acquisitionDate?: Date;
 	acquisitionPrice?: number;
-	date?: Date;
 }
 
 export enum TokenType535 {
