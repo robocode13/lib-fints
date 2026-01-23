@@ -892,7 +892,7 @@ describe('CamtParser', () => {
 		expect(transaction.customerReference).toBe('VG 2025 QUARTAL IV');
 		expect(transaction.bankReference).toBe('TXN003');
 		expect(transaction.purpose).toBe(
-			'28,65EUR EREF: VG 2025 QUARTAL IV IBAN: DE12345678901234567891 BIC: BANKABC1XXX',
+			'28,65EUR EREF: VG 2025 QUARTAL IV IBAN\n: DE12345678901234567891 BIC: BANKABC1XXX',
 		);
 		expect(transaction.remoteName).toBe('ABC Bank');
 		expect(transaction.remoteAccountNumber).toBe('DE12345678901234567891');
@@ -917,6 +917,147 @@ describe('CamtParser', () => {
 		// Check additional information fields
 		expect(transaction.additionalInformation).toBe('ENTGELT gem. Vereinbarung');
 		expect(transaction.bookingText).toBe('ENTGELT gem. Vereinbarung'); // Should match additionalInformation
+
+		// Verify optional fields not set in this test
+		expect(transaction.primeNotesNr).toBeUndefined();
+		expect(transaction.remoteIdentifier).toBeUndefined();
+		expect(transaction.client).toBeUndefined();
+		expect(transaction.textKeyExtension).toBeUndefined();
+	});
+
+	it('should handle full iso date time in value date', () => {
+		// this is an example from comdirect bank in 2026-01
+		const camtXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.02">
+    <BkToCstmrAcctRpt>
+        <GrpHdr>
+            <MsgId>BD5F4D36X95740C4B89D967367217C16</MsgId>
+            <CreDtTm>2026-01-22T10:35:25.369+01:00</CreDtTm>
+            <MsgPgntn>
+                <PgNb>0</PgNb>
+                <LastPgInd>true</LastPgInd>
+            </MsgPgntn>
+        </GrpHdr>
+        <Rpt>
+            <Id>563916B991DD4EB18894EF4ABB730A5C</Id>
+            <FrToDt>
+                <FrDtTm>2025-12-10T00:00:00.000+01:00</FrDtTm>
+                <ToDtTm>2026-01-22T00:00:00.000+01:00</ToDtTm>
+            </FrToDt>
+            <Acct>
+                <Id>
+                    <IBAN>DE06940594210000027227</IBAN>
+                </Id>
+            </Acct>
+            <Bal>
+                <Tp>
+                    <CdOrPrtry>
+                        <Cd>OPBD</Cd>
+                    </CdOrPrtry>
+                </Tp>
+                <Amt Ccy="EUR">94.010000000021</Amt>
+                <CdtDbtInd>CRDT</CdtDbtInd>
+                <Dt>
+                    <DtTm>2025-12-10T00:00:00.000+01:00</DtTm>
+                </Dt>
+            </Bal>
+            <Bal>
+                <Tp>
+                    <CdOrPrtry>
+                        <Cd>CLBD</Cd>
+                    </CdOrPrtry>
+                </Tp>
+                <Amt Ccy="EUR">101.960000000017</Amt>
+                <CdtDbtInd>CRDT</CdtDbtInd>
+                <Dt>
+                    <DtTm>2026-01-22T00:00:00.000+01:00</DtTm>
+                </Dt>
+            </Bal>
+            <Ntry>
+                <NtryRef>5J3C21XL0470L56V/39761</NtryRef>
+                <Amt Ccy="EUR">101.5</Amt>
+                <CdtDbtInd>DBIT</CdtDbtInd>
+                <Sts>BOOK</Sts>
+                <BookgDt>
+                    <Dt>2025-12-08-01:00</Dt>
+                </BookgDt>
+                <ValDt>
+                    <DtTm>2025-12-10T00:00:00.000-01:00</DtTm>
+                </ValDt>
+                <AcctSvcrRef>5J2C21XL0470L56V/39761</AcctSvcrRef>
+                <BkTxCd>
+                    <Prtry>
+                        <Cd>005</Cd>
+                        <Issr></Issr>
+                    </Prtry>
+                </BkTxCd>
+                <NtryDtls>
+                    <TxDtls>
+                        <RltdPties>
+                            <Cdtr>
+                                <Nm>AMAZON EU S.A R.L., NIEDERL ASSUNG DEUTSCHLAND</Nm>
+                            </Cdtr>
+                            <CdtrAcct>
+                                <Id/>
+                            </CdtrAcct>
+                        </RltdPties>
+                        <RmtInf>
+                            <Ustrd>028-1234567-XXXXXXX Amazon.de 2ABCD</Ustrd>
+                            <Ustrd>EF9GFP28</Ustrd>
+                            <Ustrd>End-to-End-Ref.:</Ustrd>
+                            <Ustrd>2ABCDEF9GHIJKL28</Ustrd>
+                            <Ustrd>CORE / Mandatsref.:</Ustrd>
+                            <Ustrd>7829857lkklag</Ustrd>
+                            <Ustrd>Gläubiger-ID:</Ustrd>
+                            <Ustrd>DE24ABC00000123456</Ustrd>
+                        </RmtInf>
+                    </TxDtls>
+                </NtryDtls>
+            </Ntry>
+        </Rpt>
+    </BkToCstmrAcctRpt>
+</Document>
+`;
+
+		const parser = new CamtParser(camtXml);
+		const statements = parser.parse();
+
+		expect(statements).toHaveLength(1);
+		const statement = statements[0];
+		expect(statement.transactions).toHaveLength(1);
+
+		const transaction = statement.transactions[0];
+
+		// Check all Transaction fields filled by the parser
+		expect(transaction.amount).toBe(-101.5);
+		expect(transaction.customerReference).toBe('');
+		expect(transaction.bankReference).toBe('5J2C21XL0470L56V/39761');
+		expect(transaction.purpose).toBe(
+			'028-1234567-XXXXXXX Amazon.de 2ABCD\nEF9GFP28\nEnd-to-End-Ref.:\n2ABCDEF9GHIJKL28\nCORE / Mandatsref.:\n7829857lkklag\nGläubiger-ID:\nDE24ABC00000123456',
+		);
+		expect(transaction.remoteName).toBe('AMAZON EU S.A R.L., NIEDERL ASSUNG DEUTSCHLAND');
+		expect(transaction.remoteAccountNumber).toBe('');
+		expect(transaction.remoteBankId).toBe('');
+		expect(transaction.e2eReference).toBe('');
+
+		// Check date fields
+		expect(transaction.valueDate).toBeInstanceOf(Date);
+		expect(transaction.valueDate.getFullYear()).toBe(2025);
+		expect(transaction.valueDate.getMonth()).toBe(11); // November (0-based)
+		expect(transaction.valueDate.getUTCDate()).toBe(10);
+		expect(transaction.entryDate).toBeInstanceOf(Date);
+		expect(transaction.entryDate.getFullYear()).toBe(2025);
+		expect(transaction.entryDate.getMonth()).toBe(11); // November (0-based)
+		expect(transaction.entryDate.getUTCDate()).toBe(8);
+
+		// Check transaction type and code fields
+		expect(transaction.fundsCode).toBe('DBIT');
+		expect(transaction.transactionType).toBe('');
+		expect(transaction.transactionCode).toBe('');
+
+		// Check additional information fields
+		expect(transaction.additionalInformation).toBe('');
+		expect(transaction.bookingText).toBe(''); // Should match additionalInformation
 
 		// Verify optional fields not set in this test
 		expect(transaction.primeNotesNr).toBeUndefined();
