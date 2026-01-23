@@ -1,6 +1,6 @@
 {
 	"name": "lib-fints",
-	"version": "1.4.4",
+	"version": "1.4.5",
 	"description": "Typescript/Javascript client library for Online-Banking via the FinTS 3.0 protocol with PIN/TAN",
 	"engines": {
 		"node": ">=18.0.0"
