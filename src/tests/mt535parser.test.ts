@@ -202,4 +202,79 @@ describe('Mt535Parser', () => {
 		expect(holding.value).toBe(25296);
 		expect(holding.date).toEqual(new Date(2026, 0, 8, 19, 8, 31, 700));
 	});
+
+	it('parses ING statement correctly', () => {
+		const input =
+			':16R:GENL\r\n' +
+			':28E:1/ONLY\r\n' +
+			':20C::SEME//NONREF\r\n' +
+			':23G:NEWM\r\n' +
+			':98C::STAT//20260125221440\r\n' +
+			':22F::STTY//CUST\r\n' +
+			':97A::SAFE//12345678/1234567890\r\n' +
+			':17B::ACTI//Y\r\n' +
+			':16S:GENL\r\n' +
+			':16R:FIN\r\n' +
+			':35B:ISIN IE00B5BMR087\r\n' +
+			'/DE/A0YEDG\r\n' +
+			'ISHSVII-CORE S+P500 DLACC\r\n' +
+			':90B::MRKT//ACTU/EUR627,17\r\n' +
+			':94B::PRIC//LMAR/XGAT\r\n' +
+			':98A::PRIC//20260123\r\n' +
+			':93B::AGGR//UNIT/15,5\r\n' +
+			':16R:SUBBAL\r\n' +
+			':93C::TAVI//UNIT/AVAI/15,5\r\n' +
+			':16S:SUBBAL\r\n' +
+			':19A::HOLD//EUR9721,14\r\n' +
+			':70E::HOLD//1STK\r\n' +
+			'2456,114666+EUR\r\n' +
+			':16S:FIN\r\n' +
+			':16R:FIN\r\n' +
+			':35B:ISIN IE00B3WJKG14\r\n' +
+			'/DE/A142N1\r\n' +
+			'ISHSV-S+500INF.T.SECT.DLA\r\n' +
+			':90B::MRKT//ACTU/EUR34,975\r\n' +
+			':94B::PRIC//LMAR/XGAT\r\n' +
+			':98A::PRIC//20260123\r\n' +
+			':93B::AGGR//UNIT/85,\r\n' +
+			':16R:SUBBAL\r\n' +
+			':93C::TAVI//UNIT/AVAI/85,\r\n' +
+			':16S:SUBBAL\r\n' +
+			':19A::HOLD//EUR2972,88\r\n' +
+			':70E::HOLD//1STK\r\n' +
+			'225,208135+EUR\r\n' +
+			':16S:FIN\r\n' +
+			':16R:ADDINFO\r\n' +
+			':19A::HOLP//EUR12694,02\r\n' +
+			':16S:ADDINFO\r\n';
+
+		const parser = new Mt535Parser(input);
+		const statement = parser.parse();
+
+		expect(statement.totalValue).toBe(12694.02);
+		expect(statement.currency).toBe('EUR');
+		expect(statement.holdings).toHaveLength(2);
+
+		// First holding
+		const holding1 = statement.holdings[0];
+		expect(holding1.isin).toBe('IE00B5BMR087');
+		expect(holding1.wkn).toBe('A0YEDG');
+		expect(holding1.name).toBe('ISHSVII-CORE S+P500 DLACC');
+		expect(holding1.amount).toBe(15.5);
+		expect(holding1.price).toBe(627.17);
+		expect(holding1.currency).toBe('EUR');
+		expect(holding1.value).toBe(9721.14);
+		expect(holding1.date).toEqual(new Date('2026-01-23T12:00'));
+
+		// Second holding
+		const holding2 = statement.holdings[1];
+		expect(holding2.isin).toBe('IE00B3WJKG14');
+		expect(holding2.wkn).toBe('A142N1');
+		expect(holding2.name).toBe('ISHSV-S+500INF.T.SECT.DLA');
+		expect(holding2.amount).toBe(85);
+		expect(holding2.price).toBe(34.975);
+		expect(holding2.currency).toBe('EUR');
+		expect(holding2.value).toBe(2972.88);
+		expect(holding2.date).toEqual(new Date('2026-01-23T12:00'));
+	});
 });
