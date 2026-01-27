@@ -2,91 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { Mt535Parser } from '../mt535parser.js';
 
 describe('Mt535Parser', () => {
-	it('parses a MT535 input string with depot value and multiple holdings', () => {
-		const input =
-			':16R:ADDINFO\r\n' +
-			'EUR125000,50\r\n' +
-			':16S:ADDINFO\r\n' +
-			// Holding 1 (BMW)
-			':16R:FIN\r\n' +
-			':35B:ISIN DE0005190003/DE/519000BAY.MOTOREN WERKE AG ST:\r\n' +
-			':70E::HOLD//100STK275,30+EUR\r\n' +
-			':90B::PREFIX_11_CEUR100,50:\r\n' +
-			':93B::QTY/AVALBLX100,:\r\n' +
-			':98A::SETT//DTE20231101:\r\n' +
-			':16S:FIN\r\n' +
-			// Holding 2 (Apple)
-			':16R:FIN\r\n' +
-			':35B:ISIN US0378331005/US/037833Apple Inc. Common Stock:\r\n' +
-			':70E::HOLD//50STK2150,75+USD\r\n' +
-			':90A::PRIC/RATE_X85,50:\r\n' +
-			':93B::QTY/AVALBLX50,:\r\n' +
-			':98C::TRADTE20231101143000:\r\n' +
-			':16S:FIN\r\n';
-
-		const parser = new Mt535Parser(input);
-		const statement = parser.parse();
-
-		// Test depot value
-		expect(statement.totalValue).toBe(125000.5);
-		expect(statement.holdings).toHaveLength(2);
-
-		// Test first holding (BMW)
-		const bmwHolding = statement.holdings[0];
-		expect(bmwHolding.isin).toBe('DE0005190003');
-		expect(bmwHolding.wkn).toBe('519000');
-		expect(bmwHolding.name).toBe('BAY.MOTOREN WERKE AG ST');
-		expect(bmwHolding.acquisitionPrice).toBe(75.3);
-		expect(bmwHolding.price).toBe(100.5);
-		expect(bmwHolding.currency).toBe('EUR');
-		expect(bmwHolding.amount).toBe(100);
-		expect(bmwHolding.value).toBe(10050);
-		expect(bmwHolding.date).toEqual(new Date(2023, 10, 1, 0, 0, 0));
-
-		// Test second holding (Apple)
-		const appleHolding = statement.holdings[1];
-		expect(appleHolding.isin).toBe('US0378331005');
-		expect(appleHolding.wkn).toBe('037833');
-		expect(appleHolding.name).toBe('Apple Inc. Common Stock');
-		expect(appleHolding.acquisitionPrice).toBe(150.75);
-		expect(appleHolding.price).toBe(0.855);
-		expect(appleHolding.currency).toBe('%');
-		expect(appleHolding.amount).toBe(50);
-		expect(appleHolding.value).toBe(42.75);
-		expect(appleHolding.date).toEqual(new Date(2023, 10, 1, 14, 30, 0));
-	});
-
-	it('parses MT535 with @@ dividers and different data points', () => {
-		const input =
-			':16R:ADDINFO@@' +
-			'EUR50000,25@@' +
-			':16S:ADDINFO@@' +
-			':16R:FIN@@' +
-			':35B:ISIN DE0007164600/DE/716460SAP SE:@@' +
-			':70E::HOLD//25STK2120,80+EUR@@' +
-			':90B::UNKNOWNVALXEUR115,75:@@' +
-			':93B::SOMESTATUS_25,:@@' +
-			':98A::REGD//DTE20231215:@@' +
-			':16S:FIN@@';
-
-		const parser = new Mt535Parser(input);
-		const statement = parser.parse();
-
-		expect(statement.totalValue).toBe(50000.25);
-		expect(statement.holdings).toHaveLength(1);
-
-		const holding = statement.holdings[0];
-		expect(holding.isin).toBe('DE0007164600');
-		expect(holding.wkn).toBe('716460');
-		expect(holding.name).toBe('SAP SE');
-		expect(holding.acquisitionPrice).toBe(120.8);
-		expect(holding.price).toBe(115.75);
-		expect(holding.currency).toBe('EUR');
-		expect(holding.amount).toBe(25);
-		expect(holding.value).toBe(2893.75);
-		expect(holding.date).toEqual(new Date(2023, 11, 15));
-	});
-
 	it('handles empty input', () => {
 		const parser = new Mt535Parser('');
 		const statement = parser.parse();
@@ -94,37 +9,87 @@ describe('Mt535Parser', () => {
 		expect(statement.holdings).toHaveLength(0);
 	});
 
-	it('handles input without depot value', () => {
+	it('parses holding with :90A:: percentage price (bonds)', () => {
 		const input =
 			':16R:FIN\r\n' +
-			':35B:ISIN DE0005190003/DE/519000SOME OTHER AG ST:\r\n' +
-			':90B::PREFIX_11_CEUR100,50:\r\n' +
-			':93B::QTY/AVALBLX100,:\r\n' +
-			':98A::SETT//DTE20231101:\r\n' +
+			':35B:ISIN DE0001102580\r\n' +
+			'/DE/110258\r\n' +
+			'BUNDESREP.DEUTSCHLAND ANL.V.2021\r\n' +
+			':90A::MRKT//PRCT/98,50\r\n' +
+			':93B::AGGR//UNIT/10000,\r\n' +
+			':19A::HOLD//EUR9850,00\r\n' +
 			':16S:FIN\r\n';
 
 		const parser = new Mt535Parser(input);
 		const statement = parser.parse();
 
-		expect(statement.totalValue).toBeUndefined();
 		expect(statement.holdings).toHaveLength(1);
-		expect(statement.holdings[0].isin).toBe('DE0005190003');
-		expect(statement.holdings[0].name).toBe('SOME OTHER AG ST');
-		expect(statement.holdings[0].price).toBe(100.5);
-		expect(statement.holdings[0].amount).toBe(100);
+		const holding = statement.holdings[0];
+		expect(holding.isin).toBe('DE0001102580');
+		expect(holding.wkn).toBe('110258');
+		expect(holding.currency).toBe('%');
+		expect(holding.price).toBe(0.985);
+		expect(holding.amount).toBe(10000);
+		expect(holding.value).toBe(9850);
 	});
 
-	it('handles input without holdings', () => {
-		const input = ':16R:ADDINFO\r\n' + 'EUR75000,00\r\n' + ':16S:ADDINFO\r\n';
+	it('parses holding with :90B:: absolute price', () => {
+		const input =
+			':16R:FIN\r\n' +
+			':35B:ISIN DE0005190003\r\n' +
+			'/DE/519000\r\n' +
+			'BAY.MOTOREN WERKE AG ST\r\n' +
+			':90B::MRKT//ACTU/EUR89,50\r\n' +
+			':93B::AGGR//UNIT/50,\r\n' +
+			':19A::HOLD//EUR4475,00\r\n' +
+			':16S:FIN\r\n';
+
 		const parser = new Mt535Parser(input);
 		const statement = parser.parse();
-		expect(statement.totalValue).toBe(75000.0);
-		expect(statement.holdings).toHaveLength(0);
+
+		const holding = statement.holdings[0];
+		expect(holding.isin).toBe('DE0005190003');
+		expect(holding.currency).toBe('EUR');
+		expect(holding.price).toBe(89.5);
+		expect(holding.amount).toBe(50);
+		expect(holding.value).toBe(4475);
 	});
 
-	it('handles holding with minimal data (only security identification)', () => {
+	it('parses 98A date-only field', () => {
 		const input =
-			':16R:FIN\r\n' + ':35B:ISIN FR0000120271/FR/120271AIR LIQUIDE SA: \r\n' + ':16S:FIN\r\n';
+			':16R:FIN\r\n' +
+			':35B:ISIN DE0007164600\r\n' +
+			'/DE/716460\r\n' +
+			'SAP SE\r\n' +
+			':98A::SETT//20231215\r\n' +
+			':16S:FIN\r\n';
+
+		const parser = new Mt535Parser(input);
+		const statement = parser.parse();
+
+		const holding = statement.holdings[0];
+		expect(holding.date).toEqual(new Date('2023-12-15T12:00'));
+	});
+
+	it('parses 98C date-time field', () => {
+		const input =
+			':16R:FIN\r\n' +
+			':35B:ISIN DE0007164600\r\n' +
+			'/DE/716460\r\n' +
+			'SAP SE\r\n' +
+			':98C::PRIC//20240115093045\r\n' +
+			':16S:FIN\r\n';
+
+		const parser = new Mt535Parser(input);
+		const statement = parser.parse();
+
+		const holding = statement.holdings[0];
+		expect(holding.date).toEqual(new Date(2024, 0, 15, 9, 30, 45));
+	});
+
+	it('parses holding with minimal data (only ISIN)', () => {
+		const input =
+			':16R:FIN\r\n' + ':35B:ISIN FR0000120271\r\n' + 'AIR LIQUIDE SA\r\n' + ':16S:FIN\r\n';
 
 		const parser = new Mt535Parser(input);
 		const statement = parser.parse();
@@ -132,53 +97,184 @@ describe('Mt535Parser', () => {
 		expect(statement.holdings).toHaveLength(1);
 		const holding = statement.holdings[0];
 		expect(holding.isin).toBe('FR0000120271');
-		expect(holding.wkn).toBe('120271');
 		expect(holding.name).toBe('AIR LIQUIDE SA');
 		expect(holding.price).toBeUndefined();
 		expect(holding.amount).toBeUndefined();
-		expect(holding.value).toBeUndefined();
-		expect(holding.date).toBeUndefined();
 	});
 
-	it('calculates value correctly for percentage currency when price is from :90A', () => {
+	it('parses DKB statement correctly', () => {
 		const input =
+			':16R:GENL\r\n' +
+			':28E:1/ONLY\r\n' +
+			':20C::SEME//NONREF\r\n' +
+			':23G:NEWM\r\n' +
+			':98C::PREP//20260110153747\r\n' +
+			':98A::STAT//20260110\r\n' +
+			':22F::STTY//CUST\r\n' +
+			':97A::SAFE//12030000/123456789\r\n' +
+			':17B::ACTI//Y\r\n' +
+			':16S:GENL\r\n' +
 			':16R:FIN\r\n' +
-			':35B:ISIN US0378331005/US/037833Apple Inc. Common Stock:\r\n' +
-			':90A::PRIC/RATE_X85,50:\r\n' +
-			':93B::QTY/AVALBLX100,:\r\n' +
-			':16S:FIN\r\n';
+			':35B:ISIN LU0950674332\r\n' +
+			'/DE/A1W3CQ\r\n' +
+			'UBS MSCI WORLD SOC.RES. NAMENS-ANTE\r\n' +
+			'ILE A ACC. USD O.N.\r\n' +
+			':90B::MRKT//ACTU/EUR33,22\r\n' +
+			':98C::PRIC//20260109210244\r\n' +
+			':93B::AGGR//UNIT/652,\r\n' +
+			':16R:SUBBAL\r\n' +
+			':93C::TAVI//UNIT/AVAI/652,\r\n' +
+			':16S:SUBBAL\r\n' +
+			':19A::HOLD//EUR18669,64\r\n' +
+			':70E::HOLD//1STK++++20220902\r\n' +
+			'221,2012438+EUR\r\n' +
+			':16S:FIN\r\n' +
+			':16R:ADDINFO\r\n' +
+			':19A::HOLP//EUR18669,64\r\n' +
+			':16S:ADDINFO\r\n';
 
 		const parser = new Mt535Parser(input);
 		const statement = parser.parse();
 
+		expect(statement.totalValue).toBe(18669.64);
+		expect(statement.currency).toBe('EUR');
+		expect(statement.holdings).toHaveLength(1);
 		const holding = statement.holdings[0];
-		expect(holding.currency).toBe('%');
-		expect(holding.price).toBe(0.855);
-		expect(holding.amount).toBe(100);
-		expect(holding.value).toBe(85.5);
+		expect(holding.isin).toBe('LU0950674332');
+		expect(holding.wkn).toBe('A1W3CQ');
+		expect(holding.name).toBe('UBS MSCI WORLD SOC.RES. NAMENS-ANTE/ILE A ACC. USD O.N.');
+		expect(holding.acquisitionDate).toEqual(new Date('2022-09-02T12:00'));
+		expect(holding.acquisitionPrice).toBe(21.2012438);
+		expect(holding.amount).toBe(652);
+		expect(holding.price).toBe(33.22);
+		expect(holding.currency).toBe('EUR');
+		expect(holding.value).toBe(18669.64);
+		expect(holding.date).toEqual(new Date(2026, 0, 9, 21, 2, 44));
 	});
 
-	it('correctly parses date and time for :98C', () => {
+	it('parses Baader statement correctly', () => {
 		const input =
+			':16R:GENL\r\n' +
+			':28E:1/ONLY\r\n' +
+			':20C::SEME//NONREF\r\n' +
+			':23G:NEWM\r\n' +
+			':98A::PREP//20260108\r\n' +
+			':98A::STAT//20260108\r\n' +
+			':22F::STTY//CUST\r\n' +
+			':97A::SAFE//70033100/12345678\r\n' +
+			':17B::ACTI//Y\r\n' +
+			':16S:GENL\r\n' +
 			':16R:FIN\r\n' +
-			':35B:ISIN DE000BASF111/DE/BASF11BASF SE:\r\n' +
-			':98C::QUALIF20240115093045:\r\n' +
-			':16S:FIN\r\n';
+			':35B:ISIN IE000UQND7H4\r\n' +
+			'HSBC ETF- WORLD DLA\r\n' +
+			'HSBC MSCI WORLD UCITS ETF\r\n' +
+			':93B::AGGR//UNIT/680\r\n' +
+			':16R:SUBBAL\r\n' +
+			':93C::TAVI//UNIT/AVAI/680\r\n' +
+			':70C::SUBB//1 HSBC ETF- WORLD DLA\r\n' +
+			'2\r\n' +
+			'3 EDE 37.200000000EUR 2026-01-08T19:08:31.7\r\n' +
+			'4 25875.56EUR IE000UQND7H4, 1/SO\r\n' +
+			':16S:SUBBAL\r\n' +
+			':19A::HOLD//EUR25296\r\n' +
+			':70E::HOLD//1STK++++20260107\r\n' +
+			'237,267+EUR\r\n' +
+			':16S:FIN\r\n' +
+			':16R:ADDINFO\r\n' +
+			':19A::HOLP//EUR25296\r\n' +
+			':16S:ADDINFO\r\n';
+
 		const parser = new Mt535Parser(input);
 		const statement = parser.parse();
+
+		expect(statement.totalValue).toBe(25296);
+		expect(statement.currency).toBe('EUR');
+		expect(statement.holdings).toHaveLength(1);
 		const holding = statement.holdings[0];
-		expect(holding.date).toEqual(new Date(2024, 0, 15, 9, 30, 45));
+		expect(holding.isin).toBe('IE000UQND7H4');
+		expect(holding.wkn).toBeUndefined();
+		expect(holding.name).toBe('HSBC ETF- WORLD DLA/HSBC MSCI WORLD UCITS ETF');
+		expect(holding.acquisitionDate).toEqual(new Date('2026-01-07T12:00'));
+		expect(holding.acquisitionPrice).toBe(37.267);
+		expect(holding.amount).toBe(680);
+		expect(holding.price).toBe(37.2);
+		expect(holding.currency).toBe('EUR');
+		expect(holding.value).toBe(25296);
+		expect(holding.date).toEqual(new Date(2026, 0, 8, 19, 8, 31, 700));
 	});
 
-	it('correctly parses date for :98A (time defaults to 00:00:00)', () => {
+	it('parses ING statement correctly', () => {
 		const input =
+			':16R:GENL\r\n' +
+			':28E:1/ONLY\r\n' +
+			':20C::SEME//NONREF\r\n' +
+			':23G:NEWM\r\n' +
+			':98C::STAT//20260125221440\r\n' +
+			':22F::STTY//CUST\r\n' +
+			':97A::SAFE//12345678/1234567890\r\n' +
+			':17B::ACTI//Y\r\n' +
+			':16S:GENL\r\n' +
 			':16R:FIN\r\n' +
-			':35B:ISIN DE000BAY0017/DE/BAY001BAYER AG:\r\n' +
-			':98A::SETT//DTE20231005:\r\n' +
-			':16S:FIN\r\n';
+			':35B:ISIN IE00B5BMR087\r\n' +
+			'/DE/A0YEDG\r\n' +
+			'ISHSVII-CORE S+P500 DLACC\r\n' +
+			':90B::MRKT//ACTU/EUR627,17\r\n' +
+			':94B::PRIC//LMAR/XGAT\r\n' +
+			':98A::PRIC//20260123\r\n' +
+			':93B::AGGR//UNIT/15,5\r\n' +
+			':16R:SUBBAL\r\n' +
+			':93C::TAVI//UNIT/AVAI/15,5\r\n' +
+			':16S:SUBBAL\r\n' +
+			':19A::HOLD//EUR9721,14\r\n' +
+			':70E::HOLD//1STK\r\n' +
+			'2456,114666+EUR\r\n' +
+			':16S:FIN\r\n' +
+			':16R:FIN\r\n' +
+			':35B:ISIN IE00B3WJKG14\r\n' +
+			'/DE/A142N1\r\n' +
+			'ISHSV-S+500INF.T.SECT.DLA\r\n' +
+			':90B::MRKT//ACTU/EUR34,975\r\n' +
+			':94B::PRIC//LMAR/XGAT\r\n' +
+			':98A::PRIC//20260123\r\n' +
+			':93B::AGGR//UNIT/85,\r\n' +
+			':16R:SUBBAL\r\n' +
+			':93C::TAVI//UNIT/AVAI/85,\r\n' +
+			':16S:SUBBAL\r\n' +
+			':19A::HOLD//EUR2972,88\r\n' +
+			':70E::HOLD//1STK\r\n' +
+			'225,208135+EUR\r\n' +
+			':16S:FIN\r\n' +
+			':16R:ADDINFO\r\n' +
+			':19A::HOLP//EUR12694,02\r\n' +
+			':16S:ADDINFO\r\n';
+
 		const parser = new Mt535Parser(input);
 		const statement = parser.parse();
-		const holding = statement.holdings[0];
-		expect(holding.date).toEqual(new Date(2023, 9, 5, 0, 0, 0));
+
+		expect(statement.totalValue).toBe(12694.02);
+		expect(statement.currency).toBe('EUR');
+		expect(statement.holdings).toHaveLength(2);
+
+		// First holding
+		const holding1 = statement.holdings[0];
+		expect(holding1.isin).toBe('IE00B5BMR087');
+		expect(holding1.wkn).toBe('A0YEDG');
+		expect(holding1.name).toBe('ISHSVII-CORE S+P500 DLACC');
+		expect(holding1.amount).toBe(15.5);
+		expect(holding1.price).toBe(627.17);
+		expect(holding1.currency).toBe('EUR');
+		expect(holding1.value).toBe(9721.14);
+		expect(holding1.date).toEqual(new Date('2026-01-23T12:00'));
+
+		// Second holding
+		const holding2 = statement.holdings[1];
+		expect(holding2.isin).toBe('IE00B3WJKG14');
+		expect(holding2.wkn).toBe('A142N1');
+		expect(holding2.name).toBe('ISHSV-S+500INF.T.SECT.DLA');
+		expect(holding2.amount).toBe(85);
+		expect(holding2.price).toBe(34.975);
+		expect(holding2.currency).toBe('EUR');
+		expect(holding2.value).toBe(2972.88);
+		expect(holding2.date).toEqual(new Date('2026-01-23T12:00'));
 	});
 });
