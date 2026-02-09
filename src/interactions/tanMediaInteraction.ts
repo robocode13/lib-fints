@@ -24,7 +24,7 @@ export class TanMediaInteraction extends CustomerOrderInteraction {
 
 		const hktab: HKTABSegment = {
 			header: { segId: HKTAB.Id, segNr: 0, version: version },
-			mediaType: TanMediaType.Active,
+			mediaType: TanMediaType.All,
 			mediaClass: TanMediaClass.All,
 		};
 
