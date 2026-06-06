@@ -5,7 +5,7 @@ import { Text } from '../dataElements/Text.js';
 import { YesNo } from '../dataElements/YesNo.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
 import {
-	InternationalAccount,
+	type InternationalAccount,
 	InternationalAccountGroup,
 } from '../dataGroups/InternationalAccount.js';
 import type { SegmentWithContinuationMark } from '../segment.js';
