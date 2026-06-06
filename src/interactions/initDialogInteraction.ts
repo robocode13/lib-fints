@@ -191,9 +191,9 @@ export class InitDialogInteraction extends CustomerInteraction {
 			const hiupds = response.findAllSegments<HIUPDSegment>(HIUPD.Id);
 			const accounts: BankAccount[] = hiupds.map((upd) => {
 				return {
-					accountNumber: upd.account.accountNumber,
-					subAccountId: upd.account.subAccountId,
-					bank: upd.account.bank,
+					accountNumber: upd.account?.accountNumber,
+					subAccountId: upd.account?.subAccountId,
+					bank: upd.account?.bank,
 					iban: upd.iban,
 					customerId: upd.customerId,
 					accountType: finTsAccountTypeToEnum(upd.accountType),
