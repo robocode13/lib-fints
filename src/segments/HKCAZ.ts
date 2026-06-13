@@ -3,13 +3,16 @@ import { Dat } from '../dataElements/Dat.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { Text } from '../dataElements/Text.js';
 import { YesNo } from '../dataElements/YesNo.js';
-import { type CamtAccount, CamtAccountGroup } from '../dataGroups/CamtAccount.js';
 import { DataGroup } from '../dataGroups/DataGroup.js';
+import {
+	type InternationalAccount,
+	InternationalAccountGroup,
+} from '../dataGroups/InternationalAccount.js';
 import type { SegmentWithContinuationMark } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HKCAZSegment = SegmentWithContinuationMark & {
-	account: CamtAccount;
+	account: InternationalAccount;
 	acceptedCamtFormats: string[];
 	allAccounts: boolean;
 	from?: Date;
@@ -28,7 +31,7 @@ export class HKCAZ extends SegmentDefinition {
 	}
 	version = HKCAZ.Version;
 	elements = [
-		new CamtAccountGroup('account', 1, 1),
+		new InternationalAccountGroup('account', 1, 1),
 		new DataGroup('acceptedCamtFormats', [new Text('camtFormat', 1, 99)], 1, 1), // Support multiple camt-formats
 		new YesNo('allAccounts', 1, 1),
 		new Dat('from', 0, 1),

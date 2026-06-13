@@ -207,6 +207,7 @@ export class Dialog {
 				header: { segId: HKTAN.Id, segNr: 0, version: tanMethod?.version ?? 0 },
 				tanProcess: TanProcess.Process4,
 				segId: this.currentInteraction.segId,
+				tanMedia: this.getTanMediaName(),
 			};
 
 			message.addSegment(hktan);
@@ -240,16 +241,27 @@ export class Dialog {
 				segId: this.currentInteraction.segId,
 				orderRef: tanOrderReference,
 				nextTan: false,
-				tanMedia:
-					(this.config.selectedTanMethod?.tanMediaRequirement ??
-					TanMediaRequirement.NotAllowed >= TanMediaRequirement.Optional)
-						? this.config.tanMediaName
-						: undefined,
+				tanMedia: this.getTanMediaName(),
 			};
 
 			message.addSegment(hktan);
 		}
 		return message;
+	}
+
+	private getTanMediaName(): string | undefined {
+		const requirement =
+			this.config.selectedTanMethod?.tanMediaRequirement ?? TanMediaRequirement.NotAllowed;
+
+		if (requirement === TanMediaRequirement.NotAllowed) {
+			return undefined;
+		}
+
+		if (requirement === TanMediaRequirement.Required) {
+			return this.config.tanMediaName ?? 'default';
+		}
+
+		return this.config.tanMediaName;
 	}
 
 	private async handlePartedMessages(
