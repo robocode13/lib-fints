@@ -42,7 +42,7 @@
 		"@biomejs/biome": "2.3.10",
 		"@types/node": "^20.19.41",
 		"typescript": "^5.9.3",
-		"vitest": "^4.1.8"
+		"vitest": "^4.0.18"
 	},
 	"dependencies": {
 		"fast-xml-parser": "^5.8.0"
