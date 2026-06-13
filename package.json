@@ -36,7 +36,7 @@
 	"license": "LGPL-2.1-or-later",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/robocode13/lib-fints.git"
+		"url": "git+https://github.com/robocode13/lib-fints.git"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.10",

@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   ci-and-publish:
     runs-on: ubuntu-latest
@@ -29,9 +33,10 @@ jobs:
           version: 10
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4 
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
       - name: Install dependencies with pnpm
@@ -46,8 +51,29 @@ jobs:
       - name: Run tests (Vitest)
         run: pnpm run test -- --run
 
-      - name: Publish to NPM
+      - name: Check whether package version is already published
+        id: npm-package-version
         if: matrix.publish && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          package_name=$(node -p "require('./package.json').name")
+          package_version=$(node -p "require('./package.json').version")
+
+          if npm view "${package_name}@${package_version}" version --registry https://registry.npmjs.org >/dev/null 2>npm-view-error.log; then
+            echo "${package_name}@${package_version} is already published. Skipping publish."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          elif grep -q "E404" npm-view-error.log; then
+            echo "${package_name}@${package_version} is not published yet. Publishing."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            cat npm-view-error.log >&2
+            exit 1
+          fi
+
+      - name: Install npm 11
+        if: steps.npm-package-version.outputs.should_publish == 'true'
+        run: npm install -g npm@11
+
+      - name: Publish to NPM
+        if: steps.npm-package-version.outputs.should_publish == 'true'
+        run: npm publish
