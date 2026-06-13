@@ -189,22 +189,24 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 		if (hiupa) {
 			const hiupds = response.findAllSegments<HIUPDSegment>(HIUPD.Id);
-			const accounts: BankAccount[] = hiupds.map((upd) => {
-				return {
-					accountNumber: upd.account?.accountNumber,
-					subAccountId: upd.account?.subAccountId,
-					bank: upd.account?.bank,
-					iban: upd.iban,
-					customerId: upd.customerId,
-					accountType: finTsAccountTypeToEnum(upd.accountType),
-					currency: upd.currency,
-					holder1: upd.accountHolder1,
-					holder2: upd.accountHolder2,
-					product: upd.accountProduct,
-					limit: upd.accountLimit,
-					allowedTransactions: upd.allowedTransactions?.filter((t) => !!t),
-				};
-			});
+			const accounts: BankAccount[] = hiupds
+				.filter((upd) => upd.account)
+				.map((upd) => {
+					return {
+						accountNumber: upd.account.accountNumber,
+						subAccountId: upd.account.subAccountId,
+						bank: upd.account.bank,
+						iban: upd.iban,
+						customerId: upd.customerId,
+						accountType: finTsAccountTypeToEnum(upd.accountType),
+						currency: upd.currency,
+						holder1: upd.accountHolder1,
+						holder2: upd.accountHolder2,
+						product: upd.accountProduct,
+						limit: upd.accountLimit,
+						allowedTransactions: upd.allowedTransactions?.filter((t) => !!t),
+					};
+				});
 
 			const upd = {
 				version: hiupa.updVersion,
