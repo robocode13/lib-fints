@@ -24,14 +24,17 @@ import { HIUPA } from './HIUPA.js';
 import { HIUPD } from './HIUPD.js';
 import { HIWPD } from './HIWPD.js';
 import { HKCAZ } from './HKCAZ.js';
+import { HKCCS } from './HKCCS.js';
 import { HKEND } from './HKEND.js';
 import { HKIDN } from './HKIDN.js';
+import { HKIPZ } from './HKIPZ.js';
 import { HKKAZ } from './HKKAZ.js';
 import { HKSAL } from './HKSAL.js';
 import { HKSPA } from './HKSPA.js';
 import { HKSYN } from './HKSYN.js';
 import { HKTAB } from './HKTAB.js';
 import { HKTAN } from './HKTAN.js';
+import { HKVPP } from './HKVPP.js';
 import { HKVVB } from './HKVVB.js';
 import { HKWPD } from './HKWPD.js';
 import { HNHBK } from './HNHBK.js';
@@ -85,6 +88,9 @@ export function registerSegments() {
 	registerSegmentDefinition(new HKSPA());
 	registerSegmentDefinition(new HISPA());
 	registerSegmentDefinition(new HISPAS());
+	registerSegmentDefinition(new HKVPP());
+	registerSegmentDefinition(new HKCCS());
+	registerSegmentDefinition(new HKIPZ());
 	registerSegmentDefinition(new UNKNOW());
 	registerSegmentDefinition(new PARTED());
 }
