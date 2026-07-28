@@ -24,7 +24,27 @@ export class Binary extends DataElement {
 		return `@${value.length}@${value}`;
 	}
 
+	/**
+	 * A binary value arrives as `@<length>@<data>`. The length is authoritative: it is the
+	 * only thing that tells data apart from the separators and escape characters that a
+	 * binary payload — a PDF, for instance — is full of. Returning everything after the
+	 * second `@` instead would hand out whatever the bank appended between the end of the
+	 * data and the next separator.
+	 */
 	decode(text: string) {
-		return text.slice(text.indexOf('@', 1) + 1);
+		if (text[0] !== '@') {
+			// Not length-prefixed — nothing to go by, take it as it is.
+			return text;
+		}
+
+		const lengthEnd = text.indexOf('@', 1);
+		if (lengthEnd < 0) {
+			return text;
+		}
+
+		const dataStart = lengthEnd + 1;
+		const length = Number.parseInt(text.slice(1, lengthEnd), 10);
+
+		return Number.isNaN(length) ? text.slice(dataStart) : text.slice(dataStart, dataStart + length);
 	}
 }

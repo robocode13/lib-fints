@@ -1,5 +1,6 @@
 import { AlphaNumeric } from '../dataElements/AlphaNumeric.js';
 import { Numeric } from '../dataElements/Numeric.js';
+import { type Account, AccountGroup } from '../dataGroups/Account.js';
 import {
 	type InternationalAccount,
 	InternationalAccountGroup,
@@ -18,11 +19,12 @@ export enum StatementFormat {
 }
 
 export type HKEKASegment = Segment & {
-	account: InternationalAccount;
+	/** National account connection up to version 3, international from version 4 on */
+	account: Account | InternationalAccount;
 	statementFormat?: StatementFormat;
 	/** The sequential number of the statement to fetch, only allowed when the bank sets `indexAllowed` */
 	statementNumber?: number;
-	/** The year the statement number refers to */
+	/** The year the statement number refers to, not available before version 3 */
 	statementYear?: number;
 	maxEntries?: number;
 	/**
@@ -56,10 +58,11 @@ export class HKEKA extends SegmentDefinition {
 	}
 	version = HKEKA.Version;
 	elements = [
-		new InternationalAccountGroup('account', 1, 1),
+		new AccountGroup('account', 1, 1, 1, 3),
+		new InternationalAccountGroup('account', 1, 1, 4),
 		new AlphaNumeric('statementFormat', 0, 1, 1),
 		new Numeric('statementNumber', 0, 1, 5),
-		new Numeric('statementYear', 0, 1, 4),
+		new Numeric('statementYear', 0, 1, 4, 3),
 		new Numeric('maxEntries', 0, 1, 4),
 		new AlphaNumeric('offset', 0, 1, 35),
 	];
