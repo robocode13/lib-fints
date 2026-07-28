@@ -49,7 +49,16 @@ export class CreditCardStatementInteraction extends CustomerOrderInteraction {
 			return parseFloat(valueFloatStr);
 		}
 
-		const dikku = response.findSegment<DIKKUSegment>(DIKKU.Id);
+		// A response the bank spread over several messages arrives as several DIKKU
+		// segments. The balance is the same in each, the transactions are not.
+		const dikkuSegments = response.findAllSegments<DIKKUSegment>(DIKKU.Id);
+		const dikku = dikkuSegments[0]
+			? {
+					...dikkuSegments[0],
+					transactions: dikkuSegments.flatMap((segment) => segment.transactions ?? []),
+				}
+			: undefined;
+
 		if (dikku) {
 			const creditDebit = dikku.balance.creditDebit;
 			const balanceAmount = dikku.balance.amount.value * (creditDebit === 'D' ? -1 : 1);

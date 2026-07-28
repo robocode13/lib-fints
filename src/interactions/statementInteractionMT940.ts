@@ -36,10 +36,18 @@ export class StatementInteractionMT940 extends CustomerOrderInteraction {
 	}
 
 	handleResponse(response: Message, clientResponse: StatementResponse) {
-		const hikaz = response.findSegment<HIKAZSegment>(HIKAZ.Id);
-		if (hikaz?.bookedTransactions) {
+		// A response the bank spread over several messages arrives as several HIKAZ
+		// segments. Unlike CAMT these carry one continuous MT940 stream, so their
+		// payloads are joined rather than listed.
+		const bookedTransactions = response
+			.findAllSegments<HIKAZSegment>(HIKAZ.Id)
+			.map((segment) => segment.bookedTransactions)
+			.filter((booked) => !!booked)
+			.join('');
+
+		if (bookedTransactions) {
 			try {
-				const parser = new Mt940Parser(hikaz.bookedTransactions);
+				const parser = new Mt940Parser(bookedTransactions);
 				clientResponse.statements = parser.parse();
 			} catch (error) {
 				console.warn('MT940 parsing failed:', error);

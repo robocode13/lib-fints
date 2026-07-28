@@ -47,12 +47,18 @@ export class StatementInteractionCAMT extends CustomerOrderInteraction {
 	}
 
 	handleResponse(response: Message, clientResponse: StatementResponse) {
-		const hicaz = response.findSegment<HICAZSegment>(HICAZ.Id);
-		if (hicaz?.bookedTransactions && hicaz.bookedTransactions.length > 0) {
+		// A response the bank spread over several messages arrives as several HICAZ
+		// segments, each carrying its own share of the CAMT documents. Taking only the
+		// first one would silently drop everything after it.
+		const camtMessages = response
+			.findAllSegments<HICAZSegment>(HICAZ.Id)
+			.flatMap((segment) => segment.bookedTransactions ?? []);
+
+		if (camtMessages.length > 0) {
 			try {
 				// Parse all CAMT messages (one per booking day) and combine statements
 				const allStatements: Statement[] = [];
-				for (const camtMessage of hicaz.bookedTransactions) {
+				for (const camtMessage of camtMessages) {
 					// The regex looks for the XML declaration `<?xml ... ?>`
 					// and checks if it contains the attribute encoding="UTF-8".
 					// The 'i' flag makes the match case-insensitive (e.g., for "utf-8").

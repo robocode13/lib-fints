@@ -72,17 +72,23 @@ export class PortfolioInteraction extends CustomerOrderInteraction {
 	}
 
 	handleResponse(response: Message, clientResponse: PortfolioResponse): void {
-		const hiwpdSegment = response.findSegment<HIWPDSegment>(HIWPD.Id);
+		// A response the bank spread over several messages arrives as several HIWPD
+		// segments carrying one continuous MT535 stream, so their payloads are joined.
+		const portfolioStatement = response
+			.findAllSegments<HIWPDSegment>(HIWPD.Id)
+			.map((segment) => segment.portfolioStatement)
+			.filter((statement) => !!statement)
+			.join('');
 
-		if (hiwpdSegment?.portfolioStatement) {
+		if (portfolioStatement) {
 			try {
 				// Parse the MT535 data
-				const parser = new Mt535Parser(hiwpdSegment.portfolioStatement);
+				const parser = new Mt535Parser(portfolioStatement);
 				clientResponse.portfolioStatement = parser.parse();
 			} catch (error) {
 				console.warn('Failed to parse MT535 portfolio statement:', error);
 				// Fallback: provide raw data if parsing fails
-				clientResponse.rawMT535Data = hiwpdSegment.portfolioStatement;
+				clientResponse.rawMT535Data = portfolioStatement;
 			}
 		}
 	}
