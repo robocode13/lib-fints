@@ -283,16 +283,19 @@ export class Dialog {
 		responseMessage: Message,
 		interaction: CustomerInteraction,
 	) {
-		const partedSegment = responseMessage.findSegment<PartedSegment>(PARTED.Id);
+		// ALL of them, not just the first: one bank message may well carry several
+		// response segments. Taking only the first left the rest sitting in the tree as
+		// PARTED, where `findAllSegments` cannot see them — lost without a trace.
+		const partedSegments = responseMessage.findAllSegments<PartedSegment>(PARTED.Id);
 
-		if (!partedSegment) {
+		if (partedSegments.length === 0) {
 			return;
 		}
 
 		// The message the caller holds — every portion has to end up in THIS one, not in
 		// the last one we happen to receive.
 		const callersMessage = responseMessage;
-		const rawPortions = [partedSegment.rawData];
+		const rawPortions = partedSegments.map((segment) => segment.rawData);
 
 		while (responseMessage.hasReturnCode(3040)) {
 			const answers = responseMessage.getBankAnswers();
@@ -318,17 +321,23 @@ export class Dialog {
 			}
 			hnhbkSegment.msgNr = ++this.lastMessageNumber;
 			const nextResponseMessage = await this.httpClient.sendMessage(message);
-			const nextPartedSegment = nextResponseMessage.findSegment<PartedSegment>(PARTED.Id);
-
-			if (nextPartedSegment) {
-				rawPortions.push(nextPartedSegment.rawData);
-			}
+			rawPortions.push(
+				...nextResponseMessage
+					.findAllSegments<PartedSegment>(PARTED.Id)
+					.map((segment) => segment.rawData),
+			);
 
 			responseMessage = nextResponseMessage;
 		}
 
-		const index = callersMessage.segments.indexOf(partedSegment);
-		callersMessage.segments.splice(index, 1, ...rawPortions.map((raw) => decode(raw)));
+		// Every PARTED placeholder gives way to the decoded portions, at the position of
+		// the first one so the segment order stays intact.
+		const index = callersMessage.segments.indexOf(partedSegments[0]);
+		const withoutPlaceholders = callersMessage.segments.filter(
+			(segment) => segment.header.segId !== PARTED.Id,
+		);
+		withoutPlaceholders.splice(index, 0, ...rawPortions.map((raw) => decode(raw)));
+		callersMessage.segments = withoutPlaceholders;
 	}
 
 	private checkEnded(response: ClientResponse) {
