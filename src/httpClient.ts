@@ -9,7 +9,7 @@ export class HttpClient {
 
 	async sendMessage(message: CustomerMessage): Promise<Message> {
 		const encodedMessage = message.encode();
-		const requestBuffer = Buffer.from(encodedMessage);
+		const requestBuffer = Buffer.from(encodedMessage, 'latin1');
 
 		if (this.debug) {
 			console.log('Request Message:\n');
