@@ -105,7 +105,11 @@ export class Message {
 	}
 
 	static decodeSegment(text: string, partedResponseSegId?: string): Segment {
-		if (partedResponseSegId && text.startsWith(partedResponseSegId)) {
+		// The colon matters: a segment starts with `SEGID:number:version`, so a plain
+		// `startsWith` would also catch the parameter segment whose id merely begins the
+		// same way — HIEKAS when looking for HIEKA, HICAZS for HICAZ. Those would then be
+		// held back as PARTED and never decoded.
+		if (partedResponseSegId && text.startsWith(`${partedResponseSegId}:`)) {
 			const partedSegment: PartedSegment = {
 				header: {
 					...(SegmentDefinition.header.decode(text, 1) as SegmentHeader),

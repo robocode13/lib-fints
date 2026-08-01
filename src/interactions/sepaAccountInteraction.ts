@@ -43,9 +43,11 @@ export class SepaAccountInteraction extends CustomerOrderInteraction {
 	}
 
 	handleResponse(response: Message, clientResponse: SepaAccountResponse) {
-		const hispa = response.findSegment<HISPASegment>(HISPA.Id);
-		if (hispa) {
-			clientResponse.sepaAccounts = hispa.sepaAccounts || [];
+		// A response the bank spread over several messages arrives as several HISPA
+		// segments, each carrying its own share of the accounts.
+		const hispaSegments = response.findAllSegments<HISPASegment>(HISPA.Id);
+		if (hispaSegments.length > 0) {
+			clientResponse.sepaAccounts = hispaSegments.flatMap((segment) => segment.sepaAccounts ?? []);
 
 			this.dialog?.config.bankingInformation.upd?.bankAccounts.forEach((bankAccount) => {
 				bankAccount.isSepaAccount = false;

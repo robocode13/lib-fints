@@ -264,56 +264,80 @@ export class Dialog {
 		return this.config.tanMediaName;
 	}
 
+	/**
+	 * Collects a response that the bank spreads over several messages.
+	 *
+	 * When the bank cannot fit a response into one message it answers with code 3040 plus
+	 * a continuation mark. Repeating the order with that mark yields the next portion —
+	 * as a COMPLETE, self-contained response segment, not as a byte-wise continuation of
+	 * the previous one. A HICAZ follow-up, for example, repeats the account and the CAMT
+	 * descriptor before carrying its own share of the statements.
+	 *
+	 * Every portion is therefore decoded on its own and all of them are placed into the
+	 * response message the caller holds. Combining their payloads needs to know what the
+	 * payload means — one MT940 stream continues, a list of CAMT documents is appended —
+	 * so that step belongs to the interaction, which does it via `findAllSegments`.
+	 */
 	private async handlePartedMessages(
 		message: CustomerMessage,
 		responseMessage: Message,
 		interaction: CustomerInteraction,
 	) {
-		let partedSegment = responseMessage.findSegment<PartedSegment>(PARTED.Id);
+		// ALL of them, not just the first: one bank message may well carry several
+		// response segments. Taking only the first left the rest sitting in the tree as
+		// PARTED, where `findAllSegments` cannot see them — lost without a trace.
+		const partedSegments = responseMessage.findAllSegments<PartedSegment>(PARTED.Id);
 
-		if (partedSegment) {
-			while (responseMessage.hasReturnCode(3040)) {
-				const answers = responseMessage.getBankAnswers();
-				const segmentWithContinuation = message.segments.find(
-					(s) => s.header.segId === interaction.segId,
-				) as SegmentWithContinuationMark;
-				if (!segmentWithContinuation) {
-					throw new Error(
-						`Response contains segment with further information, but corresponding segment could not be found or is not specified`,
-					);
-				}
+		if (partedSegments.length === 0) {
+			return;
+		}
 
-				const answer = answers.find((a) => a.code === 3040);
+		// The message the caller holds — every portion has to end up in THIS one, not in
+		// the last one we happen to receive.
+		const callersMessage = responseMessage;
+		const rawPortions = partedSegments.map((segment) => segment.rawData);
 
-				if (!answer || !answer.params || answer.params.length === 0) {
-					throw new Error(
-						'Expected bank answer to contain continuation mark parameters (code 3040)',
-					);
-				}
-
-				segmentWithContinuation.continuationMark = answer.params[0];
-				const hnhbkSegment = message.findSegment<HNHBKSegment>(HNHBK.Id);
-				if (!hnhbkSegment) {
-					throw new Error('HNHBK segment not found in message');
-				}
-				hnhbkSegment.msgNr = ++this.lastMessageNumber;
-				const nextResponseMessage = await this.httpClient.sendMessage(message);
-				const nextPartedSegment = nextResponseMessage.findSegment<PartedSegment>(PARTED.Id);
-
-				if (nextPartedSegment) {
-					nextPartedSegment.rawData =
-						partedSegment.rawData +
-						nextPartedSegment.rawData.slice(nextPartedSegment.rawData.indexOf('+') + 1);
-					partedSegment = nextPartedSegment;
-				}
-
-				responseMessage = nextResponseMessage;
+		while (responseMessage.hasReturnCode(3040)) {
+			const answers = responseMessage.getBankAnswers();
+			const segmentWithContinuation = message.segments.find(
+				(s) => s.header.segId === interaction.segId,
+			) as SegmentWithContinuationMark;
+			if (!segmentWithContinuation) {
+				throw new Error(
+					`Response contains segment with further information, but corresponding segment could not be found or is not specified`,
+				);
 			}
 
-			const completeSegment = decode(partedSegment.rawData);
-			const index = responseMessage.segments.indexOf(partedSegment);
-			responseMessage.segments.splice(index, 1, completeSegment);
+			const answer = answers.find((a) => a.code === 3040);
+
+			if (!answer || !answer.params || answer.params.length === 0) {
+				throw new Error('Expected bank answer to contain continuation mark parameters (code 3040)');
+			}
+
+			segmentWithContinuation.continuationMark = answer.params[0];
+			const hnhbkSegment = message.findSegment<HNHBKSegment>(HNHBK.Id);
+			if (!hnhbkSegment) {
+				throw new Error('HNHBK segment not found in message');
+			}
+			hnhbkSegment.msgNr = ++this.lastMessageNumber;
+			const nextResponseMessage = await this.httpClient.sendMessage(message);
+			rawPortions.push(
+				...nextResponseMessage
+					.findAllSegments<PartedSegment>(PARTED.Id)
+					.map((segment) => segment.rawData),
+			);
+
+			responseMessage = nextResponseMessage;
 		}
+
+		// Every PARTED placeholder gives way to the decoded portions, at the position of
+		// the first one so the segment order stays intact.
+		const index = callersMessage.segments.indexOf(partedSegments[0]);
+		const withoutPlaceholders = callersMessage.segments.filter(
+			(segment) => segment.header.segId !== PARTED.Id,
+		);
+		withoutPlaceholders.splice(index, 0, ...rawPortions.map((raw) => decode(raw)));
+		callersMessage.segments = withoutPlaceholders;
 	}
 
 	private checkEnded(response: ClientResponse) {
