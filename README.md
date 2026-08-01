@@ -201,6 +201,7 @@ The following table shows all transactions supported by the FinTSClient interfac
 | **Account Statements**     | `getAccountStatements(accountNumber, from?, to?)`                    | Fetches account transactions/statements for a date range (MT940 or CAMT format) | HKKAZ, HKCAZ               | ✓           | ✓                |
 | **Portfolio**              | `getPortfolio(accountNumber, currency?, priceQuality?, maxEntries?)` | Fetches securities portfolio information for depot accounts                     | HKWPD                      | ✓           | ✓                |
 | **Credit Card Statements** | `getCreditCardStatements(accountNumber, from?)`                      | Fetches credit card statements for credit card accounts                         | DKKKU                      | ✓           | ✓                |
+| **Electronic Statements**  | `getElectronicStatements(accountNumber, options?)`                   | Fetches the statement document from the electronic mailbox, usually a PDF       | HKEKA                      | ✓           | ✓                |
 | **TAN Method Selection**   | `selectTanMethod(tanMethodId)`                                       | Selects a TAN method by ID from available methods                               | -                          | ❌          | ❌               |
 | **TAN Media Selection**    | `selectTanMedia(tanMediaName)`                                       | Selects a specific TAN media device by name                                     | -                          | ❌          | ❌               |
 
@@ -214,6 +215,7 @@ For each account-specific transaction, the client provides corresponding `can*` 
 | `canGetAccountStatements(accountNumber?)`    | Checks if account statements fetching is supported (MT940/CAMT) |
 | `canGetPortfolio(accountNumber?)`            | Checks if portfolio information fetching is supported           |
 | `canGetCreditCardStatements(accountNumber?)` | Checks if credit card statements fetching is supported          |
+| `canGetElectronicStatements(accountNumber?)` | Checks if electronic account statements fetching is supported   |
 
 ### Transaction Parameters
 

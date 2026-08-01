@@ -10,6 +10,11 @@ import type {
 	CustomerOrderInteraction,
 	StatementResponse,
 } from './interactions/customerInteraction.js';
+import {
+	ElectronicStatementInteraction,
+	type ElectronicStatementOptions,
+	type ElectronicStatementResponse,
+} from './interactions/electronicStatementInteraction.js';
 import type { InitResponse } from './interactions/initDialogInteraction.js';
 import {
 	PortfolioInteraction,
@@ -19,6 +24,7 @@ import { StatementInteractionCAMT } from './interactions/statementInteractionCAM
 import { StatementInteractionMT940 } from './interactions/statementInteractionMT940.js';
 import { DKKKU } from './segments/DKKKU.js';
 import { HKCAZ } from './segments/HKCAZ.js';
+import { HKEKA } from './segments/HKEKA.js';
 import { HKIDN } from './segments/HKIDN.js';
 import { HKKAZ } from './segments/HKKAZ.js';
 import { HKSAL } from './segments/HKSAL.js';
@@ -282,6 +288,56 @@ export class FinTSClient {
 			tanReference,
 			tan,
 		)) as StatementResponse;
+	}
+
+	/**
+	 * Checks if the bank supports fetching electronic account statements in general or for the given account number
+	 * @param accountNumber when the account number is provided, checks if the account supports fetching of electronic statements
+	 * @returns true if the bank (and account) supports fetching electronic account statements
+	 */
+	canGetElectronicStatements(accountNumber?: string): boolean {
+		return accountNumber
+			? this.config.isAccountTransactionSupported(accountNumber, HKEKA.Id)
+			: this.config.isTransactionSupported(HKEKA.Id);
+	}
+
+	/**
+	 * Fetches an electronic account statement (Elektronischer Kontoauszug) for the given account number
+	 *
+	 * This returns the statement document the bank files in the customer's electronic mailbox,
+	 * usually a PDF, not a list of transactions. The bank hands out one statement per call and
+	 * announces a waiting successor in `nextOffset`; pass that value back in `options.offset` to
+	 * fetch the next one. Banks that set `receiptRequired` in their HIEKAS parameters keep
+	 * offering a statement until it has been acknowledged with its receipt.
+	 *
+	 * @param accountNumber - the account number to fetch the statement for, must be an account available in the config.bankingInformation.upd.accounts
+	 * @param options - optional format, statement number and year, entry limit and offset
+	 * @returns a response containing the statement documents and the offset of a waiting successor
+	 */
+	async getElectronicStatements(
+		accountNumber: string,
+		options?: ElectronicStatementOptions,
+	): Promise<ElectronicStatementResponse> {
+		return (await this.startCustomerOrderInteraction(
+			new ElectronicStatementInteraction(accountNumber, options),
+		)) as ElectronicStatementResponse;
+	}
+
+	/**
+	 * Continues the electronic account statement fetching when a TAN is required
+	 * @param tanReference The TAN reference provided in the first call's response
+	 * @param tan The TAN entered by the user, can be omitted if a decoupled TAN method is used
+	 * @returns a response containing the statement documents
+	 */
+	async getElectronicStatementsWithTan(
+		tanReference: string,
+		tan?: string,
+	): Promise<ElectronicStatementResponse> {
+		return (await this.continueCustomerInteractionWithTan(
+			[HKEKA.Id],
+			tanReference,
+			tan,
+		)) as ElectronicStatementResponse;
 	}
 
 	private async startCustomerOrderInteraction(
