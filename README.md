@@ -301,7 +301,7 @@ As this is a free-time project, a lot of things are still remaining which could 
 
 ## License
 
-This project is licensed under the LGPL 3.0 License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the LGPL-2.1-or-later License - see the [LICENSE](LICENSE) file for details
 
 ## References
 
