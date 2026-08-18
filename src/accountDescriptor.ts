@@ -9,7 +9,7 @@ import { HKSPA } from './segments/HKSPA.js';
  * Builds the account connection ("Kontoverbindung") a segment carries.
  *
  * FinTS has two forms, and segments pick one by version: the national form (KTV,
- * account number + sub-account + bank) and the international one (KTZ, which adds
+ * account number + sub-account + bank) and the international one (KTI, which adds
  * IBAN and BIC and makes every field optional). The international form allows the
  * national fields to be present as well, but only where the bank permits it — and
  * the bank says so in the HISPAS parameters, in `nationalAccountAllowed`.
@@ -23,7 +23,7 @@ import { HKSPA } from './segments/HKSPA.js';
  *   number + sub-account + bank                →  3010 "Kontonummer ist ungültig", 0 statements
  *
  * The last line is why this is a rule about the national *fields* rather than about
- * the combination: the bank rejects them in a KTZ even when no IBAN accompanies
+ * the combination: the bank rejects them in a KTI even when no IBAN accompanies
  * them.
  */
 
