@@ -1,4 +1,5 @@
 import type { FinTSConfig } from '../config.js';
+import { internationalAccount, nationalAccount } from '../accountDescriptor.js';
 import type { Message } from '../message.js';
 import { Mt940Parser } from '../mt940parser.js';
 import type { Segment } from '../segment.js';
@@ -17,12 +18,16 @@ export class StatementInteractionMT940 extends CustomerOrderInteraction {
 
 	createSegments(init: FinTSConfig): Segment[] {
 		const bankAccount = init.getBankAccount(this.accountNumber);
-		const account = { ...bankAccount, iban: undefined };
 		const version = init.getMaxSupportedTransactionVersion(HKKAZ.Id);
 
 		if (!version) {
 			throw Error(`There is no supported version for business transaction '${HKKAZ.Id}'`);
 		}
+
+		const account =
+			version <= 6
+				? nationalAccount(bankAccount)
+				: internationalAccount(init, bankAccount);
 
 		const hkkaz: HKKAZSegment = {
 			header: { segId: HKKAZ.Id, segNr: 0, version: version },

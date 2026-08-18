@@ -1,4 +1,5 @@
 import type { FinTSConfig } from '../config.js';
+import { nationalAccount } from '../accountDescriptor.js';
 import type { Message } from '../message.js';
 import { type Holding, Mt535Parser, type StatementOfHoldings } from '../mt535parser.js';
 import type { Segment } from '../segment.js';
@@ -51,7 +52,7 @@ export class PortfolioInteraction extends CustomerOrderInteraction {
 			);
 		}
 
-		const depotAccount = { ...bankAccount, iban: undefined }; // HKWPD uses KTV which doesn't have IBAN
+		const depotAccount = nationalAccount(bankAccount); // HKWPD uses KTV, which has no IBAN
 
 		const version = config.getMaxSupportedTransactionVersion(HKWPD.Id);
 
