@@ -80,11 +80,19 @@ describe('internationalAccount', () => {
 		});
 	});
 
-	it('leaves them out when the bank announces no HISPAS at all', () => {
-		// A "Kann"-field: no permission is not permission.
+	it('keeps them when the bank announces no HISPAS at all', () => {
+		// Silence is not a refusal. Only a bank that says false gets the shorter form,
+		// so a bank working today cannot regress on a rule it never stated — see #25,
+		// where Postbank required the national fields for identification.
 		const descriptor = internationalAccount(configWith([]), account);
 
-		expect(descriptor).toEqual({ iban: 'DE89370400440532013000', bic: 'BANKDEFFXXX' });
+		expect(descriptor).toEqual({
+			iban: 'DE89370400440532013000',
+			bic: 'BANKDEFFXXX',
+			accountNumber: '1234567890',
+			subAccountId: 'Girokonto',
+			bank: { country: 280, bankId: '10020030' },
+		});
 	});
 
 	it('keeps the national fields for an account without an IBAN, whatever the flag says', () => {

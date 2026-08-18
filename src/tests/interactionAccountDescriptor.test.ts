@@ -167,3 +167,29 @@ describe('HKWPD — national at every version', () => {
 		});
 	});
 });
+
+// The two banks that pulled this in opposite directions. #19/#20 reduced the CAMT
+// descriptor to IBAN and BIC because comdirect rejects anything more; #25 reported
+// Postbank answering "Angaben zur nationalen Kontoverbindung für Identifikation
+// erforderlich", and the reduction was reverted. Neither bank was wrong, and neither
+// fix could hold, because the choice was hard-coded either way. It is data now.
+
+describe('the two banks that pulled this in opposite directions', () => {
+	it('a bank refusing the national fields gets IBAN and BIC only', () => {
+		const [hkcaz] = new StatementInteractionCAMT(GIRO).createSegments(configFor({ HKCAZ: [1] }, false));
+
+		expect(account(hkcaz)).toEqual({ iban: IBAN, bic: 'BANKDEFFXXX' });
+	});
+
+	it('a bank that says nothing keeps them, so nothing working today regresses', () => {
+		const [hkcaz] = new StatementInteractionCAMT(GIRO).createSegments(configFor({ HKCAZ: [1] }));
+
+		expect(account(hkcaz)).toEqual({
+			iban: IBAN,
+			bic: 'BANKDEFFXXX',
+			accountNumber: GIRO,
+			subAccountId: 'Girokonto',
+			bank: BANK,
+		});
+	});
+});

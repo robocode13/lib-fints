@@ -48,9 +48,13 @@ export function nationalAccount(account: BankAccount): Account {
  * to identify it with, so it keeps the national fields whatever the flag says. A
  * request the bank refuses is more useful than one it cannot resolve at all.
  *
- * When the bank announces no HISPAS at all the national fields are left out, which
- * is what the specification means by a "Kann"-field: absent permission is not
- * permission.
+ * A bank that announces no HISPAS at all keeps both halves, exactly as before. The
+ * specification would read absent permission as no permission, but this library has
+ * already been round that loop: #20 reduced the CAMT descriptor to IBAN and BIC for
+ * comdirect, #25 reported Postbank answering "Angaben zur nationalen Kontoverbindung
+ * für Identifikation erforderlich", and the reduction was reverted. Only a bank that
+ * says `false` gets the shorter form, so no bank that works today can regress on a
+ * rule it never stated.
  */
 export function internationalAccount(
 	config: FinTSConfig,
@@ -62,13 +66,13 @@ export function internationalAccount(
 
 	const hispas = config.getTransactionParameters<HISPASParameter>(HKSPA.Id);
 
-	return hispas?.nationalAccountAllowed
-		? {
+	return hispas?.nationalAccountAllowed === false
+		? { iban: account.iban, bic: account.bic }
+		: {
 				iban: account.iban,
 				bic: account.bic,
 				accountNumber: account.accountNumber,
 				subAccountId: account.subAccountId,
 				bank: account.bank,
-			}
-		: { iban: account.iban, bic: account.bic };
+			};
 }
