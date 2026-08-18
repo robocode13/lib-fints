@@ -1,6 +1,7 @@
 import type { AccountBalance } from '../accountBalance.js';
 import { CreditDebit } from '../codes.js';
 import type { FinTSConfig } from '../config.js';
+import { internationalAccount, nationalAccount } from '../accountDescriptor.js';
 import type { Balance } from '../dataGroups/Balance.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
@@ -32,7 +33,9 @@ export class BalanceInteraction extends CustomerOrderInteraction {
 		}
 
 		const account =
-			version <= 6 ? { ...bankAccount, iban: undefined, bic: undefined } : bankAccount;
+			version <= 6
+				? nationalAccount(bankAccount)
+				: internationalAccount(init, bankAccount);
 
 		const hksal: HKSALSegment = {
 			header: { segId: HKSAL.Id, segNr: 0, version: version },

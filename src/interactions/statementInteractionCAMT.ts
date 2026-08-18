@@ -1,4 +1,5 @@
 import { CamtParser } from '../camtParser.js';
+import { internationalAccount } from '../accountDescriptor.js';
 import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
@@ -36,7 +37,7 @@ export class StatementInteractionCAMT extends CustomerOrderInteraction {
 
 		const hkcaz: HKCAZSegment = {
 			header: { segId: HKCAZ.Id, segNr: 0, version: version },
-			account: bankAccount,
+			account: internationalAccount(init, bankAccount),
 			acceptedCamtFormats: acceptedCamtFormats,
 			allAccounts: false,
 			from: this.from,

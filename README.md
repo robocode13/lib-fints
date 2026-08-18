@@ -280,6 +280,7 @@ Implementing further transactions should be straight forward and contributions a
 
 ### Successfully tested with the following banks
 
+- comdirect
 - DKB
 - ING-DiBa
 - Renault Bank Direkt
