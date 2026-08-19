@@ -249,9 +249,11 @@ export class FinTSConfig {
 		);
 		if (genau) return genau;
 
-		// Banks are not consistent about repeating the sub-account id, so a number that
-		// only one account has still identifies it. One that several share does not,
-		// and guessing is what this whole change exists to stop.
+		// A tolerance, not a rule: B.3.1 requires the sub-account id to appear the same
+		// way in the UPD and in HKSPA/HISPA, and a bank that omits it here has not kept
+		// to that. Refusing would cost the IBAN for an account that is otherwise
+		// perfectly identified, so a number only one account has still identifies it.
+		// One that several share does not, and guessing is what this change exists to stop.
 		const passend = konten.filter((a) => a.accountNumber === account.accountNumber);
 		return passend.length === 1 ? passend[0] : undefined;
 	}
