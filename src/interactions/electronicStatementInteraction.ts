@@ -1,3 +1,4 @@
+import { describeAccount, type AccountRef } from '../bankAccount.js';
 import type { FinTSConfig } from '../config.js';
 import type { ElectronicStatement } from '../electronicStatement.js';
 import type { Message } from '../message.js';
@@ -68,14 +69,14 @@ function unwrapBase64(bytes: Uint8Array): Uint8Array {
 
 export class ElectronicStatementInteraction extends CustomerOrderInteraction {
 	constructor(
-		public accountNumber: string,
+		public account: AccountRef,
 		public options: ElectronicStatementOptions = {},
 	) {
 		super(HKEKA.Id, HIEKA.Id);
 	}
 
 	createSegments(init: FinTSConfig): Segment[] {
-		const bankAccount = init.getBankAccount(this.accountNumber);
+		const bankAccount = init.getBankAccount(this.account);
 		const version = init.getMaxSupportedTransactionVersion(HKEKA.Id);
 		if (!version) {
 			throw Error(`There is no supported version for business transaction '${HKEKA.Id}'`);

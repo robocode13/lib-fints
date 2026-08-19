@@ -1,4 +1,5 @@
 import { CamtParser } from '../camtParser.js';
+import type { AccountRef } from '../bankAccount.js';
 import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
@@ -10,7 +11,7 @@ import { CustomerOrderInteraction, type StatementResponse } from './customerInte
 
 export class StatementInteractionCAMT extends CustomerOrderInteraction {
 	constructor(
-		public accountNumber: string,
+		public account: AccountRef,
 		public from?: Date,
 		public to?: Date,
 	) {
@@ -18,7 +19,7 @@ export class StatementInteractionCAMT extends CustomerOrderInteraction {
 	}
 
 	createSegments(init: FinTSConfig): Segment[] {
-		const bankAccount = init.getBankAccount(this.accountNumber);
+		const bankAccount = init.getBankAccount(this.account);
 		const version = init.getMaxSupportedTransactionVersion(HKCAZ.Id);
 		if (!version) {
 			throw Error(`There is no supported version for business transaction '${HKCAZ.Id}'`);

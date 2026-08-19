@@ -1,4 +1,5 @@
 import type { AccountBalance } from '../accountBalance.js';
+import { describeAccount, type AccountRef } from '../bankAccount.js';
 import type { FinTSConfig } from '../config.js';
 import type { CreditCardStatement } from '../creditCardStatement.js';
 import type { Message } from '../message.js';
@@ -14,17 +15,17 @@ export interface CreditCardStatementResponse extends ClientResponse {
 
 export class CreditCardStatementInteraction extends CustomerOrderInteraction {
 	constructor(
-		public accountNumber: string,
+		public account: AccountRef,
 		public from?: Date,
 	) {
 		super(DKKKU.Id, DIKKU.Id);
 	}
 
 	createSegments(init: FinTSConfig): Segment[] {
-		const bankAccount = init.getBankAccount(this.accountNumber);
-		if (!init.isAccountTransactionSupported(this.accountNumber, this.segId)) {
+		const bankAccount = init.getBankAccount(this.account);
+		if (!init.isAccountTransactionSupported(this.account, this.segId)) {
 			throw Error(
-				`Account ${this.accountNumber} does not support business transaction '${this.segId}'`,
+				`Account ${describeAccount(this.account)} does not support business transaction '${this.segId}'`,
 			);
 		}
 
@@ -78,7 +79,7 @@ export class CreditCardStatementInteraction extends CustomerOrderInteraction {
 			if (dikku.transactions) {
 				for (let i = 0; i < dikku.transactions.length; i++) {
 					const parts = dikku.transactions[i].split(':');
-					// const accountNumber = parts[0];
+					// const account = parts[0];
 					const transactionDateStr = parts[1];
 					const valueDateStr = parts[2];
 					const currencyOrig = parts[5];
