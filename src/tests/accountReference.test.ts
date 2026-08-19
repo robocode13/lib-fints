@@ -115,3 +115,27 @@ describe('naming an account in an error', () => {
 		expect(describeAccount(depot)).toBe('1234567890 (Depot)');
 	});
 });
+
+describe('matching an account the bank itself named', () => {
+	it('uses the sub-account id where the bank repeated it', () => {
+		const config = configWith([giro, depot]);
+		expect(config.matchBankAccount({ accountNumber: '1234567890', subAccountId: 'Depot' })?.subAccountId)
+			.toBe('Depot');
+	});
+
+	it('still finds an account whose number only it has, sub-account id or not', () => {
+		// Banks are not consistent about repeating it, and a number only one account
+		// has identifies that account either way.
+		const config = configWith([giro, einzeln]);
+		expect(config.matchBankAccount({ accountNumber: '5555555555' })?.accountNumber)
+			.toBe('5555555555');
+	});
+
+	it('gives up quietly where it cannot tell, rather than throwing', () => {
+		// This runs for entries the bank supplied — HISPA travels with every dialog —
+		// so throwing here would fail every request at a bank that shares numbers,
+		// before any of them reached its order. That is exactly what happened once.
+		const config = configWith([giro, depot]);
+		expect(config.matchBankAccount({ accountNumber: '1234567890' })).toBeUndefined();
+	});
+});
