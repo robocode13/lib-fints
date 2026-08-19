@@ -1,3 +1,4 @@
+import { describeAccount, type AccountRef } from '../bankAccount.js';
 import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import { type Holding, Mt535Parser, type StatementOfHoldings } from '../mt535parser.js';
@@ -34,7 +35,7 @@ export interface PortfolioResponse extends ClientResponse {
  */
 export class PortfolioInteraction extends CustomerOrderInteraction {
 	constructor(
-		public accountNumber: string,
+		public account: AccountRef,
 		private currency?: string,
 		private priceQuality?: '1' | '2',
 		private maxEntries?: number,
@@ -44,10 +45,10 @@ export class PortfolioInteraction extends CustomerOrderInteraction {
 	}
 
 	createSegments(config: FinTSConfig): Segment[] {
-		const bankAccount = config.getBankAccount(this.accountNumber);
-		if (!config.isAccountTransactionSupported(this.accountNumber, this.segId)) {
+		const bankAccount = config.getBankAccount(this.account);
+		if (!config.isAccountTransactionSupported(this.account, this.segId)) {
 			throw Error(
-				`Account ${this.accountNumber} does not support business transaction '${this.segId}'`,
+				`Account ${describeAccount(this.account)} does not support business transaction '${this.segId}'`,
 			);
 		}
 

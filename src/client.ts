@@ -1,3 +1,4 @@
+import { describeAccount, type AccountRef } from './bankAccount.js';
 import { FinTSConfig } from './config.js';
 import { Dialog } from './dialog.js';
 import {
@@ -92,23 +93,23 @@ export class FinTSClient {
 
 	/**
 	 * Checks if the bank supports fetching an account balance in general or for the given account number when provided
-	 * @param accountNumber when the account number is provided, checks if the account supports fetching the balance
+	 * @param account when the account number is provided, checks if the account supports fetching the balance
 	 * @returns true if the bank (and account) supports fetching the account balance
 	 */
-	canGetAccountBalance(accountNumber?: string): boolean {
-		return accountNumber
-			? this.config.isAccountTransactionSupported(accountNumber, HKSAL.Id)
+	canGetAccountBalance(account?: AccountRef): boolean {
+		return account
+			? this.config.isAccountTransactionSupported(account, HKSAL.Id)
 			: this.config.isTransactionSupported(HKSAL.Id);
 	}
 
 	/**
 	 * Fetches the account balance for the given account number
-	 * @param accountNumber - the account number to fetch the balance for, must be an account available in the config.baningInformation.UPD.accounts
+	 * @param account - the account number to fetch the balance for, must be an account available in the config.baningInformation.UPD.accounts
 	 * @returns the account balance response
 	 */
-	async getAccountBalance(accountNumber: string): Promise<AccountBalanceResponse> {
+	async getAccountBalance(account: AccountRef): Promise<AccountBalanceResponse> {
 		const response = await this.startCustomerOrderInteraction(
-			new BalanceInteraction(accountNumber),
+			new BalanceInteraction(account),
 		);
 		return response as AccountBalanceResponse;
 	}
@@ -132,15 +133,15 @@ export class FinTSClient {
 
 	/**
 	 * Checks if the bank supports fetching account statements in general or for the given account number when provided
-	 * @param accountNumber when the account number is provided, checks if the account supports fetching of statements
+	 * @param account when the account number is provided, checks if the account supports fetching of statements
 	 * @returns true if the bank (and account) supports fetching account statements
 	 */
-	canGetAccountStatements(accountNumber?: string): boolean {
-		if (accountNumber) {
+	canGetAccountStatements(account?: AccountRef): boolean {
+		if (account) {
 			// Check if either CAMT or MT940 is supported for this account
 			return (
-				this.config.isAccountTransactionSupported(accountNumber, HKCAZ.Id) ||
-				this.config.isAccountTransactionSupported(accountNumber, HKKAZ.Id)
+				this.config.isAccountTransactionSupported(account, HKCAZ.Id) ||
+				this.config.isAccountTransactionSupported(account, HKKAZ.Id)
 			);
 		} else {
 			// Check if either CAMT or MT940 is supported by the bank
@@ -152,24 +153,24 @@ export class FinTSClient {
 
 	/**
 	 * Fetches the account statements for the given account number
-	 * @param accountNumber - the account number to fetch the statements for, must be an account available in the config.baningInformation.UPD.accounts
+	 * @param account - the account number to fetch the statements for, must be an account available in the config.baningInformation.UPD.accounts
 	 * @param from - an optional start date of the period to fetch the statements for
 	 * @param to - an optional end date of the period to fetch the statements for
 	 * @param preferCamt - whether to prefer CAMT format over MT940 when both are supported (default: true)
 	 * @returns an account statements response containing an array of statements
 	 */
 	async getAccountStatements(
-		accountNumber: string,
+		account: AccountRef,
 		from?: Date,
 		to?: Date,
 		preferCamt: boolean = true,
 	): Promise<StatementResponse> {
 		// Check what formats the bank supports
-		const camtSupported = this.config.isAccountTransactionSupported(accountNumber, 'HKCAZ');
-		const mt940Supported = this.config.isAccountTransactionSupported(accountNumber, 'HKKAZ');
+		const camtSupported = this.config.isAccountTransactionSupported(account, 'HKCAZ');
+		const mt940Supported = this.config.isAccountTransactionSupported(account, 'HKKAZ');
 
 		if (!camtSupported && !mt940Supported) {
-			throw Error(`Account ${accountNumber} does not support account statements`);
+			throw Error(`Account ${describeAccount(account)} does not support account statements`);
 		}
 
 		// Choose format based on support and preference
@@ -177,11 +178,11 @@ export class FinTSClient {
 
 		if (useCAMT) {
 			return (await this.startCustomerOrderInteraction(
-				new StatementInteractionCAMT(accountNumber, from, to),
+				new StatementInteractionCAMT(account, from, to),
 			)) as StatementResponse;
 		} else {
 			return (await this.startCustomerOrderInteraction(
-				new StatementInteractionMT940(accountNumber, from, to),
+				new StatementInteractionMT940(account, from, to),
 			)) as StatementResponse;
 		}
 	}
@@ -205,31 +206,31 @@ export class FinTSClient {
 
 	/**
 	 * Checks if the bank supports fetching portfolio information in general or for the given account number when provided
-	 * @param accountNumber when the account number is provided, checks if the account supports fetching of portfolio information
+	 * @param account when the account number is provided, checks if the account supports fetching of portfolio information
 	 * @returns true if the bank (and account) supports fetching portfolio information
 	 */
-	canGetPortfolio(accountNumber?: string): boolean {
-		return accountNumber
-			? this.config.isAccountTransactionSupported(accountNumber, HKWPD.Id)
+	canGetPortfolio(account?: AccountRef): boolean {
+		return account
+			? this.config.isAccountTransactionSupported(account, HKWPD.Id)
 			: this.config.isTransactionSupported(HKWPD.Id);
 	}
 
 	/**
 	 * Fetches the portfolio information for the given depot account number
-	 * @param accountNumber - the depot account number to fetch the portfolio for, must be an account available in the config.bankingInformation.UPD.accounts
+	 * @param account - the depot account number to fetch the portfolio for, must be an account available in the config.bankingInformation.UPD.accounts
 	 * @param currency - optional currency filter for the portfolio statement
 	 * @param priceQuality - optional price quality filter ('1' for real-time, '2' for delayed)
 	 * @param maxEntries - optional maximum number of entries to retrieve
 	 * @returns a portfolio response containing holdings and total value
 	 */
 	async getPortfolio(
-		accountNumber: string,
+		account: AccountRef,
 		currency?: string,
 		priceQuality?: '1' | '2',
 		maxEntries?: number,
 	): Promise<PortfolioResponse> {
 		return (await this.startCustomerOrderInteraction(
-			new PortfolioInteraction(accountNumber, currency, priceQuality, maxEntries),
+			new PortfolioInteraction(account, currency, priceQuality, maxEntries),
 		)) as PortfolioResponse;
 	}
 
@@ -250,26 +251,26 @@ export class FinTSClient {
 
 	/**
 	 * Checks if the bank supports fetching credit card statements in general or for the given account number
-	 * @param accountNumber when the account number is provided, checks if the account supports fetching of statements
+	 * @param account when the account number is provided, checks if the account supports fetching of statements
 	 * @returns true if the bank (and account) supports fetching credit card statements
 	 */
-	canGetCreditCardStatements(accountNumber?: string): boolean {
-		return accountNumber
-			? this.config.isAccountTransactionSupported(accountNumber, DKKKU.Id)
+	canGetCreditCardStatements(account?: AccountRef): boolean {
+		return account
+			? this.config.isAccountTransactionSupported(account, DKKKU.Id)
 			: this.config.isTransactionSupported(DKKKU.Id);
 	}
 
 	/**
 	 * Fetches the credit card statements for the given account number
-	 * @param accountNumber - the account number to fetch the statements for, must be a credit card account available
+	 * @param account - the account number to fetch the statements for, must be a credit card account available
 	 * in the config.baningInformation.UPD.accounts
 	 * @param from - an optional start date of the period to fetch the statements for
 	 * @param to - an optional end date of the period to fetch the statements for
 	 * @returns an account statements response containing an array of statements
 	 */
-	async getCreditCardStatements(accountNumber: string, from?: Date): Promise<StatementResponse> {
+	async getCreditCardStatements(account: AccountRef, from?: Date): Promise<StatementResponse> {
 		return (await this.startCustomerOrderInteraction(
-			new CreditCardStatementInteraction(accountNumber, from),
+			new CreditCardStatementInteraction(account, from),
 		)) as StatementResponse;
 	}
 
@@ -292,12 +293,12 @@ export class FinTSClient {
 
 	/**
 	 * Checks if the bank supports fetching electronic account statements in general or for the given account number
-	 * @param accountNumber when the account number is provided, checks if the account supports fetching of electronic statements
+	 * @param account when the account number is provided, checks if the account supports fetching of electronic statements
 	 * @returns true if the bank (and account) supports fetching electronic account statements
 	 */
-	canGetElectronicStatements(accountNumber?: string): boolean {
-		return accountNumber
-			? this.config.isAccountTransactionSupported(accountNumber, HKEKA.Id)
+	canGetElectronicStatements(account?: AccountRef): boolean {
+		return account
+			? this.config.isAccountTransactionSupported(account, HKEKA.Id)
 			: this.config.isTransactionSupported(HKEKA.Id);
 	}
 
@@ -310,16 +311,16 @@ export class FinTSClient {
 	 * fetch the next one. Banks that set `receiptRequired` in their HIEKAS parameters keep
 	 * offering a statement until it has been acknowledged with its receipt.
 	 *
-	 * @param accountNumber - the account number to fetch the statement for, must be an account available in the config.bankingInformation.upd.accounts
+	 * @param account - the account number to fetch the statement for, must be an account available in the config.bankingInformation.upd.accounts
 	 * @param options - optional format, statement number and year, entry limit and offset
 	 * @returns a response containing the statement documents and the offset of a waiting successor
 	 */
 	async getElectronicStatements(
-		accountNumber: string,
+		account: AccountRef,
 		options?: ElectronicStatementOptions,
 	): Promise<ElectronicStatementResponse> {
 		return (await this.startCustomerOrderInteraction(
-			new ElectronicStatementInteraction(accountNumber, options),
+			new ElectronicStatementInteraction(account, options),
 		)) as ElectronicStatementResponse;
 	}
 
