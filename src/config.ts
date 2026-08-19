@@ -1,4 +1,4 @@
-import type { BankAccount } from './bankAccount.js';
+import type { AccountRef, BankAccount } from './bankAccount.js';
 import type { BankingInformation } from './bankingInformation.js';
 import { getSegmentDefinition } from './segments/registry.js';
 import type { TanMethod } from './tanMethod.js';
@@ -229,11 +229,11 @@ export class FinTSConfig {
 
 	/**
 	 * Checks if a transaction is supported for a specific account
-	 * @param accountNumber The account number
+	 * @param account An account number, or an account from `bankingInformation.upd.bankAccounts`
 	 * @param transId The transaction ID
 	 */
-	isAccountTransactionSupported(accountNumber: string, transId: string): boolean {
-		const bankAccount = this.getBankAccount(accountNumber);
+	isAccountTransactionSupported(account: AccountRef, transId: string): boolean {
+		const bankAccount = this.getBankAccount(account);
 		return !!bankAccount.allowedTransactions?.find((t) => t.transId === transId);
 	}
 
@@ -258,18 +258,53 @@ export class FinTSConfig {
 	}
 
 	/**
-	 * Gets the bank account information for a specific account number
-	 * @param accountNumber The account number
+	 * Resolves an account reference against the accounts the bank reported.
+	 *
+	 * A number alone is enough wherever it is unique, which is the usual case. Where
+	 * it is not, this throws instead of picking one: FinTS identifies an account by
+	 * number *and* sub-account id, so a number that matches two accounts does not say
+	 * which one is meant, and answering for the wrong one produces a balance or a list
+	 * of transactions that belongs to a different account with nothing to indicate it.
+	 *
+	 * @param account An account number, or an account from `bankingInformation.upd.bankAccounts`
 	 */
-	getBankAccount(accountNumber: string): BankAccount {
-		const bankAccount = this.bankingInformation.upd?.bankAccounts.find(
-			(a) => a.accountNumber === accountNumber,
-		);
+	getBankAccount(account: AccountRef): BankAccount {
+		const konten = this.bankingInformation.upd?.bankAccounts ?? [];
 
-		if (!bankAccount) {
-			throw Error(`Account ${accountNumber} not found in UPD`);
+		if (typeof account !== 'string') {
+			// Resolved against the UPD rather than trusted as given: the caller may hold
+			// an account from an earlier session, and the entry the bank sent this time
+			// is the one carrying the current allowed transactions.
+			const gefunden = konten.find(
+				(a) =>
+					a.accountNumber === account.accountNumber &&
+					a.subAccountId === account.subAccountId,
+			);
+
+			if (!gefunden) {
+				throw Error(
+					`Account ${account.accountNumber}${account.subAccountId ? ` (${account.subAccountId})` : ''} not found in UPD`,
+				);
+			}
+
+			return gefunden;
 		}
 
-		return bankAccount;
+		const passend = konten.filter((a) => a.accountNumber === account);
+
+		if (passend.length === 0) {
+			throw Error(`Account ${account} not found in UPD`);
+		}
+
+		if (passend.length > 1) {
+			const merkmale = passend.map((a) => a.subAccountId ?? '(none)').join(', ');
+			throw Error(
+				`Account number ${account} is not unique in UPD: ${passend.length} accounts share it, ` +
+					`with sub-account ids ${merkmale}. Pass the account itself instead of its number, ` +
+					`from bankingInformation.upd.bankAccounts.`,
+			);
+		}
+
+		return passend[0];
 	}
 }
