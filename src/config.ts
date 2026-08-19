@@ -228,6 +228,35 @@ export class FinTSConfig {
 	}
 
 	/**
+	 * The account the bank meant, without demanding that it be unambiguous.
+	 *
+	 * For entries the *bank* supplied — a SEPA account from HISPA, say — rather than
+	 * ones a caller asked for. A caller who names an ambiguous account has made a
+	 * mistake worth an exception; a bank listing its own accounts has not, and
+	 * throwing there would break every dialog at an institution that shares numbers.
+	 *
+	 * @param account An account number with, where the bank gave one, its sub-account id
+	 */
+	matchBankAccount(account: {
+		accountNumber: string;
+		subAccountId?: string;
+	}): BankAccount | undefined {
+		const konten = this.bankingInformation.upd?.bankAccounts ?? [];
+
+		const genau = konten.find(
+			(a) =>
+				a.accountNumber === account.accountNumber && a.subAccountId === account.subAccountId,
+		);
+		if (genau) return genau;
+
+		// Banks are not consistent about repeating the sub-account id, so a number that
+		// only one account has still identifies it. One that several share does not,
+		// and guessing is what this whole change exists to stop.
+		const passend = konten.filter((a) => a.accountNumber === account.accountNumber);
+		return passend.length === 1 ? passend[0] : undefined;
+	}
+
+	/**
 	 * Checks if a transaction is supported for a specific account
 	 * @param account An account number, or an account from `bankingInformation.upd.bankAccounts`
 	 * @param transId The transaction ID
