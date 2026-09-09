@@ -104,4 +104,27 @@ describe('CustomerMessage', () => {
 
 		const _message = Message.decode(encodedMessage);
 	});
+	it('encrypts with the security profile version of the signature (two-step: PIN:2)', () => {
+		const customerMessage = new CustomerMessage('0', 1);
+
+		customerMessage.addSegment(hkidn);
+		customerMessage.addSegment(hkvvb);
+		customerMessage.sign(280, '12030000', '12345678', '123', '0', 900, '12345');
+		const encodedMessage = customerMessage.encode();
+
+		expect(encodedMessage).toContain("'HNVSK:998:3+PIN:2+998+");
+		expect(encodedMessage).toContain('HNSHK:2:4+PIN:2+900+');
+	});
+
+	it('encrypts with the security profile version of the signature (one-step: PIN:1)', () => {
+		const customerMessage = new CustomerMessage('0', 1);
+
+		customerMessage.addSegment(hkidn);
+		customerMessage.addSegment(hkvvb);
+		customerMessage.sign(280, '12030000', '12345678', '123', '0');
+		const encodedMessage = customerMessage.encode();
+
+		expect(encodedMessage).toContain("'HNVSK:998:3+PIN:1+998+");
+		expect(encodedMessage).toContain('HNSHK:2:4+PIN:1+999+');
+	});
 });
