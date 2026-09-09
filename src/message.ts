@@ -185,9 +185,13 @@ export class CustomerMessage extends Message {
 
 			const now = new Date();
 
+			// The encryption header carries the same security profile as the
+			// signature: PIN version 2 for a two-step TAN method, 1 for one-step.
+			// Some banks (Consorsbank, BLZ 76030080) reject a two-step dialog whose
+			// HNVSK still says PIN:1 with "9010 Ungültiger Signaturaufbau".
 			const hnvsk: HNVSKSegment = {
 				header: { segId: HNVSK.Id, segNr: 998, version: HNVSK.Version },
-				secProfile: { secMethod: 'PIN', secVersion: 1 },
+				secProfile: { secMethod: 'PIN', secVersion: firstSignature.secProfile.secVersion },
 				secFunc: 998,
 				secRole: 1,
 				secId: { partyType: 1, partyId: firstSignature.secId.partyId },
