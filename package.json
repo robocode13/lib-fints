@@ -20,8 +20,8 @@
 		}
 	},
 	"scripts": {
-		"build": "rm -rf ./dist && tsc",
-		"pack": "pnpm run build && pnpm pack --pack-destination ~/npm-repo",
+		"build": "rm -rf ./dist && tsc && biome check",
+		"lint": "biome check --fix",
 		"test": "vitest",
 		"preprepare": "pnpm run build"
 	},
