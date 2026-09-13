@@ -3,12 +3,15 @@ import { Dat } from '../dataElements/Dat.js';
 import { Numeric } from '../dataElements/Numeric.js';
 import { YesNo } from '../dataElements/YesNo.js';
 import { type Account, AccountGroup } from '../dataGroups/Account.js';
-import { InternationalAccountGroup } from '../dataGroups/InternationalAccount.js';
+import {
+	type InternationalAccount,
+	InternationalAccountGroup,
+} from '../dataGroups/InternationalAccount.js';
 import type { SegmentWithContinuationMark } from '../segment.js';
 import { SegmentDefinition } from '../segmentDefinition.js';
 
 export type HKKAZSegment = SegmentWithContinuationMark & {
-	account: Account;
+	account: Account | InternationalAccount;
 	allAccounts: boolean;
 	from?: Date;
 	to?: Date;

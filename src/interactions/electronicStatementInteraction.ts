@@ -1,3 +1,4 @@
+import { internationalAccount, nationalAccount } from '../accountDescriptor.js';
 import type { FinTSConfig } from '../config.js';
 import type { ElectronicStatement } from '../electronicStatement.js';
 import type { Message } from '../message.js';
@@ -87,7 +88,8 @@ export class ElectronicStatementInteraction extends CustomerOrderInteraction {
 
 		const hkeka: HKEKASegment = {
 			header: { segId: HKEKA.Id, segNr: 0, version: version },
-			account: bankAccount,
+			account:
+				version <= 3 ? nationalAccount(bankAccount) : internationalAccount(init, bankAccount),
 			statementFormat: format,
 			statementNumber: this.options.number,
 			statementYear: this.options.year,
