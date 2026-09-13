@@ -85,14 +85,17 @@ Finally you can start fetching balances or statements:
 // for simplicity, use the first account
 const account = syncResponse.bankingInformation.upd.bankAccounts[0];
 
+// Account-specific methods accept either an account number or a BankAccount.
+// Pass the account object when multiple accounts share the same number.
+
 // fetch the current balance
-const balanceResponse = await client.getAccountBalance(account.accountNumber);
+const balanceResponse = await client.getAccountBalance(account);
 
 // fetch all available statements
-const statementResponse = await client.getAccountStatements(account.accountNumber);
+const statementResponse = await client.getAccountStatements(account);
 
 // or fetch portfolio from a securities account
-client.getPortfolio(account.accountNumber);
+client.getPortfolio(account);
 ```
 
 These are only the most basic steps needed to retrieve information from the bank. There are still some unanswered questions like "how to handle TANs" or "how to avoid synchronizations every time you start a new session". These are explained in the corresponding sections below.
@@ -110,7 +113,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-let response = await client.getAccountStatements(account.accountNumber);
+let response = await client.getAccountStatements(account);
 
 if (!response.success) {
   return;
@@ -197,11 +200,11 @@ The following table shows all transactions supported by the FinTSClient interfac
 | Transaction                | Method                                                               | Description                                                                     | FinTS Segment(s)           | TAN Support | Account-Specific |
 | -------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------- | ----------- | ---------------- |
 | **Synchronization**        | `synchronize()`                                                      | Synchronizes bank and account information, updating config.bankingInformation   | HKIDN, HKVVB, HKSYN, HKTAB | ✓           | ❌               |
-| **Account Balance**        | `getAccountBalance(accountNumber)`                                   | Fetches the current balance for a specific account                              | HKSAL                      | ✓           | ✓                |
-| **Account Statements**     | `getAccountStatements(accountNumber, from?, to?)`                    | Fetches account transactions/statements for a date range (MT940 or CAMT format) | HKKAZ, HKCAZ               | ✓           | ✓                |
-| **Portfolio**              | `getPortfolio(accountNumber, currency?, priceQuality?, maxEntries?)` | Fetches securities portfolio information for depot accounts                     | HKWPD                      | ✓           | ✓                |
-| **Credit Card Statements** | `getCreditCardStatements(accountNumber, from?)`                      | Fetches credit card statements for credit card accounts                         | DKKKU                      | ✓           | ✓                |
-| **Electronic Statements**  | `getElectronicStatements(accountNumber, options?)`                   | Fetches the statement document from the electronic mailbox, usually a PDF       | HKEKA                      | ✓           | ✓                |
+| **Account Balance**        | `getAccountBalance(account: AccountRef)`                              | Fetches the current balance for a specific account                              | HKSAL                      | ✓           | ✓                |
+| **Account Statements**     | `getAccountStatements(account: AccountRef, from?, to?)`               | Fetches account transactions/statements for a date range (MT940 or CAMT format) | HKKAZ, HKCAZ               | ✓           | ✓                |
+| **Portfolio**              | `getPortfolio(account: AccountRef, currency?, priceQuality?, maxEntries?)` | Fetches securities portfolio information for depot accounts                  | HKWPD                      | ✓           | ✓                |
+| **Credit Card Statements** | `getCreditCardStatements(account: AccountRef, from?)`                 | Fetches credit card statements for credit card accounts                         | DKKKU                      | ✓           | ✓                |
+| **Electronic Statements**  | `getElectronicStatements(account: AccountRef, options?)`              | Fetches the statement document from the electronic mailbox, usually a PDF       | HKEKA                      | ✓           | ✓                |
 | **TAN Method Selection**   | `selectTanMethod(tanMethodId)`                                       | Selects a TAN method by ID from available methods                               | -                          | ❌          | ❌               |
 | **TAN Media Selection**    | `selectTanMedia(tanMediaName)`                                       | Selects a specific TAN media device by name                                     | -                          | ❌          | ❌               |
 
@@ -211,11 +214,11 @@ For each account-specific transaction, the client provides corresponding `can*` 
 
 | Support Check Method                         | Purpose                                                         |
 | -------------------------------------------- | --------------------------------------------------------------- |
-| `canGetAccountBalance(accountNumber?)`       | Checks if account balance fetching is supported                 |
-| `canGetAccountStatements(accountNumber?)`    | Checks if account statements fetching is supported (MT940/CAMT) |
-| `canGetPortfolio(accountNumber?)`            | Checks if portfolio information fetching is supported           |
-| `canGetCreditCardStatements(accountNumber?)` | Checks if credit card statements fetching is supported          |
-| `canGetElectronicStatements(accountNumber?)` | Checks if electronic account statements fetching is supported   |
+| `canGetAccountBalance(account?: AccountRef)`       | Checks if account balance fetching is supported                 |
+| `canGetAccountStatements(account?: AccountRef)`    | Checks if account statements fetching is supported (MT940/CAMT) |
+| `canGetPortfolio(account?: AccountRef)`            | Checks if portfolio information fetching is supported           |
+| `canGetCreditCardStatements(account?: AccountRef)` | Checks if credit card statements fetching is supported          |
+| `canGetElectronicStatements(account?: AccountRef)` | Checks if electronic account statements fetching is supported   |
 
 ### Transaction Parameters
 
@@ -246,12 +249,12 @@ if (config.isTransactionSupported('HKWPD')) {
 }
 ```
 
-#### `config.isAccountTransactionSupported(accountNumber: string, transId: string): boolean`
+#### `config.isAccountTransactionSupported(account: AccountRef, transId: string): boolean`
 
 Checks whether a specific transaction type is supported for a particular account.
 
 ```typescript
-if (config.isAccountTransactionSupported('1234567890', 'HKWPD')) {
+if (config.isAccountTransactionSupported(account, 'HKWPD')) {
   console.log('Account supports portfolio requests');
 }
 ```
