@@ -1,7 +1,7 @@
 import type { AccountBalance } from '../accountBalance.js';
+import { internationalAccount, nationalAccount } from '../accountDescriptor.js';
 import { CreditDebit } from '../codes.js';
 import type { FinTSConfig } from '../config.js';
-import { internationalAccount, nationalAccount } from '../accountDescriptor.js';
 import type { Balance } from '../dataGroups/Balance.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';

@@ -1,5 +1,5 @@
-import type { FinTSConfig } from '../config.js';
 import { nationalAccount } from '../accountDescriptor.js';
+import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import { type Holding, Mt535Parser, type StatementOfHoldings } from '../mt535parser.js';
 import type { Segment } from '../segment.js';

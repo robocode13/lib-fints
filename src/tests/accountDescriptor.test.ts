@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { internationalAccount, nationalAccount } from '../accountDescriptor.js';
 import { AccountType, type BankAccount } from '../bankAccount.js';
+import type { BankTransaction } from '../bankTransaction.js';
 import { Language } from '../codes.js';
 import { FinTSConfig } from '../config.js';
-import type { BankTransaction } from '../bankTransaction.js';
 
 const account: BankAccount = {
 	accountNumber: '1234567890',

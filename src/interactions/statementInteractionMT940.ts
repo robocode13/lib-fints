@@ -1,5 +1,5 @@
-import type { FinTSConfig } from '../config.js';
 import { internationalAccount, nationalAccount } from '../accountDescriptor.js';
+import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import { Mt940Parser } from '../mt940parser.js';
 import type { Segment } from '../segment.js';

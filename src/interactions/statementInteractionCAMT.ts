@@ -1,5 +1,5 @@
-import { CamtParser } from '../camtParser.js';
 import { internationalAccount } from '../accountDescriptor.js';
+import { CamtParser } from '../camtParser.js';
 import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
