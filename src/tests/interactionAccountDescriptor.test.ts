@@ -125,13 +125,17 @@ describe('HKSAL — national up to version 6, international from 7', () => {
 
 describe('HKKAZ — national up to version 6, international from 7', () => {
 	it('sends the national form at version 6', () => {
-		const [hkkaz] = new StatementInteractionMT940(GIRO).createSegments(configFor({ HKKAZ: [6] }, false));
+		const [hkkaz] = new StatementInteractionMT940(GIRO).createSegments(
+			configFor({ HKKAZ: [6] }, false),
+		);
 
 		expect(account(hkkaz)).toEqual({ accountNumber: GIRO, subAccountId: 'Girokonto', bank: BANK });
 	});
 
 	it('honours the flag at version 7', () => {
-		const [hkkaz] = new StatementInteractionMT940(GIRO).createSegments(configFor({ HKKAZ: [7] }, false));
+		const [hkkaz] = new StatementInteractionMT940(GIRO).createSegments(
+			configFor({ HKKAZ: [7] }, false),
+		);
 
 		expect(account(hkkaz)).toEqual({ iban: IBAN, bic: 'BANKDEFFXXX' });
 	});
@@ -157,7 +161,9 @@ describe('HKEKA — national up to version 3, international from 4', () => {
 
 describe('HKWPD — national at every version', () => {
 	it('sends the national form, and the depot has no IBAN to send anyway', () => {
-		const [hkwpd] = new PortfolioInteraction(DEPOT).createSegments(configFor({ HKWPD: [5] }, false));
+		const [hkwpd] = new PortfolioInteraction(DEPOT).createSegments(
+			configFor({ HKWPD: [5] }, false),
+		);
 
 		// biome-ignore lint/suspicious/noExplicitAny: reading one field off a built segment
 		expect((hkwpd as any).depot).toEqual({
@@ -176,7 +182,9 @@ describe('HKWPD — national at every version', () => {
 
 describe('the two banks that pulled this in opposite directions', () => {
 	it('a bank refusing the national fields gets IBAN and BIC only', () => {
-		const [hkcaz] = new StatementInteractionCAMT(GIRO).createSegments(configFor({ HKCAZ: [1] }, false));
+		const [hkcaz] = new StatementInteractionCAMT(GIRO).createSegments(
+			configFor({ HKCAZ: [1] }, false),
+		);
 
 		expect(account(hkcaz)).toEqual({ iban: IBAN, bic: 'BANKDEFFXXX' });
 	});

@@ -17,7 +17,12 @@ const account: BankAccount = {
 	holder1: 'Test User',
 };
 
-const depot: BankAccount = { ...account, accountNumber: '9876543210', iban: undefined, bic: undefined };
+const depot: BankAccount = {
+	...account,
+	accountNumber: '9876543210',
+	iban: undefined,
+	bic: undefined,
+};
 
 function configWith(allowedTransactions: BankTransaction[]): FinTSConfig {
 	return FinTSConfig.fromBankingInformation('product', '1.0', {

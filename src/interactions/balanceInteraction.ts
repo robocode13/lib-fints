@@ -33,9 +33,7 @@ export class BalanceInteraction extends CustomerOrderInteraction {
 		}
 
 		const account =
-			version <= 6
-				? nationalAccount(bankAccount)
-				: internationalAccount(init, bankAccount);
+			version <= 6 ? nationalAccount(bankAccount) : internationalAccount(init, bankAccount);
 
 		const hksal: HKSALSegment = {
 			header: { segId: HKSAL.Id, segNr: 0, version: version },
