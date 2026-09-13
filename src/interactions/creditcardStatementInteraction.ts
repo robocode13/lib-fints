@@ -1,5 +1,5 @@
 import type { AccountBalance } from '../accountBalance.js';
-import { describeAccount, type AccountRef } from '../bankAccount.js';
+import { type AccountRef, describeAccount } from '../bankAccount.js';
 import type { FinTSConfig } from '../config.js';
 import type { CreditCardStatement } from '../creditCardStatement.js';
 import type { Message } from '../message.js';

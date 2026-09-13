@@ -241,21 +241,20 @@ export class FinTSConfig {
 		accountNumber: string;
 		subAccountId?: string;
 	}): BankAccount | undefined {
-		const konten = this.bankingInformation.upd?.bankAccounts ?? [];
+		const accounts = this.bankingInformation.upd?.bankAccounts ?? [];
 
-		const genau = konten.find(
-			(a) =>
-				a.accountNumber === account.accountNumber && a.subAccountId === account.subAccountId,
+		const exactMatch = accounts.find(
+			(a) => a.accountNumber === account.accountNumber && a.subAccountId === account.subAccountId,
 		);
-		if (genau) return genau;
+		if (exactMatch) return exactMatch;
 
 		// A tolerance, not a rule: B.3.1 requires the sub-account id to appear the same
 		// way in the UPD and in HKSPA/HISPA, and a bank that omits it here has not kept
 		// to that. Refusing would cost the IBAN for an account that is otherwise
 		// perfectly identified, so a number only one account has still identifies it.
 		// One that several share does not, and guessing is what this change exists to stop.
-		const passend = konten.filter((a) => a.accountNumber === account.accountNumber);
-		return passend.length === 1 ? passend[0] : undefined;
+		const matches = accounts.filter((a) => a.accountNumber === account.accountNumber);
+		return matches.length === 1 ? matches[0] : undefined;
 	}
 
 	/**
@@ -300,42 +299,40 @@ export class FinTSConfig {
 	 * @param account An account number, or an account from `bankingInformation.upd.bankAccounts`
 	 */
 	getBankAccount(account: AccountRef): BankAccount {
-		const konten = this.bankingInformation.upd?.bankAccounts ?? [];
+		const accounts = this.bankingInformation.upd?.bankAccounts ?? [];
 
 		if (typeof account !== 'string') {
 			// Resolved against the UPD rather than trusted as given: the caller may hold
 			// an account from an earlier session, and the entry the bank sent this time
 			// is the one carrying the current allowed transactions.
-			const gefunden = konten.find(
-				(a) =>
-					a.accountNumber === account.accountNumber &&
-					a.subAccountId === account.subAccountId,
+			const matchedAccount = accounts.find(
+				(a) => a.accountNumber === account.accountNumber && a.subAccountId === account.subAccountId,
 			);
 
-			if (!gefunden) {
+			if (!matchedAccount) {
 				throw Error(
 					`Account ${account.accountNumber}${account.subAccountId ? ` (${account.subAccountId})` : ''} not found in UPD`,
 				);
 			}
 
-			return gefunden;
+			return matchedAccount;
 		}
 
-		const passend = konten.filter((a) => a.accountNumber === account);
+		const matches = accounts.filter((a) => a.accountNumber === account);
 
-		if (passend.length === 0) {
+		if (matches.length === 0) {
 			throw Error(`Account ${account} not found in UPD`);
 		}
 
-		if (passend.length > 1) {
-			const merkmale = passend.map((a) => a.subAccountId ?? '(none)').join(', ');
+		if (matches.length > 1) {
+			const subAccountIds = matches.map((a) => a.subAccountId ?? '(none)').join(', ');
 			throw Error(
-				`Account number ${account} is not unique in UPD: ${passend.length} accounts share it, ` +
-					`with sub-account ids ${merkmale}. Pass the account itself instead of its number, ` +
+				`Account number ${account} is not unique in UPD: ${matches.length} accounts share it, ` +
+					`with sub-account ids ${subAccountIds}. Pass the account itself instead of its number, ` +
 					`from bankingInformation.upd.bankAccounts.`,
 			);
 		}
 
-		return passend[0];
+		return matches[0];
 	}
 }

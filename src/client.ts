@@ -1,4 +1,4 @@
-import { describeAccount, type AccountRef } from './bankAccount.js';
+import { type AccountRef, describeAccount } from './bankAccount.js';
 import { FinTSConfig } from './config.js';
 import { Dialog } from './dialog.js';
 import {
@@ -108,9 +108,7 @@ export class FinTSClient {
 	 * @returns the account balance response
 	 */
 	async getAccountBalance(account: AccountRef): Promise<AccountBalanceResponse> {
-		const response = await this.startCustomerOrderInteraction(
-			new BalanceInteraction(account),
-		);
+		const response = await this.startCustomerOrderInteraction(new BalanceInteraction(account));
 		return response as AccountBalanceResponse;
 	}
 
