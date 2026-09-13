@@ -76,7 +76,9 @@ describe('addressing an account by number', () => {
 	});
 
 	it('still says so when the number matches nothing', () => {
-		expect(() => configWith([checkingAccount]).getBankAccount('0000000000')).toThrow(/not found in UPD/);
+		expect(() => configWith([checkingAccount]).getBankAccount('0000000000')).toThrow(
+			/not found in UPD/,
+		);
 	});
 });
 
