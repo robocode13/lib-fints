@@ -25,6 +25,26 @@ export type BankAccount = SepaAccount & {
 	allowedTransactions?: AllowedTransactions[];
 };
 
+/**
+ * How a caller names an account.
+ *
+ * An account number is not by itself unique: FinTS identifies an account by number
+ * *and* sub-account id together, and banks use that — a securities account and the
+ * current account it settles through commonly share a number and differ only in the
+ * sub-account id. Where that happens, a number alone cannot say which one is meant,
+ * so the account itself can be passed instead. Take it from
+ * `config.bankingInformation.upd.bankAccounts`.
+ */
+export type AccountRef = string | BankAccount;
+
+/** How an account reference reads in an error message. */
+export function describeAccount(account: AccountRef): string {
+	if (typeof account === 'string') return account;
+	return account.subAccountId
+		? `${account.accountNumber} (${account.subAccountId})`
+		: account.accountNumber;
+}
+
 export function finTsAccountTypeToEnum(accountType: number): AccountType {
 	if (accountType >= 1 && accountType <= 9) return AccountType.CheckingAccount;
 	if (accountType >= 10 && accountType <= 19) return AccountType.SavingsAccount;

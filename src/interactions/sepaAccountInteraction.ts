@@ -1,3 +1,4 @@
+import type { AccountRef } from '../bankAccount.js';
 import type { FinTSConfig } from '../config.js';
 import type { SepaAccount } from '../dataGroups/SepaAccount.js';
 import type { Message } from '../message.js';
@@ -12,7 +13,7 @@ export interface SepaAccountResponse extends ClientResponse {
 
 export class SepaAccountInteraction extends CustomerOrderInteraction {
 	constructor(
-		public accounts?: string[], // optional specific account numbers
+		public accounts?: AccountRef[], // optional: only these accounts
 		public maxEntries?: number,
 	) {
 		super(HKSPA.Id, HISPA.Id);
@@ -29,9 +30,7 @@ export class SepaAccountInteraction extends CustomerOrderInteraction {
 			throw Error(`There is no supported version for business transaction '${HKSPA.Id}'`);
 		}
 
-		const accounts = this.accounts?.map((accountNumber) => {
-			return init.getBankAccount(accountNumber);
-		});
+		const accounts = this.accounts?.map((account) => init.getBankAccount(account));
 
 		const hkspa: HKSPASegment = {
 			header: { segId: HKSPA.Id, segNr: 0, version: version },
@@ -54,7 +53,10 @@ export class SepaAccountInteraction extends CustomerOrderInteraction {
 			});
 
 			clientResponse.sepaAccounts.forEach((sepaAccount) => {
-				const bankAccount = this.dialog?.config.getBankAccount(sepaAccount.accountNumber);
+				// Matched, not resolved: this is the bank listing its own accounts, and at an
+				// institution where two of them share a number, demanding an unambiguous
+				// answer here would fail every dialog before it reached its order.
+				const bankAccount = this.dialog?.config.matchBankAccount(sepaAccount);
 				if (bankAccount && !bankAccount.isSepaAccount) {
 					bankAccount.isSepaAccount = sepaAccount.isSepaAccount;
 					bankAccount.iban = sepaAccount.iban;

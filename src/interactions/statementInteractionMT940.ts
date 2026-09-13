@@ -1,4 +1,5 @@
 import { internationalAccount, nationalAccount } from '../accountDescriptor.js';
+import type { AccountRef } from '../bankAccount.js';
 import type { FinTSConfig } from '../config.js';
 import type { Message } from '../message.js';
 import { Mt940Parser } from '../mt940parser.js';
@@ -9,7 +10,7 @@ import { CustomerOrderInteraction, type StatementResponse } from './customerInte
 
 export class StatementInteractionMT940 extends CustomerOrderInteraction {
 	constructor(
-		public accountNumber: string,
+		public account: AccountRef,
 		public from?: Date,
 		public to?: Date,
 	) {
@@ -17,7 +18,7 @@ export class StatementInteractionMT940 extends CustomerOrderInteraction {
 	}
 
 	createSegments(init: FinTSConfig): Segment[] {
-		const bankAccount = init.getBankAccount(this.accountNumber);
+		const bankAccount = init.getBankAccount(this.account);
 		const version = init.getMaxSupportedTransactionVersion(HKKAZ.Id);
 
 		if (!version) {
@@ -29,7 +30,7 @@ export class StatementInteractionMT940 extends CustomerOrderInteraction {
 
 		const hkkaz: HKKAZSegment = {
 			header: { segId: HKKAZ.Id, segNr: 0, version: version },
-			account,
+			account: account,
 			allAccounts: false,
 			from: this.from,
 			to: this.to,
