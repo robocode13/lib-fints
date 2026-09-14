@@ -12,13 +12,13 @@ export * from './config.js';
 export * from './dialog.js';
 export * from './electronicStatement.js';
 export * from './httpClient.js';
-export { AccountBalanceResponse } from './interactions/balanceInteraction.js';
-export { ClientResponse, StatementResponse } from './interactions/customerInteraction.js';
-export {
+export type { AccountBalanceResponse } from './interactions/balanceInteraction.js';
+export type { ClientResponse, StatementResponse } from './interactions/customerInteraction.js';
+export type {
 	ElectronicStatementOptions,
 	ElectronicStatementResponse,
 } from './interactions/electronicStatementInteraction.js';
-export { PortfolioResponse } from './interactions/portfolioInteraction.js';
+export type { PortfolioResponse } from './interactions/portfolioInteraction.js';
 export * from './message.js';
 export * from './mt535parser.js';
 export * from './mt940parser.js';
