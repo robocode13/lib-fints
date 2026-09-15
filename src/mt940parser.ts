@@ -1,6 +1,6 @@
-import { Balance, Statement, Transaction } from './statement.js';
+import type { Balance, Statement, Transaction } from './statement.js';
 
-export { Statement, Transaction, Balance };
+export type { Statement, Transaction, Balance };
 
 export enum TokenType {
 	Tag = 'Tag',
