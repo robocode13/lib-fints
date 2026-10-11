@@ -6,6 +6,7 @@ import {
 	BalanceInteraction,
 } from './interactions/balanceInteraction.js';
 import { CreditCardStatementInteraction } from './interactions/creditcardStatementInteraction.js';
+import { CreditCardStatementInteractionHKKKU } from './interactions/creditcardStatementInteractionHKKKU.js';
 import type {
 	ClientResponse,
 	CustomerOrderInteraction,
@@ -28,6 +29,7 @@ import { HKCAZ } from './segments/HKCAZ.js';
 import { HKEKA } from './segments/HKEKA.js';
 import { HKIDN } from './segments/HKIDN.js';
 import { HKKAZ } from './segments/HKKAZ.js';
+import { HKKKU } from './segments/HKKKU.js';
 import { HKSAL } from './segments/HKSAL.js';
 import { HKWPD } from './segments/HKWPD.js';
 import type { TanMethod } from './tanMethod.js';
@@ -253,9 +255,12 @@ export class FinTSClient {
 	 * @returns true if the bank (and account) supports fetching credit card statements
 	 */
 	canGetCreditCardStatements(account?: AccountRef): boolean {
+		// HKKKU is the standardized successor of DKKKU; some banks (e.g. Postbank) only offer HKKKU
 		return account
-			? this.config.isAccountTransactionSupported(account, DKKKU.Id)
-			: this.config.isTransactionSupported(DKKKU.Id);
+			? this.config.isAccountTransactionSupported(account, HKKKU.Id) ||
+					this.config.isAccountTransactionSupported(account, DKKKU.Id)
+			: this.config.isTransactionSupported(HKKKU.Id) ||
+					this.config.isTransactionSupported(DKKKU.Id);
 	}
 
 	/**
@@ -266,7 +271,17 @@ export class FinTSClient {
 	 * @param to - an optional end date of the period to fetch the statements for
 	 * @returns an account statements response containing an array of statements
 	 */
-	async getCreditCardStatements(account: AccountRef, from?: Date): Promise<StatementResponse> {
+	async getCreditCardStatements(
+		account: AccountRef,
+		from?: Date,
+		to?: Date,
+	): Promise<StatementResponse> {
+		// Prefer HKKKU where the bank offers it for this account; DKKKU has no end date
+		if (this.config.isAccountTransactionSupported(account, HKKKU.Id)) {
+			return (await this.startCustomerOrderInteraction(
+				new CreditCardStatementInteractionHKKKU(account, from, to),
+			)) as StatementResponse;
+		}
 		return (await this.startCustomerOrderInteraction(
 			new CreditCardStatementInteraction(account, from),
 		)) as StatementResponse;
@@ -283,7 +298,7 @@ export class FinTSClient {
 		tan?: string,
 	): Promise<StatementResponse> {
 		return (await this.continueCustomerInteractionWithTan(
-			[DKKKU.Id],
+			[HKKKU.Id, DKKKU.Id],
 			tanReference,
 			tan,
 		)) as StatementResponse;
