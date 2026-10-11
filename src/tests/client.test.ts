@@ -27,6 +27,7 @@ describe('FinTSClient', () => {
 					{ transId: 'HKKAZ', versions: [6], tanRequired: true },
 					{ transId: 'HKWPD', versions: [7], tanRequired: true },
 					{ transId: 'DKKKU', versions: [2], tanRequired: false },
+					{ transId: 'HKKKU', versions: [1], tanRequired: false },
 				],
 				maxTransactionsPerMessage: 1,
 				supportedLanguages: [Language.German],
@@ -99,6 +100,20 @@ describe('FinTSClient', () => {
 						currency: 'EUR',
 						holder1: 'Test User',
 						allowedTransactions: [{ transId: 'DKKKU', numSignatures: 1 }],
+					},
+					{
+						accountNumber: '4444555566',
+						bank: {
+							bankId: '10020030',
+							country: 280,
+						},
+						iban: 'DE89370400440532013003',
+						customerId: 'customer1',
+						accountType: AccountType.CreditCardAccount,
+						currency: 'EUR',
+						holder1: 'Test User',
+						// Like Postbank: only the standardized HKKKU, no DKKKU
+						allowedTransactions: [{ transId: 'HKKKU', numSignatures: 1 }],
 					},
 				],
 			},
@@ -655,6 +670,35 @@ describe('FinTSClient', () => {
 			expect(response.statements?.length).toBe(1);
 			expect(response.statements?.[0].closingBalance?.value).toBe(-150.0);
 		});
+
+		it('uses HKKKU for a card that offers it', async () => {
+			dialogStartMock.mockResolvedValueOnce(
+				new Map<string, ClientResponse | StatementResponse>([
+					[
+						'HKKKU',
+						{
+							dialogId: 'DIALOG1',
+							success: true,
+							requiresTan: false,
+							bankingInformationUpdated: false,
+							bankAnswers: [{ code: 20, text: 'Auftrag ausgeführt' }],
+							statements: [],
+						},
+					],
+				]),
+			);
+
+			const addMock = vi.spyOn(Dialog.prototype, 'addCustomerInteraction');
+			const response = await client.getCreditCardStatements(
+				'4444555566',
+				new Date('2026-09-01'),
+				new Date('2026-10-04'),
+			);
+
+			expect(response.success).toBe(true);
+			expect(addMock.mock.calls.at(-1)?.[0].segId).toBe('HKKKU');
+			addMock.mockRestore();
+		});
 	});
 
 	describe('getCreditCardStatementsWithTan', () => {
@@ -740,6 +784,10 @@ describe('FinTSClient', () => {
 
 			it('returns false for non-credit card account', () => {
 				expect(client.canGetCreditCardStatements('1234567890')).toBe(false);
+			});
+
+			it('returns true for a credit card account that only offers HKKKU', () => {
+				expect(client.canGetCreditCardStatements('4444555566')).toBe(true);
 			});
 		});
 	});
