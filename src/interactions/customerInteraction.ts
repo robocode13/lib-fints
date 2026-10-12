@@ -32,6 +32,13 @@ export interface ClientResponse {
 	tanReference?: string;
 	tanChallenge?: string;
 	tanPhoto?: PhotoTan;
+	/**
+	 * The raw HHD UC challenge from HITAN, untouched. photoTAN banks put an
+	 * image container here (see tanPhoto), chipTAN banks the flicker code data
+	 * (HHD 1.3/1.4 start code and data elements) that a client renders as the
+	 * optical flicker animation. Only this raw form is usable for chipTAN.
+	 */
+	tanChallengeHhdUc?: string;
 	tanMediaName?: string;
 }
 
@@ -117,6 +124,7 @@ export abstract class CustomerInteraction {
 						bankAnswers.find((answer) => answer.code === 3957)?.text ??
 						'',
 					tanPhoto: hitan.challengeHhdUc ? this.parseHHDUC(hitan.challengeHhdUc) : undefined,
+					tanChallengeHhdUc: hitan.challengeHhdUc,
 					tanMediaName: hitan.tanMedia,
 				};
 			} else {
