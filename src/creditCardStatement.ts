@@ -9,7 +9,18 @@ export type CreditCardStatement = {
 	currency: string;
 	amount: number;
 	purpose: string;
-	originalCurrency: string;
-	originalAmount: number;
-	exchangeRate: number;
+	// Not every bank reports the original amount, e.g. for payments in the account currency (HKKKU)
+	originalCurrency?: string;
+	originalAmount?: number;
+	exchangeRate?: number;
+
+	// Only reported via HKKKU
+	// Date on which the merchant submitted the transaction
+	receiptDate?: Date;
+	// Merchant name
+	remoteName?: string;
+	country?: string;
+	// Whether the transaction is already part of a credit card statement
+	billed?: boolean;
+	reference?: string;
 };

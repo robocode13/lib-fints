@@ -9,10 +9,12 @@ export * from './bankingInformation.js';
 export * from './bpd.js';
 export * from './client.js';
 export * from './config.js';
+export type { CreditCardStatement } from './creditCardStatement.js';
 export * from './dialog.js';
 export * from './electronicStatement.js';
 export * from './httpClient.js';
 export type { AccountBalanceResponse } from './interactions/balanceInteraction.js';
+export type { CreditCardStatementResponse } from './interactions/creditcardStatementInteraction.js';
 export type { ClientResponse, StatementResponse } from './interactions/customerInteraction.js';
 export type {
 	ElectronicStatementOptions,
