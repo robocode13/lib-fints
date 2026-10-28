@@ -138,6 +138,10 @@ You could ask the user to confirm that the approval was given and then continue 
 
 see also the `decoupled` property on the `TanMethod` object for related parameters given by the bank.
 
+**chipTAN optisch / flicker codes**
+
+For chipTAN methods the bank sends the challenge data for the TAN generator in the HITAN segment. The response exposes it unchanged as `tanChallengeHhdUc` (a string with the HHD 1.3/1.4 start code and data elements), so that a client can render the optical flicker animation; `tanPhoto` only applies to photoTAN banks that put an image container into the same field.
+
 ### Starting a session from saved banking information
 
 As mentioned earlier there is a second way to initialize the `FinTSClient` with a `FinTSConfig` when you already performed a synchronization in a previous session and this is by providing the `bankingInformation` object received from previous uses. This `bankingInformation` object, which contains the general bank (BPD) and accounts information (UPD), should be persisted after a session and reloaded in the next session.
