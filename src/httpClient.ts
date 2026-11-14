@@ -50,8 +50,12 @@ export class HttpClient {
 				}
 				return responseMessage;
 			} catch (error) {
-				console.error('Error decoding response message:', error);
-				console.error('Response Message Content:\n', responseText.split("'").join('\n'));
+				// The response carries account data (balances, bookings, names), so it is only
+				// printed when debugging was asked for
+				if (this.debug) {
+					console.error('Error decoding response message:', error);
+					console.error('Response Message Content:\n', responseText.split("'").join('\n'));
+				}
 				throw error;
 			}
 		} else {
