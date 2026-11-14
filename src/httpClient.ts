@@ -1,6 +1,13 @@
 import { type CustomerMessage, type CustomerOrderMessage, Message } from './message.js';
 
 export class HttpClient {
+	/**
+	 * How long to wait for the bank's answer to one message, in milliseconds. Unset (the
+	 * default) waits as long as the connection lasts; set it so that a bank that doesn't
+	 * answer can't keep a dialog (and the caller) waiting forever.
+	 */
+	static timeoutMs: number | undefined = undefined;
+
 	constructor(
 		public url: string,
 		public debug = false,
@@ -25,6 +32,8 @@ export class HttpClient {
 			method: 'POST',
 			headers: { 'Content-Type': 'text/plain' },
 			body: requestBuffer.toString('base64'),
+			signal:
+				HttpClient.timeoutMs === undefined ? undefined : AbortSignal.timeout(HttpClient.timeoutMs),
 		});
 
 		if (response.ok) {
@@ -50,8 +59,12 @@ export class HttpClient {
 				}
 				return responseMessage;
 			} catch (error) {
-				console.error('Error decoding response message:', error);
-				console.error('Response Message Content:\n', responseText.split("'").join('\n'));
+				// The response carries account data (balances, bookings, names), so it is only
+				// printed when debugging was asked for
+				if (this.debug) {
+					console.error('Error decoding response message:', error);
+					console.error('Response Message Content:\n', responseText.split("'").join('\n'));
+				}
 				throw error;
 			}
 		} else {

@@ -44,6 +44,13 @@ export interface ClientResponse {
 
 export interface StatementResponse extends ClientResponse {
 	statements: Statement[];
+	/**
+	 * The statement documents exactly as the bank sent them: one CAMT XML document per
+	 * booking day (already decoded to a string), or the MT940 stream as one document.
+	 * Lets callers run their own parser, e.g. to read fields the built-in parsers skip
+	 * or to treat downloaded and uploaded statements alike.
+	 */
+	rawDocuments?: { format: 'camt' | 'mt940'; content: string }[];
 }
 
 export abstract class CustomerInteraction {
