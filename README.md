@@ -187,6 +187,18 @@ The property `activeTanMedia` contains a list of the TAN media names you can use
 
 The `bankingInformation` is primarily obtained through the `synchronize()` calls as demonstrated above. However, it is possible that the banking information may have changed since the last synchronization call. To address this, the BPD and UPD are versioned, and with every transaction made, not just synchronizations, the currently used versions are provided to the bank. If any changes have occurred, the bank will send back new versions of the BPD and UPD respectively. This process is managed by the client, but it is essential to check the `bankingInformationUpdated` property, which is available in every response. This property indicates if there have been any changes, and it is important to persist the new version for future sessions. The most up-to-date version of the `bankingInformation` object can always be retrieved using `config.bankingInformation`.
 
+### Statements as the bank sent them
+
+Besides the parsed `statements`, a statement response carries `rawDocuments`: the documents exactly as the bank sent them. For CAMT that is one XML document per booking day (already decoded to a string), for MT940 the whole stream as one document. Use them to run your own parser, to archive the original, or to treat downloaded and uploaded statements alike. All CAMT documents are present even when the built-in parser fails on one of them.
+
+```typescript
+const response = await client.getAccountStatements(account, from, to);
+for (const document of response.rawDocuments ?? []) {
+  // document.format is 'camt' or 'mt940', document.content the text as the bank sent it
+  archive(document.format, document.content);
+}
+```
+
 ### Debugging
 
 If you need to debug issues and the `response.bankAnswers` don't provide enough information, you can enable debugging of messages with:
