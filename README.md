@@ -197,6 +197,18 @@ config.debugEnabled = true;
 
 This will print out all sent messages and received responses to the console in a structured format.
 
+### Timeout for requests to the bank
+
+By default a request waits for the bank's answer as long as the connection lasts. To give up on a bank that doesn't answer, set a timeout in milliseconds; it applies to every request of every client:
+
+```typescript
+import { HttpClient } from 'lib-fints';
+
+HttpClient.timeoutMs = 30_000;
+```
+
+A request that takes longer is aborted with a `TimeoutError`.
+
 ## Supported Transactions
 
 The following table shows all transactions supported by the FinTSClient interface:
