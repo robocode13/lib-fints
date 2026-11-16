@@ -60,6 +60,9 @@ export class StatementInteractionCAMT extends CustomerOrderInteraction {
 			try {
 				// Parse all CAMT messages (one per booking day) and combine statements
 				const allStatements: Statement[] = [];
+				// Assigned up front so the raw documents survive a parser failure.
+				const rawCamt: string[] = [];
+				clientResponse.rawCamt = rawCamt;
 				for (const camtMessage of camtMessages) {
 					// The regex looks for the XML declaration `<?xml ... ?>`
 					// and checks if it contains the attribute encoding="UTF-8".
@@ -74,6 +77,7 @@ export class StatementInteractionCAMT extends CustomerOrderInteraction {
 						xmlString = intermediateBuffer.toString('utf8');
 					}
 
+					rawCamt.push(xmlString);
 					const parser = new CamtParser(xmlString);
 					const statements = parser.parse();
 					allStatements.push(...statements);

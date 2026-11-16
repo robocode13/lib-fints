@@ -44,6 +44,12 @@ export interface ClientResponse {
 
 export interface StatementResponse extends ClientResponse {
 	statements: Statement[];
+	/**
+	 * The CAMT documents as received from the bank (decoded to a string), one entry per
+	 * document. Only set for CAMT (HKCAZ) responses. Gives access to fields the parser does
+	 * not map to `Transaction`, e.g. return information (`RtrInf`) or charges.
+	 */
+	rawCamt?: string[];
 }
 
 export abstract class CustomerInteraction {

@@ -158,6 +158,36 @@ describe('StatementInteractionCAMT with a parted response', () => {
 		).statements.flatMap((s) => s.transactions);
 		expect(transactions).toHaveLength(2);
 	});
+
+	it('exposes the raw CAMT document of every segment', () => {
+		const doc = (id: string) =>
+			`<?xml version="1.0"?><Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">` +
+			`<BkToCstmrAcctRpt><GrpHdr><MsgId>${id}</MsgId></GrpHdr></BkToCstmrAcctRpt></Document>`;
+		const message = Message.decode(`${hicazText(doc('A'))}${hicazText(doc('B'))}`);
+
+		const interaction = new StatementInteractionCAMT('123');
+		const clientResponse = { statements: [] } as unknown as { rawCamt?: string[] };
+		interaction.handleResponse(message, clientResponse as never);
+
+		expect(clientResponse.rawCamt).toEqual([doc('A'), doc('B')]);
+	});
+
+	it('keeps the raw CAMT documents when parsing fails', () => {
+		const broken = '<?xml version="1.0"?><Document><Unclosed></Document>';
+		const message = Message.decode(hicazText(broken));
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		const interaction = new StatementInteractionCAMT('123');
+		const clientResponse = { statements: [] } as unknown as {
+			statements: unknown[];
+			rawCamt?: string[];
+		};
+		interaction.handleResponse(message, clientResponse as never);
+
+		expect(clientResponse.statements).toEqual([]);
+		expect(clientResponse.rawCamt).toEqual([broken]);
+		warn.mockRestore();
+	});
 });
 
 describe('several response segments in one bank message', () => {
