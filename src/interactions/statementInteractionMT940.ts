@@ -50,13 +50,9 @@ export class StatementInteractionMT940 extends CustomerOrderInteraction {
 			.join('');
 
 		if (bookedTransactions) {
-			try {
-				const parser = new Mt940Parser(bookedTransactions);
-				clientResponse.statements = parser.parse();
-			} catch (error) {
-				console.warn('MT940 parsing failed:', error);
-				clientResponse.statements = [];
-			}
+			// A parse failure is thrown: an empty result would look like an account
+			// without transactions.
+			clientResponse.statements = new Mt940Parser(bookedTransactions).parse();
 		} else {
 			clientResponse.statements = [];
 		}
