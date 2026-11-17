@@ -61,7 +61,7 @@ export function encode(data: Segment): string {
 }
 
 export function segmentToString(segment: Segment): string {
-	const keyedSegment = segment as { [key: string]: unknown };
+	const keyedSegment = withoutCredentials(segment) as { [key: string]: unknown };
 
 	const number = segment.header.segNr?.toString() ?? '?';
 	const segId =
@@ -92,4 +92,23 @@ export function segmentToString(segment: Segment): string {
 
 	text += `; ${texts.filter((text) => !!text).join('; ')}`;
 	return text;
+}
+
+/**
+ * The signature end (HNSHA) carries the PIN and TAN. They are replaced before a segment
+ * is turned into text, so debug output never shows them.
+ */
+function withoutCredentials(segment: Segment): Segment {
+	if (segment.header.segId !== 'HNSHA') {
+		return segment;
+	}
+	const signature = (segment as { customSignature?: { pin?: string; tan?: string } })
+		.customSignature;
+	if (!signature) {
+		return segment;
+	}
+	return {
+		...segment,
+		customSignature: { pin: '***', ...(signature.tan ? { tan: '***' } : {}) },
+	} as Segment;
 }

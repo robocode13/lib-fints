@@ -15,7 +15,7 @@ export class HttpClient {
 			console.log('Request Message:\n');
 
 			if (this.debugRaw) {
-				console.log(encodedMessage.split("'").join('\n'));
+				console.log(redactSignature(encodedMessage).split("'").join('\n'));
 			} else {
 				console.log(message.toString());
 			}
@@ -55,7 +55,21 @@ export class HttpClient {
 				throw error;
 			}
 		} else {
-			throw Error(`Request failed with status code ${response.status}: ${await response.text()}`);
+			// The body is left out of the error: errors end up in application logs, and
+			// a bank's error page may echo parts of the request, which carries the PIN.
+			const body = await response.text();
+			if (this.debug) {
+				console.log(`Error response:\n${body}`);
+			}
+			throw Error(`Request failed with status code ${response.status}`);
 		}
 	}
+}
+
+/**
+ * Replace the signature end segment (HNSHA), which carries the PIN and TAN, in an encoded
+ * message. A segment ends at the first `'` that is not escaped with `?`.
+ */
+export function redactSignature(encodedMessage: string): string {
+	return encodedMessage.replace(/HNSHA:(?:\?.|[^'?])*'/g, "HNSHA:***'");
 }
