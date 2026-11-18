@@ -144,9 +144,9 @@ For chipTAN methods the bank sends the challenge data for the TAN generator in t
 
 ### SEPA credit transfers
 
-Until transfers were added, this library only read data from the bank. `transfer()` deliberately changes that: it is the only method that can move money. All other methods still only read, so an application that never calls `transfer()` never sends an order that moves money.
+Until transfers were added, this library only read data from the bank. Three methods change that: `transfer()` starts a payment, and its first call can already be final, because a bank may execute the transfer without asking for a confirmation or a TAN; `confirmTransfer()` and `transferWithTan()` can authorise a payment that is pending. All other methods only read, so an application that never calls these three never sends an order that moves money.
 
-A transfer is a single SEPA credit transfer (HKCCS), executed as soon as possible. Where the bank requires Verification of Payee (VoP) for transfers, as all banks in the euro area must since October 2025, the bank first checks the payee's name against the IBAN, and the application gets the result before the transfer can be executed:
+A transfer is a single SEPA credit transfer (HKCCS), executed as soon as possible. Where the bank requires Verification of Payee (VoP) for transfers, as all banks in the euro area must since October 2025, the bank first checks the payee's name against the IBAN, and the application gets the result before the transfer can be executed. The bank may ask for a decision or a TAN in any order, and more than once (a TAN for the login first, a decision after a TAN), so the application asks again after every call for as long as either flag is set:
 
 ```typescript
 if (!client.canTransfer(account)) {
@@ -161,30 +161,38 @@ let response = await client.transfer(account, {
   endToEndId: 'INVOICE-2026-001',
 });
 
-if (response.requiresVopConfirmation) {
-  const vop = response.vop!;
-  console.log(`Verification of Payee: ${vop.result}`);
-  if (vop.suggestedName) {
-    console.log(`The payee's bank holds the name ${vop.suggestedName}`);
-  }
-  // the bank's notice must be shown before the user decides
-  console.log(vop.notice);
+while (response.success && (response.requiresVopConfirmation || response.requiresTan)) {
+  if (response.requiresVopConfirmation) {
+    const vop = response.vop!;
+    console.log(`Verification of Payee: ${vop.result}`);
+    if (vop.suggestedName) {
+      console.log(`The payee's bank holds the name ${vop.suggestedName}`);
+    }
+    // the bank's notices must be shown before the user decides: those of the
+    // payment status report start with the result code they are about
+    for (const line of vop.paymentStatusReport?.groupReasons ?? []) {
+      console.log(line.replace(/^[A-Z]{4} /, ''));
+    }
+    if (vop.notice) {
+      console.log(vop.notice);
+    }
 
-  if ((await rl.question('Send the transfer anyway? (yes/no) ')) !== 'yes') {
-    await client.cancelTransfer(response.transferId);
-    return;
+    if ((await rl.question('Send the transfer anyway? (yes/no) ')) !== 'yes') {
+      await client.cancelTransfer(response.transferId);
+      return;
+    }
+    response = await client.confirmTransfer(response.transferId);
+  } else {
+    // with a decoupled TAN method, the user approves in the app and just presses enter
+    const tan = await rl.question(response.tanChallenge + ': ');
+    response = await client.transferWithTan(response.tanReference!, tan || undefined);
   }
-  response = await client.confirmTransfer(response.transferId);
-}
-
-while (response.requiresTan) {
-  // with a decoupled TAN method, the user approves in the app and just presses enter
-  const tan = await rl.question(response.tanChallenge + ': ');
-  response = await client.transferWithTan(response.tanReference!, tan || undefined);
 }
 
 if (response.success) {
   console.log(`The bank accepted the transfer ${response.endToEndId}`);
+} else if (response.outcomeUncertain) {
+  console.log('The bank may have executed the transfer; check the account before sending it again');
 } else {
   console.log(response.failureReason, response.bankAnswers);
 }
@@ -211,7 +219,7 @@ The result in `vop`:
 | `noMatch`       | RVNM | The name does not match                                                                  |
 | `notApplicable` | RVNA | The check was not possible, for example because the payee's bank does not take part     |
 
-`vop.notice` is the bank's explanation of what authorising a transfer despite a deviation means; the DK specification requires showing it before the user decides. Authorising anyway may send the money to someone else, and the payer's bank is then not liable for that.
+`vop.notice` is the bank's explanation of what authorising a transfer despite a deviation means; the DK specification requires showing it before the user decides. Authorising anyway may send the money to someone else, and the payer's bank is then not liable for that. A bank that sends a payment status report (pain.002) may put its notices into the report instead, as the lines of `vop.paymentStatusReport.groupReasons`, each starting with the result code it is about; show them as well.
 
 Things to know before using it:
 
@@ -219,7 +227,8 @@ Things to know before using it:
 - **The first call can be final.** A bank may execute the transfer without a confirmation and without a TAN, for example after a match when it requires no strong authentication (codes 3091 and 3076). Call `transfer()` only once the user has decided to send the money.
 - **Input is checked, never changed.** `transfer()` throws a `SepaValidationError` naming the `field` before anything is sent (its message never repeats the value, so that it can be logged): the IBAN (its characters, the length for its country and the check digits), the BIC, the amount (positive, at most two decimal places, at most 999,999,999.99 EUR), the lengths and the allowed characters. Nothing is transliterated or shortened.
 - **Unexpected answers stop the transfer.** An unknown result code, a missing VoP ID or another answer the library does not expect ends the transfer with `success: false` and the bank answers, instead of guessing.
-- **An exception after the first message leaves the outcome unknown.** If, for example, the connection fails while the order is at the bank, the bank may have executed it. Check the account (the `endToEndId` identifies the transfer) before sending it again.
+- **An exception after the first message leaves the outcome unknown.** If, for example, the connection fails while the order is at the bank, the bank may have executed it. Check the account before sending it again: sending it again is a new payment, even with the same `endToEndId`, and nothing stops the bank from executing both.
+- **The `endToEndId` identifies a transfer only when you give it one.** Without it, every transfer carries the shared `NOTPROVIDED`. Even a reference of your own may not show on the payer's statement, so finding a transfer there may need the account, the amount, the payee and the date.
 - **One transfer at a time.** A client handles one transfer at a time, in its own dialog, which stays open while the client waits for the decision or the TAN. Banks end idle dialogs after some minutes. Every response carries the `transferId` of its transfer; `confirmTransfer()` and `cancelTransfer()` take it, and `transferWithTan()` takes only the `tanReference` of the challenge outstanding, so that a late decision cannot act on another transfer. A call made while the previous one still waits for the bank throws without sending anything.
 - **Synchronize once after upgrading.** A `bankingInformation` saved by an earlier release of this library lacks the bank's Verification of Payee parameters (HIVPPS), and `canTransfer()` stays false without them. `synchronize()` then asks the bank for its whole BPD again, keeping the system ID; persist the updated `bankingInformation` afterwards.
 - **Asynchronous checks are polled for up to 60 seconds.** Some banks deliver the VoP result only after a while; `transfer()` waits as long as the bank says before asking again, and stops the transfer, unexecuted, when it would have to wait more than 60 seconds in total.

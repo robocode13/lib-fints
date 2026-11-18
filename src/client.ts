@@ -414,14 +414,17 @@ export class FinTSClient {
 	/**
 	 * Starts a SEPA credit transfer (HKCCS), executed as soon as possible.
 	 *
-	 * This is the only method of this library that can move money. The input is checked before
+	 * It starts a payment, and its first call can already be final: a bank may execute the
+	 * transfer without asking for a confirmation or a TAN. `confirmTransfer()` and
+	 * `transferWithTan()` can authorise it while it is pending. The input is checked before
 	 * anything is sent: an invalid IBAN, BIC, amount or text throws a `SepaValidationError`, and
 	 * nothing is transliterated or shortened.
 	 *
 	 * Where the bank requires Verification of Payee, it checks the payee's name against the IBAN
 	 * first, and the response carries the result in `vop`. Then:
-	 * - `requiresVopConfirmation`: the bank waits for a decision. Show `vop` (with `vop.notice`
-	 *   and, for a close match, `vop.suggestedName`) to the user, then call
+	 * - `requiresVopConfirmation`: the bank waits for a decision. Show `vop` (with `vop.notice`,
+	 *   the notice lines of `vop.paymentStatusReport?.groupReasons` and, for a close match,
+	 *   `vop.suggestedName`) to the user, then call
 	 *   `confirmTransfer(transferId)` to authorise the transfer anyway, or
 	 *   `cancelTransfer(transferId)` to drop it. Nothing is confirmed
 	 *   automatically, whatever the result.

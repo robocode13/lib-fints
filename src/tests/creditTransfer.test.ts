@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { AccountType } from '../bankAccount.js';
 import type { BankingInformation } from '../bankingInformation.js';
@@ -1684,6 +1685,76 @@ describe('FinTSClient SEPA credit transfer', () => {
 
 			expect(response.success).toBe(false);
 			expect(response.failureReason).toMatch(/3945/);
+		});
+	});
+
+	describe('the README example', () => {
+		/** The transfer example of the README, run as it stands, without its type assertions */
+		const example = (() => {
+			const readme = readFileSync(new URL('../../README.md', import.meta.url), 'utf8');
+			const section = readme.slice(readme.indexOf('### SEPA credit transfers'));
+			const code = /```typescript\n([\s\S]*?)```/.exec(section)?.[1] ?? '';
+			return code.replace(/(\w)!(?=[.,);])/g, '$1');
+		})();
+		const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+
+		const runExample = async (answers: string[]) => {
+			const printed: string[] = [];
+			const questions: string[] = [];
+			const rl = {
+				question: async (question: string) => {
+					questions.push(question);
+					return answers.shift() ?? '';
+				},
+			};
+			const log = { log: (...values: unknown[]) => printed.push(values.map(String).join(' ')) };
+			await new AsyncFunction('client', 'account', 'rl', 'console', example)(
+				client,
+				ACCOUNT,
+				rl,
+				log,
+			);
+			return { printed, questions };
+		};
+
+		it('asks for the decision the bank wants after the TAN (3945) before reporting acceptance', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(WARNINGS, hirms(3, APPROVAL_VOIDED)),
+				answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')),
+				tanAccepted(),
+				endOk(),
+			);
+
+			const { printed, questions } = await runExample(['123456', 'yes', '654321']);
+
+			expect(questions).toHaveLength(3);
+			expect(questions[1]).toMatch(/anyway/);
+			expect(printed).toContain('Bei Abweichungen haftet die Bank nicht.');
+			expect(printed.at(-1)).toBe('The bank accepted the transfer INVOICE-2026-001');
+		});
+
+		it('shows the notice of the report and asks after a TAN for the login, then cancels', async () => {
+			const report = pain002('RVNM').replace(
+				'</OrgnlGrpInfAndSts>',
+				'<GrpSts>RVCM</GrpSts><StsRsnInf><AddtlInf>RVNM Bei Abweichungen haftet die Bank nicht.</AddtlInf></StsRsnInf></OrgnlGrpInfAndSts>',
+			);
+			bank.responses.push(
+				answer(OK, "HIRMS:3:2:5+0030::Sicherheitsfreigabe erforderlich.'", hitan('INIT-REF')),
+				initOk(),
+				answer(WARNINGS, hirms(3, CHECK_RESULT), hivppReport(report)),
+				endOk(),
+			);
+
+			const { printed, questions } = await runExample(['111111', 'no']);
+
+			expect(questions).toHaveLength(2);
+			expect(questions[1]).toMatch(/anyway/);
+			expect(printed).toContain('Verification of Payee: noMatch');
+			expect(printed).toContain('Bei Abweichungen haftet die Bank nicht.');
+			expect(printed.join('\n')).not.toMatch(/accepted/);
+			expect(sentOrders().at(-1)).toEqual(['HKEND']);
 		});
 	});
 
