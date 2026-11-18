@@ -175,6 +175,32 @@ describe('buildPain001', () => {
 		expect(paymentInfo.CdtTrfTxInf.CdtrAgt.FinInstnId.BIC).toBe('TESTDE88');
 	});
 
+	it('checks the BIC against the pattern of the schema it writes', () => {
+		// BICFI (pain.001.001.09) allows a digit where BIC (pain.001.001.03) does not
+		const withBic = (bic: string) => ({ ...transfer, bic });
+		expect(() => buildPain001(debtor, withBic('TESTDE0O'), PAIN_001_001_09, now)).not.toThrow();
+		expectValidationError(
+			() => buildPain001(debtor, withBic('TESTDE0O'), PAIN_001_001_03, now),
+			'bic',
+			/not a valid BIC/,
+		);
+		expectValidationError(
+			() => buildPain001({ ...debtor, bic: 'TESTDE1A' }, transfer, PAIN_001_001_03, now),
+			'debtor bic',
+			/not a valid BIC/,
+		);
+		expect(() => buildPain001(debtor, withBic('1TESDEFF'), PAIN_001_001_09, now)).not.toThrow();
+		expectValidationError(
+			() => buildPain001(debtor, withBic('1TESDEFF'), PAIN_001_001_03, now),
+			'bic',
+			/not a valid BIC/,
+		);
+	});
+
+	it('rejects letters in a BIC that only upper-case to ASCII', () => {
+		expectValidationError(() => normalizeBic('ſTESDEFF'), 'bic', /not a valid BIC/);
+	});
+
 	it('writes BICFI for pain.001.001.09', () => {
 		const message = buildPain001(
 			{ ...debtor, bic: 'TESTDEFFXXX' },

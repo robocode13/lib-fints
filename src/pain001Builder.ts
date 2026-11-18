@@ -194,17 +194,33 @@ export function normalizeIban(iban: string, field = 'iban'): string {
 }
 
 /**
- * Normalises and checks a BIC (8 or 11 characters, letters upper-cased)
+ * The BIC patterns of the schemas: BICIdentifier in pain.001.001.03, BICFIDec2014Identifier
+ * (BICFI) in pain.001.001.09, which allows digits in the first four characters
+ */
+const BIC_PATTERNS: Record<string, RegExp> = {
+	[PAIN_001_001_03]: /^[A-Z]{6}[A-Z2-9][A-NP-Z0-9]([A-Z0-9]{3})?$/,
+	[PAIN_001_001_09]: /^[A-Z0-9]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/,
+};
+
+/**
+ * Normalises and checks a BIC (8 or 11 ASCII letters and digits, letters upper-cased)
+ * against the pattern of the schema it goes into
+ * @param descriptor the pain.001 schema the BIC is written in
  * @throws SepaValidationError when the BIC is not valid
  */
-export function normalizeBic(bic: string, field = 'bic'): string {
+export function normalizeBic(
+	bic: string,
+	field = 'bic',
+	descriptor: string = PAIN_001_001_09,
+): string {
 	if (typeof bic !== 'string') {
 		throw new SepaValidationError(field, `${field} must be a string`);
 	}
 
-	const normalized = bic.toUpperCase();
+	// Checked before upper-casing, which turns some other letters into ASCII ones (ſ into S)
+	const normalized = /^[A-Za-z0-9]*$/.test(bic) ? bic.toUpperCase() : '';
 
-	if (!/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(normalized)) {
+	if (!(BIC_PATTERNS[descriptor] ?? BIC_PATTERNS[PAIN_001_001_09]).test(normalized)) {
 		throw new SepaValidationError(field, `${field} '${bic}' is not a valid BIC`);
 	}
 
@@ -237,10 +253,10 @@ export function buildPain001(
 
 	const debtorName = checkText(debtor.name, 'debtorName', 70);
 	const debtorIban = normalizeIban(debtor.iban, 'debtor iban');
-	const debtorBic = debtor.bic ? normalizeBic(debtor.bic, 'debtor bic') : undefined;
+	const debtorBic = debtor.bic ? normalizeBic(debtor.bic, 'debtor bic', descriptor) : undefined;
 	const name = checkText(transfer.name, 'name', 70);
 	const iban = normalizeIban(transfer.iban);
-	const bic = transfer.bic ? normalizeBic(transfer.bic) : undefined;
+	const bic = transfer.bic ? normalizeBic(transfer.bic, 'bic', descriptor) : undefined;
 	const amount = formatAmount(transfer.amount);
 	const purpose =
 		transfer.purpose === undefined || transfer.purpose === ''
