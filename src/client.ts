@@ -63,7 +63,11 @@ const VOP_DEFAULT_REPORT_FORMAT = 'urn:iso:std:iso:20022:tech:xsd:pain.002.001.1
 type PendingTransfer = {
 	order: CreditTransferOrder;
 	dialog: Dialog;
-	lastResponse?: TransferResponse;
+	/**
+	 * The reference of the challenge the transfer waits for, if it waits for a TAN, as the
+	 * bank sent it: the response handed to the caller may be changed, this is not
+	 */
+	tanReference?: string;
 	/** Whether a step of the transfer has been sent and its answer is not handled yet */
 	inFlight: boolean;
 };
@@ -460,7 +464,10 @@ export class FinTSClient {
 			);
 		}
 
-		const order = new CreditTransferOrder(() => this.prepareTransfer(account, transfer));
+		// The payment as it is now: the caller's objects may change during the login
+		const accountRef = typeof account === 'string' ? account : { ...account };
+		const payment = { ...transfer };
+		const order = new CreditTransferOrder(() => this.prepareTransfer(accountRef, payment));
 		const dialog = new Dialog(this.config, false);
 		dialog.addCustomerInteraction(new CreditTransferInteraction(order, 'submit'));
 		const pending: PendingTransfer = { order, dialog, inFlight: false };
@@ -522,11 +529,11 @@ export class FinTSClient {
 			throw new Error(STEP_IN_FLIGHT);
 		}
 
-		if (!transfer?.lastResponse?.requiresTan) {
+		if (transfer?.tanReference === undefined) {
 			throw new Error('no transfer is waiting for a TAN');
 		}
 
-		if (transfer.lastResponse.tanReference !== tanReference) {
+		if (transfer.tanReference !== tanReference) {
 			throw new Error(
 				'the TAN reference does not belong to the challenge of the transfer in progress',
 			);
@@ -759,6 +766,8 @@ export class FinTSClient {
 		// Any message of the call may update it, the dialog initialisation above all
 		const bankingInformation = JSON.stringify(this.config.bankingInformation);
 
+		transfer.tanReference = undefined;
+
 		try {
 			order.lastResponse = undefined;
 			await step();
@@ -807,7 +816,9 @@ export class FinTSClient {
 			response = { ...response, bankingInformationUpdated: true };
 		}
 
-		transfer.lastResponse = response;
+		if (response.success && response.requiresTan) {
+			transfer.tanReference = response.tanReference ?? '';
+		}
 
 		if (order.status === 'accepted') {
 			// The dialog has already sent HKEND

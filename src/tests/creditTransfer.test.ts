@@ -1857,6 +1857,39 @@ describe('FinTSClient SEPA credit transfer', () => {
 			expect(bank.sent).toHaveLength(0);
 		});
 
+		it('sends the payment from the account as they were when the transfer was called', async () => {
+			removeTransaction('HKVPP');
+			config.bankingInformation.upd?.bankAccounts[1].allowedTransactions?.push({
+				transId: 'HKCCS',
+				numSignatures: 1,
+			});
+			const account = structuredClone(config.bankingInformation.upd?.bankAccounts[0]);
+			const form = { ...TRANSFER };
+			bank.responses.push(initOk(), answer(OK, hirms(3, '0020::Auftrag ausgefuehrt.')), endOk());
+
+			if (!account) throw new Error('no account');
+			const started = client.transfer(account, form);
+			// Changed while the login is still under way
+			form.amount = 100;
+			form.iban = 'DE02100100100006820101';
+			form.name = 'Someone Else';
+			account.accountNumber = '9876543210';
+
+			expect((await started).success).toBe(true);
+			const xml = bank.sent[1].findSegment<HKCCSSegment>('HKCCS')?.sepaPainMessage ?? '';
+			expect({
+				amount: xml.match(/<InstdAmt[^>]*>([^<]+)/)?.[1],
+				payee: xml.match(/<CdtrAcct><Id><IBAN>([^<]+)/)?.[1],
+				name: xml.match(/<Cdtr><Nm>([^<]+)/)?.[1],
+				debtor: xml.match(/<DbtrAcct><Id><IBAN>([^<]+)/)?.[1],
+			}).toEqual({
+				amount: '42.50',
+				payee: TRANSFER.iban,
+				name: TRANSFER.name,
+				debtor: 'DE89370400440532013000',
+			});
+		});
+
 		it('checks the payee when the dialog initialisation brings parameters that require it', async () => {
 			const withVop = config.bankingInformation.bpd?.allowedTransactions ?? [];
 			removeTransaction('HKVPP');
@@ -2399,6 +2432,68 @@ describe('FinTSClient SEPA credit transfer', () => {
 				bank.responses.push(answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')));
 				expect(await client.confirmTransfer(later.transferId)).toMatchObject({
 					requiresTan: true,
+				});
+			});
+
+			it('keeps the outstanding challenge apart from the response the caller may change', async () => {
+				bank.responses.push(
+					initOk(),
+					answer(WARNINGS, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				);
+				const response = await client.transfer(ACCOUNT, TRANSFER);
+				response.tanReference = 'OTHER';
+
+				await expect(client.transferWithTan('OTHER', '123456')).rejects.toThrow(
+					/does not belong to the challenge/,
+				);
+				expect(bank.sent).toHaveLength(2);
+
+				bank.responses.push(tanAccepted(), endOk());
+				expect(await client.transferWithTan('TAN-REF-1', '123456')).toMatchObject({
+					success: true,
+				});
+			});
+
+			it('offers no TAN step a changed response asks for after a deviation', async () => {
+				bank.responses.push(
+					initOk(),
+					answer(
+						WARNINGS,
+						hirms(3, CHECK_RESULT),
+						hirms(5, TAN_REQUIRED),
+						hitan(),
+						hivppSingle('RVNM'),
+					),
+				);
+				const response = await client.transfer(ACCOUNT, TRANSFER);
+				expect(response.requiresVopConfirmation).toBe(true);
+				Object.assign(response, { requiresTan: true, tanReference: 'TAN-REF-1' });
+
+				await expect(client.transferWithTan('TAN-REF-1', '123456')).rejects.toThrow(
+					/no transfer is waiting for a TAN/,
+				);
+				expect(bank.sent).toHaveLength(2);
+			});
+
+			it('keeps the challenge of the login apart from the response the caller may change', async () => {
+				bank.responses.push(
+					answer(OK, "HIRMS:3:2:5+0030::Sicherheitsfreigabe erforderlich.'", hitan('INIT-REF')),
+				);
+				const response = await client.transfer(ACCOUNT, TRANSFER);
+				response.tanReference = 'OTHER';
+
+				await expect(client.transferWithTan('OTHER', '111111')).rejects.toThrow(
+					/does not belong to the challenge/,
+				);
+				expect(bank.sent).toHaveLength(1);
+
+				bank.responses.push(
+					initOk(),
+					answer(WARNINGS, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				);
+				expect(await client.transferWithTan('INIT-REF', '111111')).toMatchObject({
+					requiresTan: true,
+					tanReference: 'TAN-REF-1',
 				});
 			});
 
