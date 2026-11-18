@@ -406,6 +406,22 @@ describe('Dialog', () => {
 			);
 		});
 
+		it('throws before sending anything while the current interaction waits for a TAN', async () => {
+			vi.mocked(waiting.handleClientResponse).mockReturnValue({
+				...successResponse(),
+				requiresTan: true,
+				tanReference: 'TAN-REF-1',
+			});
+			await dialog.start();
+			const calls = httpClientSendMessageMock.mock.calls.length;
+
+			await expect(dialog.continueWith(new SepaAccountInteraction())).rejects.toThrow(
+				'cannot continue a dialog whose current interaction does not wait for the caller',
+			);
+			expect(httpClientSendMessageMock).toHaveBeenCalledTimes(calls);
+			expect(dialog.currentInteraction).toBe(waiting);
+		});
+
 		it('throws when the dialog has ended', async () => {
 			await dialog.start();
 			dialog.hasEnded = true;

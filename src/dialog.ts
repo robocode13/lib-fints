@@ -24,6 +24,8 @@ export class Dialog {
 	currentInteractionIndex = 0;
 	isInitialized = false;
 	hasEnded = false;
+	/** Whether the current interaction has held the dialog open for a decision of the caller */
+	private awaitingCaller = false;
 	httpClient: HttpClient;
 
 	constructor(
@@ -87,6 +89,8 @@ export class Dialog {
 	 * (see `CustomerInteraction.awaitsCaller`) with a further interaction, sent next in the
 	 * same dialog.
 	 * @param interaction the interaction to run next
+	 * @throws Error, before anything is sent, when the current interaction has not paused
+	 * for the caller, such as while it waits for a TAN
 	 */
 	async continueWith(interaction: CustomerInteraction): Promise<Map<string, ClientResponse>> {
 		if (this.hasEnded) {
@@ -95,6 +99,13 @@ export class Dialog {
 
 		if (!this.isInitialized) {
 			throw Error('cannot continue a dialog that has not been initialized');
+		}
+
+		// A TAN challenge, for one, is continued with continue() or ended, never skipped
+		if (!this.awaitingCaller) {
+			throw Error(
+				'cannot continue a dialog whose current interaction does not wait for the caller',
+			);
 		}
 
 		this.addCustomerInteraction(interaction, true);
@@ -173,6 +184,7 @@ export class Dialog {
 
 		do {
 			const interaction = this.currentInteraction;
+			this.awaitingCaller = false;
 			const message = createMessage();
 			createMessage = () => this.createCurrentCustomerMessage();
 
@@ -183,10 +195,9 @@ export class Dialog {
 			this.dialogId = clientResponse.dialogId;
 			this.responses.set(interaction.segId, clientResponse);
 
-			proceed =
-				clientResponse.success &&
-				!clientResponse.requiresTan &&
-				!interaction.awaitsCaller(clientResponse);
+			const settled = clientResponse.success && !clientResponse.requiresTan;
+			this.awaitingCaller = settled && interaction.awaitsCaller(clientResponse);
+			proceed = settled && !this.awaitingCaller;
 
 			if (proceed) {
 				this.currentInteractionIndex++;
