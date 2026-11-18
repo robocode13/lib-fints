@@ -888,6 +888,174 @@ describe('FinTSClient SEPA credit transfer', () => {
 		});
 	});
 
+	describe('payment status reports', () => {
+		const COUNTS = (status: string, count = 1) =>
+			`<NbOfTxsPerSts><DtldNbOfTxs>${count}</DtldNbOfTxs><DtldSts>${status}</DtldSts></NbOfTxsPerSts>`;
+		const withoutTransactions = (report: string, counts: string) =>
+			report
+				.replace(/<TxInfAndSts>.*?<\/TxInfAndSts>/, counts)
+				.replace('</OrgnlGrpInfAndSts>', `${counts}</OrgnlGrpInfAndSts>`);
+		const latin1 = (text: string) => Buffer.from(text, 'utf8').toString('latin1');
+		const transferWithReport = async (report: string) => {
+			bank.responses.push(initOk(), answer(WARNINGS, hirms(3, CHECK_RESULT), hivppReport(report)));
+			return client.transfer(ACCOUNT, TRANSFER);
+		};
+
+		it('reads the transaction status below the aggregate status RVCM', async () => {
+			const report = pain002('RVMC', 'Erika Mustermann')
+				.replace('</OrgnlGrpInfAndSts>', '<GrpSts>RVCM</GrpSts></OrgnlGrpInfAndSts>')
+				.replace('<TxInfAndSts>', '<PmtInfSts>RVCM</PmtInfSts><TxInfAndSts>');
+
+			expect((await transferWithReport(report)).vop).toMatchObject({
+				result: 'closeMatch',
+				suggestedName: 'Erika Mustermann',
+			});
+		});
+
+		it('reads a single match the report gives only as a count', async () => {
+			const report = withoutTransactions(pain002('RCVC'), COUNTS('RCVC'));
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppReport(report), hitan()),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+				success: true,
+				requiresTan: true,
+				vop: { result: 'match', code: 'RCVC' },
+			});
+		});
+
+		it('stops at counts that do not name one result', async () => {
+			const report = withoutTransactions(pain002('RCVC'), COUNTS('RCVC') + COUNTS('RVNM'));
+
+			const response = await transferWithReport(report);
+
+			expect(response).toMatchObject({ success: false, requiresVopConfirmation: false });
+			expect(response.failureReason).toMatch(/not executed/);
+		});
+
+		it('stops at a mismatch the report does not detail', async () => {
+			const report = pain002('RCVC')
+				.replace(/<TxInfAndSts>.*?<\/TxInfAndSts>/, '')
+				.replace('</OrgnlGrpInfAndSts>', '<GrpSts>RVCM</GrpSts></OrgnlGrpInfAndSts>');
+
+			expect(await transferWithReport(report)).toMatchObject({
+				success: false,
+				requiresVopConfirmation: false,
+			});
+		});
+
+		it('joins a payee name continued after 105 characters, dropping the quote mark', async () => {
+			const first = 'A'.repeat(105);
+			const report = pain002('RVMC', first).replace(
+				`${first}</AddtlInf>`,
+				`${first}</AddtlInf><AddtlInf>${latin1('“')} GmbH</AddtlInf>`,
+			);
+
+			expect((await transferWithReport(report)).vop?.suggestedName).toBe(`${first} GmbH`);
+		});
+
+		it('keeps the space at the boundary of a continued payee name', async () => {
+			const name = `${'A'.repeat(104)} B`;
+			const report = pain002(
+				'RVMC',
+				`${name.slice(0, 105)}</AddtlInf><AddtlInf>${name.slice(105)}`,
+			);
+
+			expect((await transferWithReport(report)).vop?.suggestedName).toBe(name);
+		});
+
+		it('decodes numeric character references in the payee name', async () => {
+			const report = pain002('RVMC', 'J&#252;rgen M&#xFC;ller');
+
+			expect((await transferWithReport(report)).vop?.suggestedName).toBe('Jürgen Müller');
+		});
+
+		it('reads the reason code of a check that was not possible', async () => {
+			const report = pain002('RVNA', 'timed out').replace(
+				'<AddtlInf>timed out</AddtlInf>',
+				'<Rsn><Cd>AB11</Cd></Rsn>',
+			);
+
+			expect((await transferWithReport(report)).vop).toMatchObject({
+				result: 'notApplicable',
+				notApplicableReason: 'AB11',
+			});
+		});
+
+		it('joins a report the bank splits across two answers', async () => {
+			const report = pain002('RVMC', 'Jürgen Müller');
+			const cut = report.indexOf('M', report.indexOf('<AddtlInf>')) + 3;
+			const [head, tail] = [report.slice(0, cut), report.slice(cut)];
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Daten.:TP-1'),
+					`HIVPP:5:1:3+++@4@POLL+${REPORT_FORMAT}+@${head.length}@${head}'`,
+				),
+				answer(OK, hirms(3, CHECK_RESULT), hivppReport(tail)),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response.vop).toMatchObject({ result: 'closeMatch', suggestedName: 'Jürgen Müller' });
+		});
+
+		it('takes a complete report in place of an earlier one', async () => {
+			const pending = pain002('PDNG');
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Daten.:TP-1'),
+					`HIVPP:5:1:3+++@4@POLL+${REPORT_FORMAT}+@${pending.length}@${pending}'`,
+				),
+				answer(OK, hirms(3, CHECK_RESULT), hivppReport(pain002('RVNM'))),
+			);
+
+			expect((await client.transfer(ACCOUNT, TRANSFER)).vop).toMatchObject({ result: 'noMatch' });
+		});
+
+		it('keeps the transaction details of an earlier delivery when the last one has only counts', async () => {
+			vopParams().reportDelivery = 'S';
+			const before = pain002('RVMC', 'Company A');
+			const after = withoutTransactions(pain002('RVMC'), COUNTS('RVMC'));
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Daten.:TP-1'),
+					`HIVPP:5:1:3+++@1@P+${REPORT_FORMAT}+@${before.length}@${before}'`,
+				),
+				answer(OK, hirms(3, CHECK_RESULT), hivppReport(after)),
+			);
+
+			expect((await client.transfer(ACCOUNT, TRANSFER)).vop).toMatchObject({
+				result: 'closeMatch',
+				suggestedName: 'Company A',
+			});
+		});
+
+		it('does not take an earlier pending transaction for the final match', async () => {
+			vopParams().reportDelivery = 'S';
+			const before = pain002('PDNG');
+			const after = withoutTransactions(pain002('RCVC'), COUNTS('RCVC'));
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Daten.:TP-1'),
+					`HIVPP:5:1:3+++@1@P+${REPORT_FORMAT}+@${before.length}@${before}'`,
+				),
+				answer(OK, hirms(3, CHECK_RESULT), hivppReport(after)),
+			);
+
+			expect((await client.transfer(ACCOUNT, TRANSFER)).vop).toMatchObject({ result: 'match' });
+		});
+	});
+
 	describe('results for another payee', () => {
 		const OTHER_IBAN = 'DE89370400440532013000';
 

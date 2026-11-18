@@ -76,8 +76,10 @@ describe('parsePain002', () => {
 		expect(report).toEqual({
 			groupStatus: 'RCVC',
 			groupReasons: [],
+			groupStatusCounts: [],
 			paymentInfoStatus: undefined,
 			paymentInfoReasons: [],
+			paymentInfoStatusCounts: [],
 			transactions: [],
 		});
 	});
@@ -121,6 +123,39 @@ describe('parsePain002', () => {
 
 		expect(report.groupStatus).toBe('RVMC');
 		expect(report.transactions[0].reasons).toEqual(['M&M GmbH']);
+	});
+
+	it('decodes numeric character references and keeps the spaces at the edges of a line', () => {
+		const report = parsePain002(
+			'<Document><CstmrPmtStsRpt><OrgnlPmtInfAndSts><TxInfAndSts><TxSts> RVMC </TxSts>' +
+				'<StsRsnInf><AddtlInf>M&#252;ller &#x26; </AddtlInf><AddtlInf> Partner</AddtlInf></StsRsnInf>' +
+				'<OrgnlTxRef><CdtrAcct><Id><IBAN> DE02120300000000202051 </IBAN></Id></CdtrAcct></OrgnlTxRef>' +
+				'</TxInfAndSts></OrgnlPmtInfAndSts></CstmrPmtStsRpt></Document>',
+		);
+
+		expect(report.transactions[0]).toMatchObject({
+			status: 'RVMC',
+			reasons: ['Müller & ', ' Partner'],
+			creditorIban: 'DE02120300000000202051',
+		});
+	});
+
+	it('reads the status reason code and the counts per status', () => {
+		const counts =
+			'<NbOfTxsPerSts><DtldNbOfTxs>1</DtldNbOfTxs><DtldSts>RVNA</DtldSts></NbOfTxsPerSts>';
+		const report = parsePain002(
+			`<Document><CstmrPmtStsRpt><OrgnlGrpInfAndSts>${counts}</OrgnlGrpInfAndSts>` +
+				`<OrgnlPmtInfAndSts>${counts}<TxInfAndSts><TxSts>RVNA</TxSts>` +
+				'<StsRsnInf><Rsn><Cd>AG03</Cd></Rsn><AddtlInf>Kein Zahlungskonto</AddtlInf></StsRsnInf>' +
+				'</TxInfAndSts></OrgnlPmtInfAndSts></CstmrPmtStsRpt></Document>',
+		);
+
+		expect(report.groupStatusCounts).toEqual([{ status: 'RVNA', count: 1 }]);
+		expect(report.paymentInfoStatusCounts).toEqual([{ status: 'RVNA', count: 1 }]);
+		expect(report.transactions[0]).toMatchObject({
+			reasonCode: 'AG03',
+			reasons: ['Kein Zahlungskonto'],
+		});
 	});
 
 	it('rejects malformed XML', () => {

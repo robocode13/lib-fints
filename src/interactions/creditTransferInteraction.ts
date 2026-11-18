@@ -1,9 +1,14 @@
 import { randomBytes } from 'node:crypto';
+import { XMLValidator } from 'fast-xml-parser';
 import type { FinTSConfig } from '../config.js';
 import type { InternationalAccount } from '../dataGroups/InternationalAccount.js';
 import type { Message } from '../message.js';
 import type { Pain001Message } from '../pain001Builder.js';
-import { type PaymentStatusReport, parsePain002 } from '../pain002Parser.js';
+import {
+	type PaymentStatusReport,
+	type PaymentTransactionStatus,
+	parsePain002,
+} from '../pain002Parser.js';
 import type { Segment } from '../segment.js';
 import type { Answer } from '../segments/HIRMG.js';
 import { HIRMS, type HIRMSSegment } from '../segments/HIRMS.js';
@@ -163,6 +168,13 @@ export class CreditTransferOrder {
 	lastResponse?: TransferResponse;
 	/** The latest HIVPP that carried a result, for a final HIVPP that carries only the VoP ID */
 	private resultSegment?: HIVPPSegment;
+	/** The complete pain.002 reports of the current check, in the order they arrived */
+	private reports: string[] = [];
+	/**
+	 * The part of a pain.002 received so far: a bank may cut a report into pieces it
+	 * sends with successive answers, to be joined in that order (DK VoP specification)
+	 */
+	private reportFragment = '';
 	private prepared: PreparedTransfer;
 
 	/**
@@ -245,17 +257,9 @@ export class CreditTransferOrder {
 		}
 
 		this.waitSeconds = hivpp.waitSeconds;
-
-		if (hivpp.paymentStatusReport || hivpp.singleResult) {
-			this.resultSegment = hivpp;
-		}
+		this.collect(hivpp);
 	}
 
-	/**
-	 * Reads the result from the final HIVPP, or from the latest one that carried a
-	 * result when the final one carries only the VoP ID
-	 * @returns the result, or why it cannot be trusted
-	 */
 	/**
 	 * Whether the bank said how to ask for the rest of the result: a touchdown point in
 	 * the latest answer, or a polling ID
@@ -264,13 +268,25 @@ export class CreditTransferOrder {
 		return !!this.touchdownPoint || !!this.pollingId;
 	}
 
+	/**
+	 * Reads the result from the reports and the single result received so far for the
+	 * final HIVPP (which track() or takeNewerResult() has taken in): from the latest HIVPP
+	 * that carried a result, with the details of an earlier report when the latest one
+	 * gives the transaction only as a count
+	 * @returns the result, or why it cannot be trusted
+	 */
 	readResult(final: HIVPPSegment): VopResult | string {
 		const source = final.paymentStatusReport || final.singleResult ? final : this.resultSegment;
 		let result: VopResult;
 
 		try {
-			result = extractVopResult(
-				source ?? final,
+			if (this.reportFragment) {
+				throw new Error('The bank did not deliver the complete payment status report');
+			}
+
+			result = interpretVopResult(
+				source?.singleResult,
+				source?.paymentStatusReport ? this.reports.map(parsePain002) : [],
 				final.notice ?? source?.notice,
 				this.vopParameters?.noticeStructured ?? false,
 			);
@@ -291,13 +307,16 @@ export class CreditTransferOrder {
 			return undefined;
 		}
 
+		// A result sent with a later answer is a new check, not a continuation
+		this.reports = [];
+		this.reportFragment = '';
+		this.collect(hivpp);
 		const result = this.readResult(hivpp);
 
 		if (typeof result === 'string') {
 			return result;
 		}
 
-		this.resultSegment = hivpp;
 		this.vopResult = result;
 
 		if (hivpp.vopId !== undefined) {
@@ -305,6 +324,25 @@ export class CreditTransferOrder {
 		}
 
 		return undefined;
+	}
+
+	/**
+	 * Takes in the result parts of a HIVPP: a pain.002 piece is joined to the pieces
+	 * before it until the report is complete
+	 */
+	private collect(hivpp: HIVPPSegment) {
+		if (hivpp.paymentStatusReport) {
+			this.reportFragment += hivpp.paymentStatusReport;
+
+			if (XMLValidator.validate(decodeReport(this.reportFragment)) === true) {
+				this.reports.push(decodeReport(this.reportFragment));
+				this.reportFragment = '';
+			}
+		}
+
+		if (hivpp.paymentStatusReport || hivpp.singleResult) {
+			this.resultSegment = hivpp;
+		}
 	}
 
 	/**
@@ -345,24 +383,139 @@ export function extractVopResult(
 	notice: string | undefined,
 	noticeStructured: boolean,
 ): VopResult {
-	const report = hivpp.paymentStatusReport
-		? parsePain002(decodeReport(hivpp.paymentStatusReport))
-		: undefined;
-	const single = hivpp.singleResult;
+	return interpretVopResult(
+		hivpp.singleResult,
+		hivpp.paymentStatusReport ? [parsePain002(decodeReport(hivpp.paymentStatusReport))] : [],
+		notice,
+		noticeStructured,
+	);
+}
 
-	// From the most specific level to the least; for one transfer there is one transaction
-	const reportCodes = report
-		? [
-				...report.transactions.map((transaction) => transaction.status),
-				report.paymentInfoStatus,
-				report.groupStatus,
-			].filter((code): code is string => !!code)
-		: [];
-	const codes = [single?.result, ...reportCodes].filter((code): code is string => !!code);
+/** The transaction codes of a pain.002 about a payee check (DFÜ-Abkommen Anlage 3) */
+const TRANSACTION_CODES = ['RCVC', 'RVMC', 'RVNM', 'RVNA', 'PDNG'];
+
+/**
+ * The group and payment information codes: RCVC when every transaction matches, RVCM
+ * when some do not, PDNG while the check runs. The transaction codes of a deviation are
+ * taken for RVCM as well.
+ */
+const AGGREGATE_CODES: Record<string, 'match' | 'deviation' | 'pending'> = {
+	RCVC: 'match',
+	RVCM: 'deviation',
+	RVMC: 'deviation',
+	RVNM: 'deviation',
+	RVNA: 'deviation',
+	PDNG: 'pending',
+};
+
+/** The length of the first additional information line that holds a payee name */
+const NAME_LINE_LENGTH = 105;
+
+function unknownResult(code: string): Error {
+	return new Error(`The bank reported the unknown Verification of Payee result '${code}'`);
+}
+
+/**
+ * The status of the one transaction of a transfer in a pain.002: from its own entry,
+ * or, when the report lists none, from the number of transactions per status, or from
+ * the payment information or group status when that alone decides it
+ */
+function reportStatus(report: PaymentStatusReport): string | undefined {
+	const aggregates = [report.paymentInfoStatus, report.groupStatus].filter(
+		(code): code is string => !!code,
+	);
+
+	for (const code of aggregates) {
+		if (!(code in AGGREGATE_CODES)) {
+			throw unknownResult(code);
+		}
+	}
+
+	const listed = report.transactions
+		.map((transaction) => transaction.status)
+		.filter((code): code is string => !!code);
+	const counts = (
+		report.paymentInfoStatusCounts.length
+			? report.paymentInfoStatusCounts
+			: report.groupStatusCounts
+	).filter((entry) => entry.count > 0);
+	let status: string | undefined;
+
+	if (listed.length) {
+		status = listed.find((code) => code !== 'RCVC') ?? 'RCVC';
+	} else if (counts.length) {
+		if (counts.length !== 1 || counts[0].count !== 1) {
+			throw new Error('The payment status report does not name one Verification of Payee result');
+		}
+		status = counts[0].status;
+	} else if (aggregates.length) {
+		if (AGGREGATE_CODES[aggregates[0]] === 'deviation') {
+			throw new Error(
+				'The payment status report names a deviation without the result of the transaction',
+			);
+		}
+		status = aggregates[0];
+	}
+
+	if (status === undefined) {
+		return undefined;
+	}
+
+	if (!TRANSACTION_CODES.includes(status)) {
+		throw unknownResult(status);
+	}
+
+	const kind = AGGREGATE_CODES[status];
+
+	if (
+		aggregates.some(
+			(code) =>
+				(AGGREGATE_CODES[code] === 'match' && kind !== 'match') ||
+				(AGGREGATE_CODES[code] === 'deviation' && kind === 'match'),
+		)
+	) {
+		throw new Error('The payment status report contradicts itself');
+	}
+
+	return status;
+}
+
+/**
+ * The payee name of a close match: the first additional information line, continued
+ * in the second when it is longer than 105 characters; the continuation begins with
+ * the quote mark “, which is not part of the name
+ */
+function suggestedNameOf(transaction: PaymentTransactionStatus | undefined): string | undefined {
+	const [first, second] = transaction?.reasons ?? [];
+
+	if (first === undefined) {
+		return undefined;
+	}
+
+	const continued =
+		second !== undefined && (first.length >= NAME_LINE_LENGTH || second.startsWith('“'));
+	return (continued ? first + second.replace(/^“/, '') : first).trim();
+}
+
+/**
+ * Reads a Verification of Payee result from a single result and the complete pain.002
+ * reports of a check, in the order they arrived. The latest report decides; an earlier
+ * one only lends the details of a transaction with the status the latest one gives.
+ */
+function interpretVopResult(
+	single: HIVPPSegment['singleResult'],
+	reports: PaymentStatusReport[],
+	notice: string | undefined,
+	noticeStructured: boolean,
+): VopResult {
+	const report = reports.at(-1);
+	const codes = [single?.result, report ? reportStatus(report) : undefined].filter(
+		(code): code is string => !!code,
+	);
 
 	for (const code of codes) {
 		if (!(code in VOP_RESULTS)) {
-			throw new Error(`The bank reported the unknown Verification of Payee result '${code}'`);
+			throw unknownResult(code);
 		}
 	}
 
@@ -370,7 +523,10 @@ export function extractVopResult(
 		? ((codes.find((c) => c !== 'RCVC') ?? 'RCVC') as VopResultCode)
 		: undefined;
 	const transaction =
-		report?.transactions.find((t) => t.status === code) ?? report?.transactions[0];
+		[...reports]
+			.reverse()
+			.flatMap((r) => r.transactions)
+			.find((t) => t.status === code) ?? report?.transactions[0];
 
 	return {
 		// The DK specification allows a HIVPP without a result where none can exist
@@ -379,10 +535,11 @@ export function extractVopResult(
 		code,
 		iban: single?.iban ?? transaction?.creditorIban,
 		// In a pain.002 the payee bank's name for a close match is the transaction's
-		// status reason line (DFÜ-Abkommen Anlage 3, as hbci4java reads it too)
+		// status reason line (DFÜ-Abkommen Anlage 3, 2.2.6)
 		suggestedName:
-			single?.closeMatchName ?? (code === 'RVMC' ? transaction?.reasons[0] : undefined),
-		notApplicableReason: single?.notApplicableReason,
+			single?.closeMatchName ?? (code === 'RVMC' ? suggestedNameOf(transaction) : undefined),
+		notApplicableReason:
+			single?.notApplicableReason ?? (code === 'RVNA' ? transaction?.reasonCode : undefined),
 		notice,
 		noticeStructured,
 		reasons: report
