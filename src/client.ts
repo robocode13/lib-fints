@@ -62,7 +62,12 @@ type PendingTransfer = {
 	order: CreditTransferOrder;
 	dialog: Dialog;
 	lastResponse?: TransferResponse;
+	/** Whether a step of the transfer has been sent and its answer is not handled yet */
+	inFlight: boolean;
 };
+
+const STEP_IN_FLIGHT =
+	'the transfer is still waiting for the answer to its previous step; wait for that response';
 
 /**
  * A client to communicate with a bank over the FinTS protocol
@@ -454,9 +459,10 @@ export class FinTSClient {
 		const order = this.createTransferOrder(account, transfer);
 		const dialog = new Dialog(this.config, false);
 		dialog.addCustomerInteraction(new CreditTransferInteraction(order, 'submit'));
-		this.currentTransfer = { order, dialog };
+		const pending: PendingTransfer = { order, dialog, inFlight: false };
+		this.currentTransfer = pending;
 
-		return this.driveTransfer(() => dialog.start());
+		return this.driveTransfer(pending, () => dialog.start());
 	}
 
 	/**
@@ -471,6 +477,10 @@ export class FinTSClient {
 	async confirmTransfer(): Promise<TransferResponse> {
 		const transfer = this.currentTransfer;
 
+		if (transfer?.inFlight) {
+			throw new Error(STEP_IN_FLIGHT);
+		}
+
 		if (!transfer || transfer.order.status !== 'awaitingConfirmation') {
 			throw new Error(
 				'no transfer is waiting for a confirmation of its Verification of Payee result',
@@ -479,7 +489,7 @@ export class FinTSClient {
 
 		transfer.order.confirmed = true;
 
-		return this.driveTransfer(() =>
+		return this.driveTransfer(transfer, () =>
 			transfer.dialog.continueWith(new CreditTransferInteraction(transfer.order, 'confirm')),
 		);
 	}
@@ -494,6 +504,10 @@ export class FinTSClient {
 	async transferWithTan(tanReference: string, tan?: string): Promise<TransferResponse> {
 		const transfer = this.currentTransfer;
 
+		if (transfer?.inFlight) {
+			throw new Error(STEP_IN_FLIGHT);
+		}
+
 		if (!transfer?.lastResponse?.requiresTan) {
 			throw new Error('no transfer is waiting for a TAN');
 		}
@@ -502,16 +516,23 @@ export class FinTSClient {
 			throw new Error('TAN must be provided for non-decoupled TAN methods');
 		}
 
-		return this.driveTransfer(() => transfer.dialog.continue(tanReference, tan));
+		return this.driveTransfer(transfer, () => transfer.dialog.continue(tanReference, tan));
 	}
 
 	/**
 	 * Drops the transfer in progress without executing it and ends its dialog. Call it after a
 	 * response with `requiresVopConfirmation` or `requiresTan` when the user decides against the
 	 * transfer. Does nothing when no transfer is in progress.
+	 * @throws Error while a step of the transfer still waits for the bank's answer: that
+	 * answer may already have executed it
 	 */
 	async cancelTransfer(): Promise<void> {
 		const transfer = this.currentTransfer;
+
+		if (transfer?.inFlight) {
+			throw new Error(STEP_IN_FLIGHT);
+		}
+
 		this.currentTransfer = undefined;
 
 		if (transfer && !transfer.dialog.hasEnded) {
@@ -663,19 +684,34 @@ export class FinTSClient {
 	}
 
 	/**
-	 * Runs one step of the transfer in progress, then asks again for a Verification of Payee
-	 * result for as long as the bank is still producing it.
+	 * Runs one step of the given transfer, then asks again for a Verification of Payee
+	 * result for as long as the bank is still producing it. The transfer is marked in
+	 * flight before anything is sent, so that no other step overlaps this one, and only
+	 * this transfer is dropped when it ends.
 	 */
 	private async driveTransfer(
+		transfer: PendingTransfer,
 		step: () => Promise<Map<string, ClientResponse>>,
 	): Promise<TransferResponse> {
-		const transfer = this.currentTransfer;
+		transfer.inFlight = true;
 
-		if (!transfer) {
-			throw new Error('no transfer is in progress');
+		try {
+			return await this.runTransferStep(transfer, step);
+		} finally {
+			transfer.inFlight = false;
 		}
+	}
 
+	private async runTransferStep(
+		transfer: PendingTransfer,
+		step: () => Promise<Map<string, ClientResponse>>,
+	): Promise<TransferResponse> {
 		const { order, dialog } = transfer;
+		const release = () => {
+			if (this.currentTransfer === transfer) {
+				this.currentTransfer = undefined;
+			}
+		};
 		let response: TransferResponse;
 
 		try {
@@ -704,7 +740,7 @@ export class FinTSClient {
 				response = this.toTransferResponse(order, dialog);
 			}
 		} catch (error) {
-			this.currentTransfer = undefined;
+			release();
 
 			// The bank accepted the order and only ending the dialog failed: still a success
 			if (order.status === 'accepted' && order.lastResponse) {
@@ -719,9 +755,9 @@ export class FinTSClient {
 
 		if (order.status === 'accepted') {
 			// The dialog has already sent HKEND
-			this.currentTransfer = undefined;
+			release();
 		} else if (!response.success || order.status === 'failed') {
-			this.currentTransfer = undefined;
+			release();
 			await this.endQuietly(dialog);
 		}
 

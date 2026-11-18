@@ -1125,6 +1125,95 @@ describe('FinTSClient SEPA credit transfer', () => {
 			await client.cancelTransfer();
 			expect(bank.sent).toHaveLength(3);
 		});
+
+		describe('overlapping calls', () => {
+			/** A bank answer that arrives only when the test delivers it */
+			const deferred = () => {
+				let deliver: (message: Message) => void = () => {};
+				const promise = new Promise<Message>((resolve) => {
+					deliver = resolve;
+				});
+				return { promise, deliver };
+			};
+
+			it('sends a confirmation once when confirmTransfer() is called again before the answer', async () => {
+				bank.responses.push(
+					initOk(),
+					answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+				);
+				await client.transfer(ACCOUNT, TRANSFER);
+
+				bank.responses.push(
+					answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')),
+					answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-3')),
+				);
+				const [first, second] = await Promise.allSettled([
+					client.confirmTransfer(),
+					client.confirmTransfer(),
+				]);
+
+				expect(first).toMatchObject({ status: 'fulfilled', value: { tanReference: 'TAN-REF-2' } });
+				expect(second).toMatchObject({ status: 'rejected' });
+				expect((second as PromiseRejectedResult).reason.message).toMatch(/still waiting/);
+				expect(sentOrders().slice(2)).toEqual([['HKVPA', 'HKCCS', 'HKTAN']]);
+			});
+
+			it('sends a TAN once when transferWithTan() is called again before the answer', async () => {
+				bank.responses.push(
+					initOk(),
+					answer(WARNINGS, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				);
+				await client.transfer(ACCOUNT, TRANSFER);
+
+				bank.responses.push(tanAccepted(), endOk(), tanAccepted(), endOk());
+				const [first, second] = await Promise.allSettled([
+					client.transferWithTan('TAN-REF-1', '123456'),
+					client.transferWithTan('TAN-REF-1', '123456'),
+				]);
+
+				expect(first).toMatchObject({ status: 'fulfilled', value: { success: true } });
+				expect(second).toMatchObject({ status: 'rejected' });
+				expect(sentOrders().slice(2)).toEqual([['HKVPA', 'HKTAN'], ['HKEND']]);
+			});
+
+			it('refuses to cancel while a step waits for its answer, and keeps the transfer', async () => {
+				bank.responses.push(
+					initOk(),
+					answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+				);
+				await client.transfer(ACCOUNT, TRANSFER);
+
+				const tanAnswer = deferred();
+				bank.responses.push(tanAnswer.promise);
+				const confirmed = client.confirmTransfer();
+
+				await expect(client.cancelTransfer()).rejects.toThrow(/still waiting/);
+				await expect(client.transfer(ACCOUNT, TRANSFER)).rejects.toThrow(/already in progress/);
+				expect(bank.sent).toHaveLength(3);
+
+				tanAnswer.deliver(answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')));
+				expect(await confirmed).toMatchObject({ requiresTan: true, tanReference: 'TAN-REF-2' });
+
+				bank.responses.push(tanAccepted(), endOk());
+				expect(await client.transferWithTan('TAN-REF-2', '123456')).toMatchObject({
+					success: true,
+				});
+			});
+
+			it('refuses to cancel while the first message of a transfer waits for its answer', async () => {
+				const orderAnswer = deferred();
+				bank.responses.push(initOk(), orderAnswer.promise);
+				const submitted = client.transfer(ACCOUNT, TRANSFER);
+				await vi.waitFor(() => expect(bank.sent).toHaveLength(2));
+
+				await expect(client.cancelTransfer()).rejects.toThrow(/still waiting/);
+				await expect(client.confirmTransfer()).rejects.toThrow(/still waiting/);
+
+				orderAnswer.deliver(answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')));
+				expect(await submitted).toMatchObject({ requiresVopConfirmation: true });
+				expect(bank.sent).toHaveLength(2);
+			});
+		});
 	});
 });
 
