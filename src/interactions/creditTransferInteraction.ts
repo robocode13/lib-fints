@@ -261,9 +261,10 @@ export class CreditTransferOrder {
 	 */
 	readResult(final: HIVPPSegment): VopResult | string {
 		const source = final.paymentStatusReport || final.singleResult ? final : this.resultSegment;
+		let result: VopResult;
 
 		try {
-			return extractVopResult(
+			result = extractVopResult(
 				source ?? final,
 				final.notice ?? source?.notice,
 				this.vopParameters?.noticeStructured ?? false,
@@ -271,6 +272,59 @@ export class CreditTransferOrder {
 		} catch (error) {
 			return `${(error as Error).message}. The transfer was not executed.`;
 		}
+
+		return this.checkPayee(result) ?? result;
+	}
+
+	/**
+	 * Takes over a result the bank sends with a later answer, such as with 3945 to the TAN,
+	 * in place of the earlier one
+	 * @returns why the result cannot be trusted, if it cannot
+	 */
+	takeNewerResult(hivpp: HIVPPSegment | undefined): string | undefined {
+		if (!hivpp || (!hivpp.paymentStatusReport && !hivpp.singleResult)) {
+			return undefined;
+		}
+
+		const result = this.readResult(hivpp);
+
+		if (typeof result === 'string') {
+			return result;
+		}
+
+		this.resultSegment = hivpp;
+		this.vopResult = result;
+
+		if (hivpp.vopId !== undefined) {
+			this.vopId = hivpp.vopId;
+		}
+
+		return undefined;
+	}
+
+	/**
+	 * A result counts only for the payee of this order: the IBAN it names, and the payee
+	 * name a pain.002 repeats from the order, must be the submitted ones
+	 * @returns why the result is not about this order, if it is not
+	 */
+	private checkPayee(result: VopResult): string | undefined {
+		const transactions = result.paymentStatusReport?.transactions ?? [];
+		const ibans = [result.iban, ...transactions.map((t) => t.creditorIban)].filter(
+			(iban): iban is string => !!iban,
+		);
+
+		if (ibans.some((iban) => iban.replace(/\s+/g, '').toUpperCase() !== this.pain.creditorIban)) {
+			return 'The Verification of Payee result is for another IBAN than the transfer. The transfer was not executed.';
+		}
+
+		const normalizeName = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+		const names = transactions.map((t) => t.creditorName).filter((name): name is string => !!name);
+
+		if (names.some((name) => normalizeName(name) !== normalizeName(this.pain.creditorName))) {
+			return 'The Verification of Payee result is for another payee name than the transfer. The transfer was not executed.';
+		}
+
+		return undefined;
 	}
 }
 
@@ -496,6 +550,12 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 	 * The answer to the TAN message, whichever step asked for the TAN
 	 */
 	protected evaluateTan(message: Message, base: ClientResponse): TransferResponse {
+		const untrusted = this.takeNewerResult(message, base);
+
+		if (untrusted) {
+			return untrusted;
+		}
+
 		if (message.hasReturnCode(3945)) {
 			// The bank voided the approval and wants HKVPA with the order (E.8.1 rule 5)
 			if (this.order.vopParameters && this.order.vopId !== undefined && !this.order.confirmed) {
@@ -521,6 +581,17 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 		}
 
 		return this.isAccepted(message) ? this.accept(base) : this.fail(base, OUTCOME_UNCERTAIN, true);
+	}
+
+	/**
+	 * Takes over a Verification of Payee result in an answer after the first one, before
+	 * anything is offered on the strength of the earlier result
+	 * @returns the failed response when that result cannot be trusted and the bank did not
+	 * accept the order
+	 */
+	protected takeNewerResult(message: Message, base: ClientResponse): TransferResponse | undefined {
+		const reason = this.order.takeNewerResult(findHivpp(message));
+		return reason !== undefined && !this.isAccepted(message) ? this.fail(base, reason) : undefined;
 	}
 
 	protected respond(base: ClientResponse, requiresVopConfirmation = false): TransferResponse {
@@ -744,6 +815,12 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 	}
 
 	private evaluateConfirm(message: Message, base: ClientResponse): TransferResponse {
+		const untrusted = this.takeNewerResult(message, base);
+
+		if (untrusted) {
+			return untrusted;
+		}
+
 		if (message.hasReturnCode(3945)) {
 			return this.fail(
 				base,
@@ -803,6 +880,12 @@ export class VopAuthorizationInteraction extends TransferOrderInteraction {
 	protected evaluate(message: Message, base: ClientResponse): TransferResponse {
 		if (this.order.status === 'awaitingTan') {
 			return this.evaluateTan(message, base);
+		}
+
+		const untrusted = this.takeNewerResult(message, base);
+
+		if (untrusted) {
+			return untrusted;
 		}
 
 		if (message.hasReturnCode(3945)) {

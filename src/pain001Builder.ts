@@ -73,6 +73,10 @@ export type Pain001Message = {
 	bytes: string;
 	messageId: string;
 	endToEndId: string;
+	/** The payee IBAN as the document carries it, without spaces and in capitals */
+	creditorIban: string;
+	/** The payee name as the document carries it */
+	creditorName: string;
 };
 
 /**
@@ -239,6 +243,8 @@ export function buildPain001(
 		bytes: Buffer.from(xml, 'utf8').toString('latin1'),
 		messageId,
 		endToEndId,
+		creditorIban: iban,
+		creditorName: name,
 	};
 }
 

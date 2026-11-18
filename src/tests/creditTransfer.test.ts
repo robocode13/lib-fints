@@ -193,7 +193,7 @@ function hivppSingle(result: string, options: { closeMatchName?: string; reason?
 }
 
 /** A pain.002 as one character per UTF-8 byte, the way it arrives in a FinTS message */
-function pain002(status: string, reason?: string): string {
+function pain002(status: string, reason?: string, creditorName = 'Max Mustermann'): string {
 	const xml =
 		'<?xml version="1.0" encoding="UTF-8"?>' +
 		'<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.002.001.10"><CstmrPmtStsRpt>' +
@@ -202,7 +202,7 @@ function pain002(status: string, reason?: string): string {
 		'<OrgnlPmtInfAndSts><OrgnlPmtInfId>PMT-1</OrgnlPmtInfId><TxInfAndSts>' +
 		`<OrgnlEndToEndId>E2E-0001</OrgnlEndToEndId><TxSts>${status}</TxSts>` +
 		(reason ? `<StsRsnInf><AddtlInf>${reason}</AddtlInf></StsRsnInf>` : '') +
-		`<OrgnlTxRef><Cdtr><Pty><Nm>Max Musterman</Nm></Pty></Cdtr><CdtrAcct><Id><IBAN>${PAYEE_IBAN}</IBAN></Id></CdtrAcct></OrgnlTxRef>` +
+		`<OrgnlTxRef><Cdtr><Pty><Nm>${creditorName}</Nm></Pty></Cdtr><CdtrAcct><Id><IBAN>${PAYEE_IBAN}</IBAN></Id></CdtrAcct></OrgnlTxRef>` +
 		'</TxInfAndSts></OrgnlPmtInfAndSts></CstmrPmtStsRpt></Document>';
 	return Buffer.from(xml, 'utf8').toString('latin1');
 }
@@ -851,6 +851,133 @@ describe('FinTSClient SEPA credit transfer', () => {
 				vop: { result: 'noMatch' },
 			});
 			await expect(client.confirmTransfer(response.transferId)).rejects.toThrow();
+		});
+	});
+
+	describe('results for another payee', () => {
+		const OTHER_IBAN = 'DE89370400440532013000';
+
+		it('stops at a match for another IBAN instead of asking for the TAN', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					OK,
+					hirms(5, TAN_REQUIRED),
+					hivppSingle('RCVC').replace(PAYEE_IBAN, OTHER_IBAN),
+					hitan(),
+				),
+				endOk(),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({
+				success: false,
+				requiresTan: false,
+				requiresVopConfirmation: false,
+				outcomeUncertain: false,
+			});
+			expect(response.failureReason).toMatch(/another IBAN/);
+			expect(response.failureReason).not.toContain(OTHER_IBAN);
+			expect(sentOrders().at(-1)).toEqual(['HKEND']);
+		});
+
+		it('accepts the IBAN of the result in another notation', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					OK,
+					hirms(5, TAN_REQUIRED),
+					hivppSingle('RCVC').replace(PAYEE_IBAN, 'de02 1203 0000 0000 2020 51'),
+					hitan(),
+				),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+				success: true,
+				requiresTan: true,
+			});
+		});
+
+		it('stops at a report about a payee name other than the submitted one', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, CHECK_RESULT),
+					hivppReport(pain002('RVNM', undefined, 'Erika Musterfrau')),
+				),
+				endOk(),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({ success: false, requiresVopConfirmation: false });
+			expect(response.failureReason).toMatch(/another payee name/);
+			expect(response.failureReason).not.toContain('Erika');
+		});
+
+		it('accepts the submitted name in other case and spacing', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, CHECK_RESULT),
+					hivppReport(pain002('RVNM', undefined, 'MAX  MUSTERMANN')),
+				),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+				success: true,
+				requiresVopConfirmation: true,
+			});
+		});
+
+		it('replaces the result with the one the bank sends with 3945 at the TAN step', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(
+					WARNINGS,
+					hirms(3, APPROVAL_VOIDED),
+					hivppSingle('RVNM').replace('VOP-01', 'VOP-02'),
+				),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.transferWithTan('TAN-REF-1', '123456');
+
+			expect(response).toMatchObject({
+				success: true,
+				requiresVopConfirmation: true,
+				requiresTan: false,
+				vop: { result: 'noMatch', code: 'RVNM' },
+			});
+
+			bank.responses.push(answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')));
+			await client.confirmTransfer(response.transferId);
+
+			const hkvpa = bank.sent.at(-1)?.findSegment<HKVPASegment>('HKVPA');
+			expect(hkvpa?.vopId).toBe('VOP-02');
+		});
+
+		it('stops when the result at the TAN step is for another IBAN', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(
+					WARNINGS,
+					hirms(3, APPROVAL_VOIDED),
+					hivppSingle('RVNM').replace(PAYEE_IBAN, OTHER_IBAN),
+				),
+				endOk(),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.transferWithTan('TAN-REF-1', '123456');
+
+			expect(response).toMatchObject({ success: false, requiresVopConfirmation: false });
+			expect(response.failureReason).toMatch(/another IBAN/);
 		});
 	});
 
