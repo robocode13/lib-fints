@@ -805,6 +805,178 @@ describe('FinTSClient SEPA credit transfer', () => {
 		});
 	});
 
+	describe('outcome codes', () => {
+		const expectUncertain = (response: Awaited<ReturnType<FinTSClient['transfer']>>) => {
+			expect(response).toMatchObject({
+				success: false,
+				outcomeUncertain: true,
+				requiresTan: false,
+				requiresVopConfirmation: false,
+			});
+			expect(response.failureReason).toMatch(/Check the account/);
+		};
+
+		it('does not take 0010 to the order as its execution while the check is pending', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Informationen.:TP-0001', '3093::Namensabgleich in Bearbeitung.'),
+					hirms(4, '0010::Auftrag entgegengenommen.'),
+					hirms(5, '3905::Es wurde keine Challenge erzeugt.'),
+					hivppPending(),
+				),
+				answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({
+				success: true,
+				requiresVopConfirmation: true,
+				outcomeUncertain: false,
+				vop: { result: 'noMatch' },
+			});
+			expect(sentOrders()[2]).toEqual(['HKVPP']);
+		});
+
+		it('does not take 0010 to the order next to a deviation as its execution', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, CHECK_RESULT),
+					hirms(4, '0010::Auftrag entgegengenommen.'),
+					hivppSingle('RVNM'),
+				),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({ requiresVopConfirmation: true, vop: { result: 'noMatch' } });
+		});
+
+		it('reports 9000 (status indifferent) as an uncertain outcome', async () => {
+			bank.responses.push(initOk(), answer(OK, hirms(4, '9000::Status indifferent.')), endOk());
+
+			expectUncertain(await client.transfer(ACCOUNT, TRANSFER));
+		});
+
+		it('reports an executed order next to a failed check as an uncertain outcome', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					"HIRMG:2:2+9050::Die Nachricht enthaelt Fehler.'",
+					hirms(3, '9210::Namensabgleich abgelehnt.'),
+					hirms(4, '0020::Auftrag ausgefuehrt.'),
+				),
+				endOk(),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expectUncertain(response);
+			expect(response.failureReason).not.toMatch(/rejected/);
+		});
+
+		it('does not offer a confirmation for an order the bank processes under a reference (3070)', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(4, '3070::Auftrag wird unter Referenz R-1 verarbeitet.:R-1'),
+					hivppSingle('RCVC'),
+				),
+				endOk(),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expectUncertain(response);
+			expect(response.failureReason).toMatch(/R-1/);
+			expect(sentOrders().at(-1)).toEqual(['HKEND']);
+			expect(sentOrders().filter((segments) => segments.includes('HKCCS'))).toHaveLength(1);
+		});
+
+		it('does not offer a confirmation after polling for an order processed under a reference', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Informationen.:TP-0001'),
+					hirms(4, '3070::Auftrag wird unter Referenz R-1 verarbeitet.:R-1'),
+					hivppPending(),
+				),
+				answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+				endOk(),
+			);
+
+			expectUncertain(await client.transfer(ACCOUNT, TRANSFER));
+		});
+
+		it('reports a failed decoupled approval (3958) as not executed', async () => {
+			client.selectTanMethod(946);
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(
+					WARNINGS,
+					hirms(4, '3958::Freigabe-Anwendung unterstuetzt das gewaehlte Verfahren nicht.'),
+				),
+				endOk(),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.transferWithTan('TAN-REF-1');
+
+			expect(response).toMatchObject({
+				success: false,
+				outcomeUncertain: false,
+				requiresTan: false,
+			});
+			expect(response.failureReason).toMatch(/3958/);
+			expect(sentOrders().at(-1)).toEqual(['HKEND']);
+		});
+
+		it('reports a TAN answered without any acceptance as an uncertain outcome', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(WARNINGS, hirms(3, '3040::Weitere Informationen.:MORE')),
+				endOk(),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+			expectUncertain(await client.transferWithTan('TAN-REF-1', '123456'));
+		});
+
+		it('reports 3040 alone to an order without check as an uncertain outcome', async () => {
+			removeTransaction('HKVPP');
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(3, '3040::Auftrag nur teilweise ausgefuehrt.:MORE')),
+				endOk(),
+			);
+
+			expectUncertain(await client.transfer(ACCOUNT, TRANSFER));
+		});
+
+		it('accepts an order without check on 0010 to it', async () => {
+			removeTransaction('HKVPP');
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, '0010::Auftrag zur Ausfuehrung vorgemerkt.')),
+				endOk(),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+				success: true,
+				outcomeUncertain: false,
+				requiresTan: false,
+			});
+		});
+	});
+
 	describe('fails closed', () => {
 		const expectStopped = (response: Awaited<ReturnType<FinTSClient['transfer']>>) => {
 			expect(response.success).toBe(false);
@@ -883,6 +1055,7 @@ describe('FinTSClient SEPA credit transfer', () => {
 
 			expectStopped(response);
 			expect(response.bankAnswers.map((a) => a.code)).toContain(9210);
+			expect(response.outcomeUncertain).toBe(false);
 		});
 
 		it('on a code asking for a TAN without HITAN, instead of throwing', async () => {

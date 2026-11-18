@@ -198,6 +198,7 @@ Each call returns a `TransferResponse`:
 | `success` and `requiresTan`                | The bank asks for the TAN                                               | `transferWithTan()` or `cancelTransfer(transferId)` |
 | `success`, neither flag                    | The bank has accepted the transfer                                      | -                                       |
 | `success: false`                           | The transfer stopped; `failureReason` and `bankAnswers` say why         | -                                       |
+| `success: false` and `outcomeUncertain`    | The bank did not say whether it executed the transfer (such as code 9000, or 0020 next to an error) | Check the account before sending it again |
 
 The transfer is done only when `success` is true and neither `requiresTan` nor `requiresVopConfirmation` is.
 

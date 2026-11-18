@@ -429,7 +429,9 @@ export class FinTSClient {
 	 *   `cancelTransfer(transferId)`.
 	 * - `success` and neither flag: the bank accepted the transfer.
 	 * - `success: false`: the transfer stopped; `bankAnswers` and `failureReason` say why. Anything
-	 *   unexpected, such as an unknown result code or a missing VoP ID, ends it this way.
+	 *   unexpected, such as an unknown result code or a missing VoP ID, ends it this way. With
+	 *   `outcomeUncertain` the bank did not say whether it executed the order (such as code
+	 *   9000, or 0020 to the order next to an error): check the account before sending it again.
 	 *
 	 * Only one transfer can be in progress per client. Every response carries the same
 	 * `transferId` for it.
@@ -753,10 +755,13 @@ export class FinTSClient {
 
 				if (waitedSeconds + waitSeconds > VOP_TIMEOUT_SECONDS) {
 					order.status = 'failed';
+					// After 3070 the bank processes the order whatever the check brings
+					const processing = order.processingReference !== undefined;
 					response = {
 						...response,
 						success: false,
-						failureReason: `The bank did not deliver the Verification of Payee result within ${VOP_TIMEOUT_SECONDS} seconds. The transfer was not executed.`,
+						outcomeUncertain: processing,
+						failureReason: `The bank did not deliver the Verification of Payee result within ${VOP_TIMEOUT_SECONDS} seconds. ${processing ? 'It processes the transfer under a reference (3070) and may execute it; check the account before sending the transfer again.' : 'The transfer was not executed.'}`,
 					};
 					break;
 				}
@@ -815,6 +820,7 @@ export class FinTSClient {
 			vop: order.vopResult,
 			transferId: order.transferId,
 			endToEndId: order.pain.endToEndId,
+			outcomeUncertain: false,
 		};
 
 		if (response.requiresTan && response.success) {

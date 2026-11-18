@@ -5,6 +5,7 @@ import type { Message } from '../message.js';
 import type { Pain001Message } from '../pain001Builder.js';
 import { type PaymentStatusReport, parsePain002 } from '../pain002Parser.js';
 import type { Segment } from '../segment.js';
+import type { Answer } from '../segments/HIRMG.js';
 import { HIRMS, type HIRMSSegment } from '../segments/HIRMS.js';
 import { HIVPP, type HIVPPSegment } from '../segments/HIVPP.js';
 import { HKCCS, type HKCCSSegment } from '../segments/HKCCS.js';
@@ -61,6 +62,9 @@ export interface VopResult {
  * @property endToEndId the end-to-end reference the transfer carries
  * @property failureReason why the transfer stopped, when `success` is false and the
  * bank answers alone do not say
+ * @property outcomeUncertain the transfer stopped (`success` is false) without the bank
+ * saying whether it executed the order, such as with code 9000 or an executed order next
+ * to an error: the bank may have executed it. Check the account before sending it again.
  */
 export interface TransferResponse extends ClientResponse {
 	requiresVopConfirmation: boolean;
@@ -68,6 +72,7 @@ export interface TransferResponse extends ClientResponse {
 	transferId: string;
 	endToEndId: string;
 	failureReason?: string;
+	outcomeUncertain: boolean;
 }
 
 /**
@@ -110,6 +115,16 @@ const VOP_RESULTS: Record<VopResultCode, VopResult['result']> = {
 
 const CHECK_ACCOUNT = 'Check bankAnswers and the account before retrying.';
 
+const OUTCOME_UNCERTAIN =
+	'The bank did not confirm the outcome of the transfer and may have executed it. Check the account before sending the transfer again.';
+
+/** The codes with which the bank accepts an order: 0010 received, 0020 executed */
+const ACCEPTED = [10, 20];
+
+/** The codes that say the bank is not done with the order: 3040 more to come, 3093 the
+ * name check is still running */
+const PENDING = [3040, 3093];
+
 /** The return codes about a Verification of Payee: 3090 check the result, 3091 no HKVPA
  * needed, 3093 the check is still running */
 const VOP_CODES = [3090, 3091, 3093];
@@ -133,6 +148,11 @@ export class CreditTransferOrder {
 	confirmed = false;
 	/** Whether HKVPA goes with the next TAN message (a match without code 3091) */
 	sendVopAuthorizationWithTan = false;
+	/**
+	 * The reference under which the bank processes the order (3070 to HKCCS), possibly
+	 * empty; once set, nothing is offered that would send the order again
+	 */
+	processingReference?: string;
 	/** The response of the latest message this order's interactions handled */
 	lastResponse?: TransferResponse;
 	/** The latest HIVPP that carried a result, for a final HIVPP that carries only the VoP ID */
@@ -377,10 +397,12 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 				bankAnswers: message.getBankAnswers(),
 				requiresTan: false,
 			};
+			const accepted = this.orderAnswers(message).some((answer) => ACCEPTED.includes(answer.code));
 			return this.record(
 				this.fail(
 					base,
 					`Unexpected answer from the bank: ${(error as Error).message}. ${CHECK_ACCOUNT}`,
+					accepted,
 				),
 			);
 		}
@@ -388,10 +410,70 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 		// The base response counts a TAN request as success even next to an error code
 		const response =
 			message.getHighestReturnCode() >= 9000
-				? this.fail(base, 'The bank rejected the order, see bankAnswers.')
+				? this.evaluateError(message, base)
 				: this.evaluate(message, base);
 
 		return this.record(response);
+	}
+
+	/**
+	 * An error code is a rejection only when nothing says the order went through: 9000
+	 * (status indifferent) or an acceptance of the order itself next to the error (such as
+	 * 0020 to HKCCS, 9210 to HKVPP and 9050 to the message) leave the outcome open.
+	 */
+	private evaluateError(message: Message, base: ClientResponse): TransferResponse {
+		const accepted = this.orderAnswers(message).some((answer) => ACCEPTED.includes(answer.code));
+
+		if (message.hasReturnCode(9000) || accepted) {
+			return this.fail(base, OUTCOME_UNCERTAIN, true);
+		}
+
+		return this.fail(base, 'The bank rejected the order, see bankAnswers.');
+	}
+
+	/**
+	 * The segment number of the order in the message just sent, whose answers say what
+	 * became of it; none for a message that carries no order
+	 */
+	protected orderSegNr(): number | undefined {
+		return undefined;
+	}
+
+	/**
+	 * The bank's answers about the order: those referring to the order segment in the
+	 * message that carries it, and every segment answer to a TAN message, which carries
+	 * no order and whose answers stand for it
+	 */
+	protected orderAnswers(message: Message): Answer[] {
+		const tanMessage = this.order.status === 'awaitingTan';
+		const segNr = this.orderSegNr();
+
+		return message
+			.findAllSegments<HIRMSSegment>(HIRMS.Id)
+			.filter((hirms) => tanMessage || (segNr !== undefined && hirms.header.refSegNr === segNr))
+			.flatMap((hirms) => hirms.answers);
+	}
+
+	/**
+	 * Whether the bank accepted the order (0010 or 0020) and says nothing is pending
+	 */
+	protected isAccepted(message: Message): boolean {
+		const codes = this.orderAnswers(message).map((answer) => answer.code);
+		return (
+			codes.some((code) => ACCEPTED.includes(code)) && !codes.some((code) => PENDING.includes(code))
+		);
+	}
+
+	/**
+	 * Takes over the reference of 3070 to the order: the bank processes it under that
+	 * reference, so it must not be offered for sending again
+	 */
+	protected trackProcessing(message: Message): void {
+		const processing = this.orderAnswers(message).find((answer) => answer.code === 3070);
+
+		if (processing) {
+			this.order.processingReference = processing.params?.[0] ?? '';
+		}
 	}
 
 	override awaitsCaller(): boolean {
@@ -425,7 +507,14 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 			return this.respond(base);
 		}
 
-		return this.accept(base);
+		if (message.hasReturnCode(3958)) {
+			return this.fail(
+				base,
+				'The approval app does not support the approval of this order (3958). The transfer was not executed.',
+			);
+		}
+
+		return this.isAccepted(message) ? this.accept(base) : this.fail(base, OUTCOME_UNCERTAIN, true);
 	}
 
 	protected respond(base: ClientResponse, requiresVopConfirmation = false): TransferResponse {
@@ -435,6 +524,7 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 			vop: this.order.vopResult,
 			transferId: this.order.transferId,
 			endToEndId: this.order.pain.endToEndId,
+			outcomeUncertain: false,
 		};
 	}
 
@@ -444,6 +534,17 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 	}
 
 	protected awaitConfirmation(base: ClientResponse): TransferResponse {
+		const reference = this.order.processingReference;
+
+		if (reference !== undefined) {
+			// The bank already processes the order (3070): a confirmation would send it again
+			return this.fail(
+				base,
+				`The bank processes the transfer under the reference ${reference || '(none given)'} (3070) and did not confirm its outcome; it may execute it. Check the account before sending the transfer again.`,
+				true,
+			);
+		}
+
 		this.order.status = 'awaitingConfirmation';
 		return this.respond(withoutTan(base), true);
 	}
@@ -458,9 +559,18 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 		return this.respond(withoutTan(base));
 	}
 
-	protected fail(base: ClientResponse, failureReason: string): TransferResponse {
+	protected fail(
+		base: ClientResponse,
+		failureReason: string,
+		outcomeUncertain = false,
+	): TransferResponse {
 		this.order.status = 'failed';
-		return { ...this.respond(withoutTan(base)), success: false, failureReason };
+		return {
+			...this.respond(withoutTan(base)),
+			success: false,
+			failureReason,
+			outcomeUncertain,
+		};
 	}
 
 	private record(response: TransferResponse): TransferResponse {
@@ -494,6 +604,10 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 		this.order.prepare();
 		this.hkccs = this.order.createHkccs();
 		return this.order.vopParameters ? [this.order.createHkvpp(), this.hkccs] : [this.hkccs];
+	}
+
+	protected override orderSegNr(): number | undefined {
+		return this.hkccs?.header.segNr;
 	}
 
 	override needsTanSegment(tanRequired: boolean): boolean {
@@ -546,7 +660,11 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 			);
 		}
 
-		return base.requiresTan ? this.awaitTan(base) : this.accept(base);
+		if (base.requiresTan) {
+			return this.awaitTan(base);
+		}
+
+		return this.isAccepted(message) ? this.accept(base) : this.fail(base, OUTCOME_UNCERTAIN, true);
 	}
 
 	private evaluateSubmitWithVop(message: Message, base: ClientResponse): TransferResponse {
@@ -554,6 +672,7 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 		// elsewhere (observed at that bank, reported in python-fints PR #223)
 		const approvalVoided = message.hasReturnCode(3945);
 		const hivpp = findHivpp(message);
+		this.trackProcessing(message);
 
 		if (hivpp) {
 			this.order.track(message, hivpp);
@@ -623,30 +742,23 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 			return this.awaitTan(base);
 		}
 
-		return this.accept(base);
+		return this.isAccepted(message) ? this.accept(base) : this.fail(base, OUTCOME_UNCERTAIN, true);
 	}
 
 	/**
-	 * Whether the bank executed the order on the first message: it accepted HKCCS
-	 * itself (0010 or 0020 referring to the segment), or it waived the check and the
-	 * strong authentication (3091 with 3076, E.8.1 rule 2; Hamburger Sparkasse does
-	 * this, as reported to python-fints). Offering a confirmation then would invite
-	 * the caller to send the order a second time.
+	 * Whether the bank executed the order on the first message: it executed HKCCS
+	 * itself (0020 referring to the segment), or it waived the check and the strong
+	 * authentication (3091 with 3076, E.8.1 rule 2; Hamburger Sparkasse does this, as
+	 * reported to python-fints). Offering a confirmation then would invite the caller to
+	 * send the order a second time.
 	 *
-	 * 0010 counts as well as 0020: it is what an accepted transfer got at one bank,
-	 * Sparkasse Berlin, as observed in PR #27 (after the TAN there). Whether a bank
-	 * could answer 0010 to an order it only parks until HKVPA is not known; that would
-	 * report a transfer as accepted that was not executed, which is the lesser risk
-	 * than offering to send an executed order again.
+	 * 0010 does not count: it only says the bank received the order ("zur Ausführung
+	 * vorgemerkt"), which it may do while the name check is still running (3093) or
+	 * while the order waits for HKVPA.
 	 */
 	private isExecuted(message: Message): boolean {
-		const segNr = this.hkccs?.header.segNr;
-		const accepted = message
-			.findAllSegments<HIRMSSegment>(HIRMS.Id)
-			.filter((hirms) => segNr !== undefined && hirms.header.refSegNr === segNr)
-			.some((hirms) => hirms.answers.some((answer) => answer.code === 10 || answer.code === 20));
-
-		return accepted || (message.hasReturnCode(3091) && message.hasReturnCode(3076));
+		const executed = this.orderAnswers(message).some((answer) => answer.code === 20);
+		return executed || (message.hasReturnCode(3091) && message.hasReturnCode(3076));
 	}
 }
 
