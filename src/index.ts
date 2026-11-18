@@ -15,6 +15,11 @@ export * from './electronicStatement.js';
 export * from './httpClient.js';
 export type { AccountBalanceResponse } from './interactions/balanceInteraction.js';
 export type { CreditCardStatementResponse } from './interactions/creditcardStatementInteraction.js';
+export type {
+	TransferResponse,
+	VopResult,
+	VopResultCode,
+} from './interactions/creditTransferInteraction.js';
 export type { ClientResponse, StatementResponse } from './interactions/customerInteraction.js';
 export type {
 	ElectronicStatementOptions,
@@ -24,6 +29,8 @@ export type { PortfolioResponse } from './interactions/portfolioInteraction.js';
 export * from './message.js';
 export * from './mt535parser.js';
 export * from './mt940parser.js';
+export * from './pain001Builder.js';
+export * from './pain002Parser.js';
 export * from './segment.js';
 export { StatementFormat } from './segments/HKEKA.js';
 export * from './statement.js';

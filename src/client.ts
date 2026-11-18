@@ -1,3 +1,4 @@
+import { internationalAccount } from './accountDescriptor.js';
 import { type AccountRef, describeAccount } from './bankAccount.js';
 import { FinTSConfig } from './config.js';
 import { Dialog } from './dialog.js';
@@ -7,6 +8,13 @@ import {
 } from './interactions/balanceInteraction.js';
 import { CreditCardStatementInteraction } from './interactions/creditcardStatementInteraction.js';
 import { CreditCardStatementInteractionHKKKU } from './interactions/creditcardStatementInteractionHKKKU.js';
+import {
+	CreditTransferInteraction,
+	CreditTransferOrder,
+	type TransferResponse,
+	type VopParameters,
+	VopPollInteraction,
+} from './interactions/creditTransferInteraction.js';
 import type {
 	ClientResponse,
 	CustomerOrderInteraction,
@@ -24,23 +32,44 @@ import {
 } from './interactions/portfolioInteraction.js';
 import { StatementInteractionCAMT } from './interactions/statementInteractionCAMT.js';
 import { StatementInteractionMT940 } from './interactions/statementInteractionMT940.js';
+import { buildPain001, type CreditTransfer, selectPain001Format } from './pain001Builder.js';
 import { DKKKU } from './segments/DKKKU.js';
+import type { HISPASParameter } from './segments/HISPAS.js';
+import type { HIVPPSParameter } from './segments/HIVPPS.js';
 import { HKCAZ } from './segments/HKCAZ.js';
+import { HKCCS } from './segments/HKCCS.js';
 import { HKEKA } from './segments/HKEKA.js';
 import { HKIDN } from './segments/HKIDN.js';
 import { HKKAZ } from './segments/HKKAZ.js';
 import { HKKKU } from './segments/HKKKU.js';
 import { HKSAL } from './segments/HKSAL.js';
+import { HKSPA } from './segments/HKSPA.js';
+import { HKVPA } from './segments/HKVPA.js';
+import { HKVPP } from './segments/HKVPP.js';
 import { HKWPD } from './segments/HKWPD.js';
 import type { TanMethod } from './tanMethod.js';
 
 export interface SynchronizeResponse extends InitResponse {}
+
+/** How long the bank may take for a Verification of Payee result, counting the waits between polls */
+const VOP_TIMEOUT_SECONDS = 60;
+/** The wait between polls when the bank names none (python-fints uses the same) */
+const VOP_DEFAULT_WAIT_SECONDS = 2;
+/** The format the DK VoP specification names, for a bank whose HIVPPS lists none */
+const VOP_DEFAULT_REPORT_FORMAT = 'urn:iso:std:iso:20022:tech:xsd:pain.002.001.10';
+
+type PendingTransfer = {
+	order: CreditTransferOrder;
+	dialog: Dialog;
+	lastResponse?: TransferResponse;
+};
 
 /**
  * A client to communicate with a bank over the FinTS protocol
  */
 export class FinTSClient {
 	private currentDialog: Dialog | undefined;
+	private currentTransfer: PendingTransfer | undefined;
 
 	/**
 	 * Creates a new FinTS client
@@ -354,6 +383,142 @@ export class FinTSClient {
 		)) as ElectronicStatementResponse;
 	}
 
+	/**
+	 * Checks if the bank supports SEPA credit transfers in general or from the given account when provided:
+	 * HKCCS in a version this library speaks, a pain.001 format it builds, and, where the bank requires
+	 * Verification of Payee for transfers, readable VoP parameters (HIVPPS)
+	 * @param account when the account number is provided, checks if the account allows transfers and has an IBAN
+	 * @returns true if the bank (and account) supports SEPA credit transfers
+	 */
+	canTransfer(account?: AccountRef): boolean {
+		if (!this.config.getMaxSupportedTransactionVersion(HKCCS.Id)) {
+			return false;
+		}
+
+		if (
+			account &&
+			(!this.config.isAccountTransactionSupported(account, HKCCS.Id) ||
+				!this.config.getBankAccount(account).iban)
+		) {
+			return false;
+		}
+
+		if (!this.selectTransferFormat()) {
+			return false;
+		}
+
+		try {
+			this.getVopParameters();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Starts a SEPA credit transfer (HKCCS), executed as soon as possible.
+	 *
+	 * This is the only method of this library that can move money. The input is checked before
+	 * anything is sent: an invalid IBAN, BIC, amount or text throws a `SepaValidationError`, and
+	 * nothing is transliterated or shortened.
+	 *
+	 * Where the bank requires Verification of Payee, it checks the payee's name against the IBAN
+	 * first, and the response carries the result in `vop`. Then:
+	 * - `requiresVopConfirmation`: the bank waits for a decision. Show `vop` (with `vop.notice`
+	 *   and, for a close match, `vop.suggestedName`) to the user, then call `confirmTransfer()` to
+	 *   authorise the transfer anyway, or `cancelTransfer()` to drop it. Nothing is confirmed
+	 *   automatically, whatever the result.
+	 * - `requiresTan`: the payee matched (or the bank requires no check) and the bank asks for
+	 *   the TAN; continue with `transferWithTan()`, or drop the transfer with `cancelTransfer()`.
+	 * - `success` and neither flag: the bank accepted the transfer.
+	 * - `success: false`: the transfer stopped; `bankAnswers` and `failureReason` say why. Anything
+	 *   unexpected, such as an unknown result code or a missing VoP ID, ends it this way.
+	 *
+	 * Only one transfer can be in progress per client.
+	 *
+	 * @param account - the account to transfer from, must be an account available in the config.bankingInformation.upd.bankAccounts with an IBAN
+	 * @param transfer - the payee, amount and purpose
+	 * @returns the transfer response
+	 * @throws SepaValidationError when the transfer data is invalid
+	 * @throws Error when a transfer is already in progress, the account cannot transfer, or the
+	 * connection fails; an error after the first message was sent leaves the outcome unknown,
+	 * check the account before trying again
+	 */
+	async transfer(account: AccountRef, transfer: CreditTransfer): Promise<TransferResponse> {
+		if (this.currentTransfer) {
+			throw new Error(
+				'a transfer is already in progress; continue it or call cancelTransfer() first',
+			);
+		}
+
+		const order = this.createTransferOrder(account, transfer);
+		const dialog = new Dialog(this.config, false);
+		dialog.addCustomerInteraction(new CreditTransferInteraction(order, 'submit'));
+		this.currentTransfer = { order, dialog };
+
+		return this.driveTransfer(() => dialog.start());
+	}
+
+	/**
+	 * Authorises the transfer despite the Verification of Payee result, after the user has seen
+	 * `vop` and decided to go ahead. Only callable when the last response had
+	 * `requiresVopConfirmation`. The bank may then ask for a TAN (`requiresTan`).
+	 *
+	 * Authorising a transfer to a payee whose name does not match may mean the money goes to
+	 * someone else, and the payer's bank is then not liable for that.
+	 * @returns the transfer response
+	 */
+	async confirmTransfer(): Promise<TransferResponse> {
+		const transfer = this.currentTransfer;
+
+		if (!transfer || transfer.order.status !== 'awaitingConfirmation') {
+			throw new Error(
+				'no transfer is waiting for a confirmation of its Verification of Payee result',
+			);
+		}
+
+		transfer.order.confirmed = true;
+
+		return this.driveTransfer(() =>
+			transfer.dialog.continueWith(new CreditTransferInteraction(transfer.order, 'confirm')),
+		);
+	}
+
+	/**
+	 * Continues the transfer when a TAN is required. With a decoupled TAN method, call it again
+	 * while the response still has `requiresTan`, after the user has approved in their app.
+	 * @param tanReference The TAN reference provided in the previous response
+	 * @param tan The TAN entered by the user, can be omitted if a decoupled TAN method is used
+	 * @returns the transfer response
+	 */
+	async transferWithTan(tanReference: string, tan?: string): Promise<TransferResponse> {
+		const transfer = this.currentTransfer;
+
+		if (!transfer?.lastResponse?.requiresTan) {
+			throw new Error('no transfer is waiting for a TAN');
+		}
+
+		if (!this.config.selectedTanMethod?.isDecoupled && !tan) {
+			throw new Error('TAN must be provided for non-decoupled TAN methods');
+		}
+
+		return this.driveTransfer(() => transfer.dialog.continue(tanReference, tan));
+	}
+
+	/**
+	 * Drops the transfer in progress without executing it and ends its dialog. Call it after a
+	 * response with `requiresVopConfirmation` or `requiresTan` when the user decides against the
+	 * transfer. Does nothing when no transfer is in progress.
+	 */
+	async cancelTransfer(): Promise<void> {
+		const transfer = this.currentTransfer;
+		this.currentTransfer = undefined;
+
+		if (transfer && !transfer.dialog.hasEnded) {
+			await transfer.dialog.end();
+		}
+	}
+
 	private async startCustomerOrderInteraction(
 		interaction: CustomerOrderInteraction,
 	): Promise<ClientResponse> {
@@ -402,5 +567,214 @@ export class FinTSClient {
 				`No response received for customer interaction with segment IDs '${segIds.join(', ')}'`,
 			);
 		}
+	}
+
+	private createTransferOrder(account: AccountRef, transfer: CreditTransfer): CreditTransferOrder {
+		const hkccsVersion = this.config.getMaxSupportedTransactionVersion(HKCCS.Id);
+
+		if (!hkccsVersion) {
+			throw new Error(
+				'the bank does not support SEPA credit transfers (HKCCS) in a version this library supports',
+			);
+		}
+
+		const bankAccount = this.config.getBankAccount(account);
+
+		if (!bankAccount.iban) {
+			throw new Error(`account ${describeAccount(account)} has no IBAN to transfer from`);
+		}
+
+		const descriptor = this.selectTransferFormat();
+
+		if (!descriptor) {
+			throw new Error(
+				'the bank supports none of the pain.001 formats this library builds (pain.001.001.09, pain.001.001.03)',
+			);
+		}
+
+		const vopParameters = this.getVopParameters();
+		const pain = buildPain001(
+			{
+				name: transfer.debtorName ?? bankAccount.holder1,
+				iban: bankAccount.iban,
+				bic: bankAccount.bic,
+			},
+			transfer,
+			descriptor,
+		);
+
+		return new CreditTransferOrder(
+			internationalAccount(this.config, bankAccount),
+			pain,
+			hkccsVersion,
+			vopParameters,
+		);
+	}
+
+	private selectTransferFormat(): string | undefined {
+		return selectPain001Format(
+			this.config.getTransactionParameters<HISPASParameter>(HKSPA.Id)?.supportedSepaFormats,
+		);
+	}
+
+	/**
+	 * What the bank's parameters say about Verification of Payee for transfers
+	 * @returns undefined when the bank does not require it for HKCCS
+	 * @throws Error when the bank announces it but its parameters cannot be used
+	 */
+	private getVopParameters(): VopParameters | undefined {
+		if (!this.config.isTransactionSupported(HKVPP.Id)) {
+			return undefined;
+		}
+
+		const params = this.config.getTransactionParameters<HIVPPSParameter>(HKVPP.Id);
+
+		// Unreadable parameters must not be taken for "no check required"
+		if (!params || !Array.isArray(params.vopRequiredTransactions)) {
+			throw new Error(
+				'the bank announces Verification of Payee (HKVPP), but its parameters (HIVPPS) could not be read',
+			);
+		}
+
+		if (!params.vopRequiredTransactions.includes(HKCCS.Id)) {
+			return undefined;
+		}
+
+		const hkvppVersion = this.config.getMaxSupportedTransactionVersion(HKVPP.Id);
+		const hkvpaVersion = this.config.getMaxSupportedTransactionVersion(HKVPA.Id);
+
+		if (!hkvppVersion || !hkvpaVersion) {
+			throw new Error(
+				'the bank requires Verification of Payee for transfers, but not in a version of HKVPP and HKVPA this library supports',
+			);
+		}
+
+		const reportFormats = (params.supportedReportFormats ?? '')
+			.split(/[;,\s]+/)
+			.filter((format) => !!format)
+			.slice(0, 99);
+
+		return {
+			reportFormats: reportFormats.length ? reportFormats : [VOP_DEFAULT_REPORT_FORMAT],
+			noticeStructured: !!params.noticeStructured,
+			hkvppVersion,
+			hkvpaVersion,
+		};
+	}
+
+	/**
+	 * Runs one step of the transfer in progress, then asks again for a Verification of Payee
+	 * result for as long as the bank is still producing it.
+	 */
+	private async driveTransfer(
+		step: () => Promise<Map<string, ClientResponse>>,
+	): Promise<TransferResponse> {
+		const transfer = this.currentTransfer;
+
+		if (!transfer) {
+			throw new Error('no transfer is in progress');
+		}
+
+		const { order, dialog } = transfer;
+		let response: TransferResponse;
+
+		try {
+			order.lastResponse = undefined;
+			await step();
+			response = this.toTransferResponse(order, dialog);
+			let waitedSeconds = 0;
+
+			while (order.status === 'polling' && response.success) {
+				const waitSeconds = Math.max(1, order.waitSeconds ?? VOP_DEFAULT_WAIT_SECONDS);
+
+				if (waitedSeconds + waitSeconds > VOP_TIMEOUT_SECONDS) {
+					order.status = 'failed';
+					response = {
+						...response,
+						success: false,
+						failureReason: `The bank did not deliver the Verification of Payee result within ${VOP_TIMEOUT_SECONDS} seconds. The transfer was not executed.`,
+					};
+					break;
+				}
+
+				waitedSeconds += waitSeconds;
+				await this.sleep(waitSeconds * 1000);
+				order.lastResponse = undefined;
+				await dialog.continueWith(new VopPollInteraction(order));
+				response = this.toTransferResponse(order, dialog);
+			}
+		} catch (error) {
+			this.currentTransfer = undefined;
+
+			// The bank accepted the order and only ending the dialog failed: still a success
+			if (order.status === 'accepted' && order.lastResponse) {
+				return order.lastResponse;
+			}
+
+			await this.endQuietly(dialog);
+			throw error;
+		}
+
+		transfer.lastResponse = response;
+
+		if (order.status === 'accepted') {
+			// The dialog has already sent HKEND
+			this.currentTransfer = undefined;
+		} else if (!response.success || order.status === 'failed') {
+			this.currentTransfer = undefined;
+			await this.endQuietly(dialog);
+		}
+
+		return response;
+	}
+
+	/**
+	 * The response of the transfer interaction, or, when the dialog stopped before the transfer
+	 * was sent (a TAN or an error in the dialog initialisation or a step it queued, such as
+	 * HKSPA), the response of the interaction it stopped at
+	 */
+	private toTransferResponse(order: CreditTransferOrder, dialog: Dialog): TransferResponse {
+		if (order.lastResponse) {
+			return order.lastResponse;
+		}
+
+		const segId = dialog.currentInteraction?.segId;
+		const response = segId ? dialog.responses.get(segId) : undefined;
+
+		if (!response) {
+			throw new Error('No response received for the transfer');
+		}
+
+		const transferResponse: TransferResponse = {
+			...response,
+			requiresVopConfirmation: false,
+			vop: order.vopResult,
+			endToEndId: order.pain.endToEndId,
+		};
+
+		if (response.requiresTan && response.success) {
+			return transferResponse;
+		}
+
+		order.status = 'failed';
+		return {
+			...transferResponse,
+			success: false,
+			requiresTan: false,
+			failureReason:
+				'The dialog stopped before the transfer was sent, see bankAnswers. The transfer was not executed.',
+		};
+	}
+
+	private async endQuietly(dialog: Dialog): Promise<void> {
+		try {
+			await dialog.end();
+		} catch {
+			// The dialog times out at the bank all the same
+		}
+	}
+
+	private sleep(milliseconds: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, milliseconds));
 	}
 }
