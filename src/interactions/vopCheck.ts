@@ -166,9 +166,17 @@ export class VopCheck {
 				throw new Error('The bank did not deliver the complete payment status report');
 			}
 
+			// Every report of the check is about this order before any of it counts
+			const reports = this.reports.map(parsePain002);
+			const foreign = reports.map((report) => checkReport(report, order)).find(Boolean);
+
+			if (foreign) {
+				return foreign;
+			}
+
 			result = interpretVopResult(
 				this.single,
-				this.reported ? this.reports.map(parsePain002) : [],
+				this.reported ? reports : [],
 				this.notice,
 				noticeStructured,
 			);
@@ -176,10 +184,8 @@ export class VopCheck {
 			return `${(error as Error).message}.`;
 		}
 
-		const foreign = checkOrder(result, order);
-
-		if (foreign) {
-			return foreign;
+		if (result.iban && !sameIban(result.iban, order)) {
+			return 'The Verification of Payee result is for another IBAN than the transfer.';
 		}
 
 		this.result = result;
@@ -187,28 +193,46 @@ export class VopCheck {
 	}
 }
 
-/**
- * A result counts only for this order: the message and end-to-end references, the IBAN
- * and the payee name a pain.002 repeats from the order must be the submitted ones
- * @returns why the result is not about this order, if it is not
- */
-function checkOrder(result: VopResult, order: Pain001Message): string | undefined {
-	const report = result.paymentStatusReport;
-	const transactions = report?.transactions ?? [];
+function sameIban(iban: string, order: Pain001Message): boolean {
+	return iban.replace(/\s+/g, '').toUpperCase() === order.creditorIban;
+}
 
-	if (report?.originalMessageId !== undefined && report.originalMessageId !== order.messageId) {
+/**
+ * A report counts only for this order: the references, the totals, the IBAN and the payee
+ * name it repeats from the order must be the submitted ones, and it can be about no more
+ * than the one payment information block and the one transaction of a transfer
+ * @returns why the report is not about this order, if it is not
+ */
+function checkReport(report: PaymentStatusReport, order: Pain001Message): string | undefined {
+	const blocks = report.originalPaymentInfos;
+	const transactions = report.transactions;
+
+	if (
+		(report.originalMessageId !== undefined && report.originalMessageId !== order.messageId) ||
+		blocks.some(
+			(block) => block.paymentInfoId !== undefined && block.paymentInfoId !== order.paymentInfoId,
+		)
+	) {
 		return 'The Verification of Payee result is for another order than the transfer.';
+	}
+
+	const counts = [report.originalTransactionCount, ...blocks.map((b) => b.transactionCount)];
+	const sums = [report.originalControlSum, ...blocks.map((block) => block.controlSum)];
+
+	if (
+		blocks.length > 1 ||
+		transactions.length > 1 ||
+		counts.some((count) => count !== undefined && count !== 1) ||
+		sums.some((sum) => sum !== undefined && Number(sum) !== Number(order.controlSum))
+	) {
+		return 'The Verification of Payee result is for other payments than the transfer.';
 	}
 
 	if (transactions.some((t) => t.endToEndId !== undefined && t.endToEndId !== order.endToEndId)) {
 		return 'The Verification of Payee result is for another payment than the transfer.';
 	}
 
-	const ibans = [result.iban, ...transactions.map((t) => t.creditorIban)].filter(
-		(iban): iban is string => !!iban,
-	);
-
-	if (ibans.some((iban) => iban.replace(/\s+/g, '').toUpperCase() !== order.creditorIban)) {
+	if (transactions.some((t) => t.creditorIban && !sameIban(t.creditorIban, order))) {
 		return 'The Verification of Payee result is for another IBAN than the transfer.';
 	}
 
@@ -335,12 +359,18 @@ function reportStatus(report: PaymentStatusReport): string | undefined {
 	}
 
 	const kind = AGGREGATE_CODES[status];
+	// A count for the status claimed must be the one transaction, zero included
+	const miscounted = [report.groupStatusCounts, report.paymentInfoStatusCounts].some((counts) =>
+		counts.some((entry) => entry.status === status && entry.count !== 1),
+	);
 
 	if (
+		miscounted ||
 		aggregates.some(
 			(code) =>
-				(AGGREGATE_CODES[code] === 'match' && kind !== 'match') ||
-				(AGGREGATE_CODES[code] === 'deviation' && kind === 'match'),
+				AGGREGATE_CODES[code] !== kind &&
+				// RVCM stands for any deviation; a final result is not pending
+				(AGGREGATE_CODES[code] !== 'deviation' || kind === 'match'),
 		)
 	) {
 		throw contradiction();
@@ -350,8 +380,9 @@ function reportStatus(report: PaymentStatusReport): string | undefined {
 }
 
 /**
- * The latest report, and, when it gives the transaction only as a count, the transaction
- * and reason lines of the latest earlier report that details it with the same status
+ * The latest report, with the group and payment information reasons of every report of
+ * the check, and, when it gives the transaction only as a count, the transaction of the
+ * latest earlier report that details it with the same status
  */
 function combineReports(
 	reports: PaymentStatusReport[],
@@ -363,28 +394,23 @@ function combineReports(
 	}
 
 	const status = reportStatus(latest);
-
-	if (latest.transactions.length || status === undefined) {
-		return { report: latest, status };
-	}
-
-	const lender = reports
-		.slice(0, -1)
-		.reverse()
-		.find((report) => report.transactions.some((t) => t.status === status));
-
-	// The details lent must agree with everything else that report says
-	if (!lender || reportStatus(lender) !== status) {
-		return { report: latest, status };
-	}
-
 	const unique = (lines: string[]) => [...new Set(lines)];
+	const lender =
+		latest.transactions.length || status === undefined
+			? undefined
+			: reports
+					.slice(0, -1)
+					.reverse()
+					.find((report) => report.transactions.some((t) => t.status === status));
+
 	return {
 		report: {
 			...latest,
-			groupReasons: unique([...lender.groupReasons, ...latest.groupReasons]),
-			paymentInfoReasons: unique([...lender.paymentInfoReasons, ...latest.paymentInfoReasons]),
-			transactions: lender.transactions,
+			groupReasons: unique(reports.flatMap((report) => report.groupReasons)),
+			paymentInfoReasons: unique(reports.flatMap((report) => report.paymentInfoReasons)),
+			// The details lent must agree with everything else that report says
+			transactions:
+				lender && reportStatus(lender) === status ? lender.transactions : latest.transactions,
 		},
 		status,
 	};

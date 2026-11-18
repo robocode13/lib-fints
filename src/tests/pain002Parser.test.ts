@@ -81,8 +81,24 @@ describe('parsePain002', () => {
 			paymentInfoStatus: undefined,
 			paymentInfoReasons: [],
 			paymentInfoStatusCounts: [],
+			originalPaymentInfos: [],
 			transactions: [],
 		});
+	});
+
+	it('reads the references and totals of the order it repeats', () => {
+		const report = parsePain002(
+			'<Document><CstmrPmtStsRpt><OrgnlGrpInfAndSts><OrgnlMsgId>a1</OrgnlMsgId>' +
+				'<OrgnlNbOfTxs>1</OrgnlNbOfTxs><OrgnlCtrlSum>12.50</OrgnlCtrlSum></OrgnlGrpInfAndSts>' +
+				'<OrgnlPmtInfAndSts><OrgnlPmtInfId>P1</OrgnlPmtInfId><OrgnlNbOfTxs>x</OrgnlNbOfTxs>' +
+				'</OrgnlPmtInfAndSts></CstmrPmtStsRpt></Document>',
+		);
+
+		expect(report.originalTransactionCount).toBe(1);
+		expect(report.originalControlSum).toBe('12.50');
+		expect(report.originalPaymentInfos).toEqual([
+			{ paymentInfoId: 'P1', transactionCount: Number.NaN, controlSum: undefined },
+		]);
 	});
 
 	it('collects several reason lines and transactions', () => {

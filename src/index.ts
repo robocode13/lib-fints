@@ -39,6 +39,7 @@ export {
 	SepaValidationError,
 } from './pain001Builder.js';
 export {
+	type OriginalPaymentInfo,
 	Pain002ParsingError,
 	type PaymentStatusReport,
 	type PaymentTransactionStatus,

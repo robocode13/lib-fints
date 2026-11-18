@@ -122,6 +122,10 @@ export type Pain001Message = {
 	/** The document's UTF-8 bytes, one character per byte, as HKCCS carries it */
 	bytes: string;
 	messageId: string;
+	/** The reference of the document's one payment information block (PmtInfId) */
+	paymentInfoId: string;
+	/** The amount, as the document carries it in the control sums (CtrlSum) */
+	controlSum: string;
 	endToEndId: string;
 	/** The payee IBAN as the document carries it, without spaces and in capitals */
 	creditorIban: string;
@@ -320,6 +324,8 @@ export function buildPain001(
 		xml,
 		bytes: Buffer.from(xml, 'utf8').toString('latin1'),
 		messageId,
+		paymentInfoId,
+		controlSum: amount,
 		endToEndId,
 		creditorIban: iban,
 		creditorName: name,

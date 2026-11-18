@@ -15,10 +15,14 @@ import {
 	hirms,
 	hitan,
 	hivppPending,
+	hivppReport,
 	hivppSingle,
 	initOk,
 	NO_HKVPA_NEEDED,
 	OK,
+	ORDER_MESSAGE_ID,
+	pain002,
+	REPORT_FORMAT,
 	sentOrders,
 	TAN_REQUIRED,
 	TRANSFER,
@@ -330,6 +334,86 @@ describe('FinTSClient SEPA credit transfer safety', () => {
 			});
 			await expect(client.confirmTransfer(old.transferId)).rejects.toThrow();
 			expect(payments()).toBe(2);
+		});
+	});
+
+	describe('a report counts only for the order', () => {
+		const counted = (count: number, status = 'RCVC') =>
+			`<NbOfTxsPerSts><DtldNbOfTxs>${count}</DtldNbOfTxs><DtldSts>${status}</DtldSts></NbOfTxsPerSts>`;
+		const inGroup = (xml: string, element: string) =>
+			xml.replace('</OrgnlGrpInfAndSts>', `${element}</OrgnlGrpInfAndSts>`);
+		const countsOnly = (xml: string, status = 'RCVC') =>
+			xml.replace(/<TxInfAndSts>.*?<\/TxInfAndSts>/, counted(1, status));
+		/** A HIVPP with a part of a report and no VoP ID yet */
+		const part = (xml: string) => `HIVPP:5:1:3+++@1@P+${REPORT_FORMAT}+@${xml.length}@${xml}'`;
+		const MORE = '3040::Weitere Daten folgen.:TP-1';
+
+		it.each([
+			['counts no match', inGroup(pain002('RCVC'), counted(0))],
+			['is pending as a whole', inGroup(pain002('RCVC'), '<GrpSts>PDNG</GrpSts>')],
+			['names another payment block', pain002('RCVC').replace('PMT-1', 'OTHER-BLOCK')],
+			['names two transactions', inGroup(pain002('RCVC'), '<OrgnlNbOfTxs>2</OrgnlNbOfTxs>')],
+			['gives another total', inGroup(pain002('RCVC'), '<OrgnlCtrlSum>4250</OrgnlCtrlSum>')],
+		])('opens no TAN with a match whose report %s', async (_title, xml) => {
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(5, TAN_REQUIRED), hivppReport(xml), hitan()),
+				endOk(),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+				success: false,
+				requiresTan: false,
+				requiresVopConfirmation: false,
+			});
+			expect(payments()).toBe(1);
+		});
+
+		it('takes the total of the transfer', async () => {
+			const xml = inGroup(
+				pain002('RCVC'),
+				'<OrgnlNbOfTxs>1</OrgnlNbOfTxs><OrgnlCtrlSum>42.5</OrgnlCtrlSum>',
+			);
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(5, TAN_REQUIRED), hivppReport(xml), hitan()),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+				success: true,
+				requiresTan: true,
+			});
+		});
+
+		it('takes no details from a report about another order', async () => {
+			const before = pain002('RCVC').replace(ORDER_MESSAGE_ID, 'UNRELATED-ORDER');
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(3, MORE), part(before)),
+				answer(OK, hivppReport(countsOnly(pain002('RCVC')))),
+				endOk(),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+				success: false,
+				requiresVopConfirmation: false,
+			});
+		});
+
+		it('keeps the reasons of every delivery of the check', async () => {
+			const summary = countsOnly(pain002('RVMC'), 'RVMC');
+			const warning = inGroup(summary, '<StsRsnInf><AddtlInf>RVMC Warnung.</AddtlInf></StsRsnInf>');
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(3, MORE), part(pain002('RVMC', 'Company A'))),
+				answer(WARNINGS, hirms(3, MORE), part(warning)),
+				answer(OK, hivppReport(summary)),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response.vop).toMatchObject({ result: 'closeMatch', suggestedName: 'Company A' });
+			expect(response.vop?.paymentStatusReport?.groupReasons).toContain('RVMC Warnung.');
 		});
 	});
 

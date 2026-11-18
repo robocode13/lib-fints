@@ -30,11 +30,29 @@ export type StatusCount = {
 };
 
 /**
+ * A payment information block of the order, as a payment status report repeats it
+ */
+export type OriginalPaymentInfo = {
+	/** Its reference in the order (OrgnlPmtInfId) */
+	paymentInfoId?: string;
+	/** The number of its transactions, when the report gives it (OrgnlNbOfTxs) */
+	transactionCount?: number;
+	/** The sum of its amounts, when the report gives it (OrgnlCtrlSum) */
+	controlSum?: string;
+};
+
+/**
  * A pain.002 payment status report, as banks send it as the result of Verification of Payee
  */
 export type PaymentStatusReport = {
 	/** The message reference of the order the report is about (OrgnlMsgId) */
 	originalMessageId?: string;
+	/** The number of transactions of the order, when the report gives it (OrgnlNbOfTxs) */
+	originalTransactionCount?: number;
+	/** The sum of the amounts of the order, when the report gives it (OrgnlCtrlSum) */
+	originalControlSum?: string;
+	/** The payment information blocks the report is about, in the order it names them */
+	originalPaymentInfos: OriginalPaymentInfo[];
 	/** The status of the whole order (group): RCVC, RVCM (with mismatches) or PDNG */
 	groupStatus?: string;
 	/** The additional information lines of the group status reason, each starting with the
@@ -104,8 +122,14 @@ export function parsePain002(xml: string): PaymentStatusReport {
 	let paymentInfoStatus: string | undefined;
 	const paymentInfoReasons: string[] = [];
 	const paymentInfoStatusCounts: StatusCount[] = [];
+	const originalPaymentInfos: OriginalPaymentInfo[] = [];
 
 	for (const paymentInfo of paymentInfos) {
+		originalPaymentInfos.push({
+			paymentInfoId: text(paymentInfo.OrgnlPmtInfId),
+			transactionCount: count(paymentInfo.OrgnlNbOfTxs),
+			controlSum: text(paymentInfo.OrgnlCtrlSum),
+		});
 		paymentInfoStatus ??= text(paymentInfo.PmtInfSts);
 		paymentInfoReasons.push(...reasons(paymentInfo.StsRsnInf));
 		paymentInfoStatusCounts.push(...statusCounts(paymentInfo.NbOfTxsPerSts));
@@ -132,6 +156,9 @@ export function parsePain002(xml: string): PaymentStatusReport {
 
 	return {
 		originalMessageId: text(groupInfo?.OrgnlMsgId),
+		originalTransactionCount: count(groupInfo?.OrgnlNbOfTxs),
+		originalControlSum: text(groupInfo?.OrgnlCtrlSum),
+		originalPaymentInfos,
 		groupStatus: text(groupInfo?.GrpSts),
 		groupReasons: reasons(groupInfo?.StsRsnInf),
 		groupStatusCounts: statusCounts(groupInfo?.NbOfTxsPerSts),
@@ -156,6 +183,12 @@ function statusCounts(counts: unknown): StatusCount[] {
 		const count = Number(text(entry.DtldNbOfTxs));
 		return status && Number.isInteger(count) ? [{ status, count }] : [];
 	});
+}
+
+/** A number of transactions; NaN, for a value that is not one, matches no count */
+function count(value: unknown): number | undefined {
+	const digits = text(value);
+	return digits === undefined ? undefined : /^\d+$/.test(digits) ? Number(digits) : Number.NaN;
 }
 
 function node(value: unknown): XmlNode | undefined {
