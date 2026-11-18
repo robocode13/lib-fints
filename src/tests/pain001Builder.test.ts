@@ -89,6 +89,16 @@ describe('normalizeIban', () => {
 		expectValidationError(() => normalizeIban('DE03120300000000202051'), 'iban', /check digits/);
 	});
 
+	it('rejects letters that only upper-case to ASCII', () => {
+		// The long s (ſ) upper-cases to S, which would make the IBAN checksum-valid
+		expectValidationError(() => normalizeIban('GB82WEſT12345698765432'), 'iban', /well-formed/);
+	});
+
+	it('rejects an IBAN of the wrong length for its country before the checksum', () => {
+		// Valid check digits, but one digit too many for a German IBAN
+		expectValidationError(() => normalizeIban('DE890370400440532013000'), 'iban', /22 characters/);
+	});
+
 	it('rejects malformed IBANs', () => {
 		expectValidationError(() => normalizeIban('DE0212030000-0000202051'), 'iban', /well-formed/);
 		expectValidationError(() => normalizeIban('DE02'), 'iban', /well-formed/);

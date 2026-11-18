@@ -27,6 +27,56 @@ const TEXT_CHARACTERS = /[A-Za-z0-9/\-?:().,'+ ÄÖÜäöüß&*$%]/;
 const ID_CHARACTERS = /[A-Za-z0-9/\-?:().,'+ ]/;
 
 /**
+ * The IBAN lengths of the countries and territories of the SEPA scheme with an IBAN
+ * country code of their own (SWIFT IBAN registry). An IBAN of a country not listed is
+ * checked by its check digits only.
+ */
+const IBAN_LENGTHS: Record<string, number> = {
+	AD: 24,
+	AL: 28,
+	AT: 20,
+	BE: 16,
+	BG: 22,
+	CH: 21,
+	CY: 28,
+	CZ: 24,
+	DE: 22,
+	DK: 18,
+	EE: 20,
+	ES: 24,
+	FI: 18,
+	FR: 27,
+	GB: 22,
+	GI: 23,
+	GR: 27,
+	HR: 21,
+	HU: 28,
+	IE: 22,
+	IS: 26,
+	IT: 27,
+	LI: 21,
+	LT: 20,
+	LU: 20,
+	LV: 21,
+	MC: 27,
+	MD: 24,
+	ME: 22,
+	MK: 19,
+	MT: 31,
+	NL: 18,
+	NO: 15,
+	PL: 28,
+	PT: 25,
+	RO: 24,
+	RS: 22,
+	SE: 24,
+	SI: 19,
+	SK: 24,
+	SM: 27,
+	VA: 22,
+};
+
+/**
  * A SEPA credit transfer to one payee
  */
 export type CreditTransfer = {
@@ -110,8 +160,9 @@ export function selectPain001Format(supportedSepaFormats?: string[]): string | u
 }
 
 /**
- * Normalises and checks an IBAN: spaces are removed, letters upper-cased, then the
- * structure and the ISO 13616 check digits are verified.
+ * Normalises and checks an IBAN: only ASCII letters, digits and spaces are allowed;
+ * spaces are removed, letters upper-cased, then the structure, the length for the
+ * country and the ISO 13616 check digits are verified.
  * @throws SepaValidationError when the IBAN is not valid
  */
 export function normalizeIban(iban: string, field = 'iban'): string {
@@ -119,10 +170,20 @@ export function normalizeIban(iban: string, field = 'iban'): string {
 		throw new SepaValidationError(field, `${field} must be a string`);
 	}
 
-	const normalized = iban.replace(/ /g, '').toUpperCase();
+	// Checked before upper-casing, which turns some other letters into ASCII ones (ſ into S)
+	const normalized = /^[A-Za-z0-9 ]*$/.test(iban) ? iban.replace(/ /g, '').toUpperCase() : '';
 
 	if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(normalized)) {
 		throw new SepaValidationError(field, `${field} '${iban}' is not a well-formed IBAN`);
+	}
+
+	const length = IBAN_LENGTHS[normalized.slice(0, 2)];
+
+	if (length !== undefined && normalized.length !== length) {
+		throw new SepaValidationError(
+			field,
+			`${field} must have ${length} characters for its country, it has ${normalized.length}`,
+		);
 	}
 
 	if (ibanChecksum(normalized) !== 1) {
