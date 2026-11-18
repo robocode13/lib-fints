@@ -1142,7 +1142,7 @@ describe('FinTSClient SEPA credit transfer', () => {
 			});
 		});
 
-		it('replaces the result with the one the bank sends with 3945 at the TAN step', async () => {
+		it('ends the transfer when 3945 at the TAN step comes with another result', async () => {
 			bank.responses.push(
 				initOk(),
 				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
@@ -1151,6 +1151,29 @@ describe('FinTSClient SEPA credit transfer', () => {
 					hirms(3, APPROVAL_VOIDED),
 					hivppSingle('RVNM').replace('VOP-01', 'VOP-02'),
 				),
+				endOk(),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.transferWithTan('TAN-REF-1', '123456');
+
+			// The caller decided on the match; the bank voided the approval, so nothing executes
+			expect(response).toMatchObject({
+				success: false,
+				requiresVopConfirmation: false,
+				requiresTan: false,
+				outcomeUncertain: false,
+				vop: { result: 'noMatch', code: 'RVNM' },
+			});
+			await expect(client.confirmTransfer(response.transferId)).rejects.toThrow();
+			expect(sentOrders().filter((segments) => segments.includes('HKCCS'))).toHaveLength(1);
+		});
+
+		it('asks for the confirmation again when 3945 at the TAN step comes with the same result', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(WARNINGS, hirms(3, APPROVAL_VOIDED), hivppSingle('RCVC')),
 			);
 
 			await client.transfer(ACCOUNT, TRANSFER);
@@ -1159,15 +1182,14 @@ describe('FinTSClient SEPA credit transfer', () => {
 			expect(response).toMatchObject({
 				success: true,
 				requiresVopConfirmation: true,
-				requiresTan: false,
-				vop: { result: 'noMatch', code: 'RVNM' },
+				vop: { result: 'match' },
 			});
 
 			bank.responses.push(answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')));
 			await client.confirmTransfer(response.transferId);
 
 			const hkvpa = bank.sent.at(-1)?.findSegment<HKVPASegment>('HKVPA');
-			expect(hkvpa?.vopId).toBe('VOP-02');
+			expect(hkvpa?.vopId).toBe('VOP-01');
 		});
 
 		it('stops instead of continuing the approval when a later answer brings a deviation', async () => {
@@ -1198,7 +1220,7 @@ describe('FinTSClient SEPA credit transfer', () => {
 			expect(sentOrders().slice(3)).toEqual([['HKEND']]);
 		});
 
-		it('replaces the earlier match with a later answer that has no result (notprovided)', async () => {
+		it('ends the transfer when a later answer replaces the match with no result (notprovided)', async () => {
 			bank.responses.push(
 				initOk(),
 				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
@@ -1207,13 +1229,15 @@ describe('FinTSClient SEPA credit transfer', () => {
 					hirms(3, APPROVAL_VOIDED, CHECK_RESULT),
 					"HIVPP:5:1:3+@11@notprovided++++++Bitte erneut pruefen.'",
 				),
+				endOk(),
 			);
 
 			await client.transfer(ACCOUNT, TRANSFER);
 			const response = await client.transferWithTan('TAN-REF-1', '123456');
 
 			expect(response).toMatchObject({
-				requiresVopConfirmation: true,
+				success: false,
+				requiresVopConfirmation: false,
 				vop: { result: 'notApplicable', notice: 'Bitte erneut pruefen.' },
 			});
 			expect(response.vop?.code).toBeUndefined();

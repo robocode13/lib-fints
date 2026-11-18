@@ -111,6 +111,11 @@ export class CreditTransferOrder {
 	/** The current Verification of Payee check: its result, VoP ID, notice and codes */
 	check = new VopCheck();
 	private prepared: PreparedTransfer;
+	/**
+	 * The material fields of the result the caller was handed to decide on, kept here
+	 * where no caller can change them
+	 */
+	private decided?: string;
 
 	/**
 	 * @param build builds the order from the banking information as it is at the time of
@@ -171,6 +176,39 @@ export class CreditTransferOrder {
 	 */
 	readResult(): VopResult | string {
 		return this.check.read(this.pain, this.vopParameters?.noticeStructured ?? false);
+	}
+
+	/**
+	 * Binds the caller's decision, a confirmation or a TAN, to the current result: the
+	 * first result handed to the caller is the only one the transfer goes on with
+	 */
+	bindDecision(): void {
+		this.decided ??= this.material();
+	}
+
+	/** Whether the current result is, in every material field, the one the caller decided on */
+	isDecided(): boolean {
+		return this.decided !== undefined && this.decided === this.material();
+	}
+
+	private material(): string | undefined {
+		const result = this.vopResult;
+
+		if (!result) {
+			return undefined;
+		}
+
+		const { code, iban, suggestedName, notApplicableReason, notice, reasons } = result;
+		return JSON.stringify([
+			this.vopId,
+			result.result,
+			code,
+			iban,
+			suggestedName,
+			notApplicableReason,
+			notice,
+			reasons,
+		]);
 	}
 
 	createHkccs(): HKCCSSegment {
@@ -326,26 +364,11 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 		const order = this.order;
 		const later = this.takeLaterResult(message);
 
-		if (typeof later === 'object') {
+		if (later) {
 			return later;
 		}
 
-		// A new result that is not a match needs the caller's decision again
-		const undecided = later === 'changed' && order.vopResult?.result !== 'match';
-		const approvalVoided = message.hasReturnCode(3945);
-
-		if (undecided) {
-			order.confirmed = false;
-
-			if (base.requiresTan && !approvalVoided) {
-				return {
-					stop: 'The bank sent a new Verification of Payee result that needs a decision while it still waits for the approval of the transfer, which may still go through.',
-					uncertain: true,
-				};
-			}
-		}
-
-		if (approvalVoided || undecided) {
+		if (message.hasReturnCode(3945)) {
 			// 3945: the bank voided the approval and wants HKVPA with the order (E.8.1 rule 5)
 			if (order.vopParameters && order.vopId !== undefined && !order.confirmed) {
 				return 'confirmation';
@@ -370,19 +393,19 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 
 	/**
 	 * Takes in a result the bank sends with an answer after the check, such as with 3945 to
-	 * the TAN: a new check, which replaces the earlier one whole, with its own VoP ID
-	 * @returns whether the answer brought a result, and whether it differs from the
-	 * earlier one, or why the transfer has to stop
+	 * the TAN: a new check, which replaces the earlier one whole. The caller decided on the
+	 * earlier one; a result that differs from it in any material field ends the transfer
+	 * instead of asking again, so no decision, a late one included, applies to another result.
+	 * @returns why the transfer has to stop, if it does
 	 */
-	private takeLaterResult(message: Message): 'none' | 'same' | 'changed' | { stop: string } {
+	private takeLaterResult(message: Message): { stop: string } | undefined {
 		const hivpp = findHivpp(message);
 
 		if (!hivpp) {
-			return 'none';
+			return undefined;
 		}
 
 		const order = this.order;
-		const previous = { vopId: order.vopId, code: order.vopResult?.code };
 
 		if (!order.vopParameters) {
 			return { stop: UNANNOUNCED_CHECK };
@@ -395,7 +418,11 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 			return { stop: result };
 		}
 
-		return previous.vopId === order.vopId && previous.code === result.code ? 'same' : 'changed';
+		return order.isDecided()
+			? undefined
+			: {
+					stop: 'The bank sent another Verification of Payee result than the one decided on, see vop.',
+				};
 	}
 
 	/**
@@ -426,6 +453,10 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 			};
 		}
 
+		if (outcome.status === 'tan' || outcome.status === 'confirmation') {
+			order.bindDecision();
+		}
+
 		if (outcome.status === 'tan') {
 			order.status = 'awaitingTan';
 			return this.respond(base);
@@ -444,7 +475,8 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 		return {
 			...base,
 			requiresVopConfirmation,
-			vop: this.order.vopResult,
+			// A copy: what the caller does with it changes nothing here
+			vop: structuredClone(this.order.vopResult),
 			transferId: this.order.transferId,
 			endToEndId: this.order.pain.endToEndId,
 			outcomeUncertain: false,

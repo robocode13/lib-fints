@@ -246,6 +246,93 @@ describe('FinTSClient SEPA credit transfer safety', () => {
 		});
 	});
 
+	describe('a decision binds to its result', () => {
+		it('is not undone by a change to the returned result', async () => {
+			client.selectTanMethod(946);
+			bank.responses.push(
+				initOk(),
+				matchWithTan(),
+				answer(
+					OK,
+					hirms(3, '3956::Freigabe noch ausstehend.'),
+					hivppSingle('RVNM'),
+					hitan('TAN-REF-2', 'S'),
+				),
+				endOk(),
+			);
+			const first = await client.transfer(ACCOUNT, TRANSFER);
+			if (first.vop) first.vop.code = 'RVNM';
+
+			const response = await client.transferWithTan('TAN-REF-1');
+
+			// The approval the bank still waits for may go through all the same
+			expect(response).toMatchObject({ ...UNCERTAIN, vop: { code: 'RVNM' } });
+			expect(sentOrders().filter((segments) => segments.join() === 'HKTAN')).toHaveLength(1);
+		});
+
+		it('ends the transfer on a changed payee name under the same VoP ID and code', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(5, APPROVAL_VOIDED),
+					hivppSingle('RVMC', { closeMatchName: 'Company A' }),
+				),
+				answer(
+					OK,
+					hirms(5, TAN_REQUIRED),
+					hivppSingle('RVMC', { closeMatchName: 'Company B' }),
+					hitan(),
+				),
+				endOk(),
+			);
+			const first = await client.transfer(ACCOUNT, TRANSFER);
+
+			const later = await client.confirmTransfer(first.transferId);
+
+			expect(later).toMatchObject({
+				success: false,
+				requiresTan: false,
+				requiresVopConfirmation: false,
+				vop: { suggestedName: 'Company B' },
+			});
+			expect(payments()).toBe(2);
+		});
+
+		it('ends the transfer on a later result, so a late confirmation authorises nothing', async () => {
+			// The reviewer expected a new prompt for the later result; it ends the transfer
+			// instead, which leaves no stale confirmation that could authorise it
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(5, APPROVAL_VOIDED),
+					hivppSingle('RVMC', { closeMatchName: 'Company A' }),
+				),
+				answer(
+					WARNINGS,
+					hirms(5, APPROVAL_VOIDED),
+					hivppSingle('RVNM').replace('VOP-01', 'VOP-02'),
+				),
+				answer(OK, hirms(4, EXECUTED)),
+				endOk(),
+			);
+			const old = await client.transfer(ACCOUNT, TRANSFER);
+
+			const newer = await client.confirmTransfer(old.transferId);
+
+			// The bank voided the approval of the order it holds (3945): nothing can execute
+			expect(newer).toMatchObject({
+				success: false,
+				requiresVopConfirmation: false,
+				outcomeUncertain: false,
+				vop: { result: 'noMatch' },
+			});
+			await expect(client.confirmTransfer(old.transferId)).rejects.toThrow();
+			expect(payments()).toBe(2);
+		});
+	});
+
 	describe('errors that allow an earlier execution', () => {
 		it('ends uncertain on a duplicate after the bank received the order', async () => {
 			bank.responses.push(
