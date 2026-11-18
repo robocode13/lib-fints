@@ -29,8 +29,22 @@ export type { PortfolioResponse } from './interactions/portfolioInteraction.js';
 export * from './message.js';
 export * from './mt535parser.js';
 export * from './mt940parser.js';
-export * from './pain001Builder.js';
-export * from './pain002Parser.js';
+export {
+	buildPain001,
+	type CreditTransfer,
+	PAIN_001_001_03,
+	PAIN_001_001_09,
+	type Pain001Debtor,
+	type Pain001Message,
+	SepaValidationError,
+} from './pain001Builder.js';
+export {
+	Pain002ParsingError,
+	type PaymentStatusReport,
+	type PaymentTransactionStatus,
+	parsePain002,
+	type StatusCount,
+} from './pain002Parser.js';
 export * from './segment.js';
 export { StatementFormat } from './segments/HKEKA.js';
 export * from './statement.js';

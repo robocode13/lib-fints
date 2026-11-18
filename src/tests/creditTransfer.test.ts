@@ -320,23 +320,11 @@ describe('FinTSClient SEPA credit transfer', () => {
 	});
 
 	describe('input validation', () => {
-		it('rejects an invalid payee IBAN before anything is sent', async () => {
+		// The cases of invalid input are the builder's tests; here only that nothing is sent
+		it('sends no message for invalid input', async () => {
 			await expect(
 				client.transfer(ACCOUNT, { ...TRANSFER, iban: 'DE02120300000000202052' }),
 			).rejects.toBeInstanceOf(SepaValidationError);
-			expect(bank.sent).toHaveLength(0);
-		});
-
-		it('rejects a zero amount, more than two decimals and characters outside the SEPA set', async () => {
-			for (const transfer of [
-				{ ...TRANSFER, amount: 0 },
-				{ ...TRANSFER, amount: 1.234 },
-				{ ...TRANSFER, name: 'Max Mustermann 😀' },
-			]) {
-				await expect(client.transfer(ACCOUNT, transfer)).rejects.toBeInstanceOf(
-					SepaValidationError,
-				);
-			}
 			expect(bank.sent).toHaveLength(0);
 		});
 

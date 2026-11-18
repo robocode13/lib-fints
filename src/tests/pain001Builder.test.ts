@@ -438,3 +438,23 @@ describe('buildPain001', () => {
 		);
 	});
 });
+
+describe('package root', () => {
+	it('exports the builder, the parser and their errors, but not the helpers', async () => {
+		const root = await import('../index.js');
+
+		for (const name of [
+			'buildPain001',
+			'SepaValidationError',
+			'PAIN_001_001_09',
+			'PAIN_001_001_03',
+			'parsePain002',
+			'Pain002ParsingError',
+		]) {
+			expect(root).toHaveProperty(name);
+		}
+		for (const name of ['normalizeIban', 'normalizeBic', 'selectPain001Format']) {
+			expect(root).not.toHaveProperty(name);
+		}
+	});
+});
