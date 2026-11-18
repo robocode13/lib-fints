@@ -1063,6 +1063,18 @@ describe('FinTSClient SEPA credit transfer', () => {
 		});
 	});
 
+	it('reports banking information the dialog initialisation updated', async () => {
+		bank.responses.push(
+			answer(OK, "HIRMS:3:2:3+0020::Auftrag ausgefuehrt.'", "HIKIM:4:2:3+Notice+Changed.'"),
+			answer(OK, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+		);
+
+		const response = await client.transfer(ACCOUNT, TRANSFER);
+
+		expect(response).toMatchObject({ success: true, requiresTan: true });
+		expect(response.bankingInformationUpdated).toBe(true);
+	});
+
 	it('reads a HIVPP whose binary VoP ID ends in a question mark', async () => {
 		bank.responses.push(
 			initOk(),

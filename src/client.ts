@@ -751,6 +751,8 @@ export class FinTSClient {
 			}
 		};
 		let response: TransferResponse;
+		// Any message of the call may update it, the dialog initialisation above all
+		const bankingInformation = JSON.stringify(this.config.bankingInformation);
 
 		try {
 			order.lastResponse = undefined;
@@ -793,6 +795,10 @@ export class FinTSClient {
 
 			await this.endQuietly(dialog);
 			throw error;
+		}
+
+		if (JSON.stringify(this.config.bankingInformation) !== bankingInformation) {
+			response = { ...response, bankingInformationUpdated: true };
 		}
 
 		transfer.lastResponse = response;
