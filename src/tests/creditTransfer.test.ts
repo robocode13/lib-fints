@@ -787,6 +787,55 @@ describe('FinTSClient SEPA credit transfer', () => {
 			expect(sentOrders().at(-1)).toEqual(['HKEND']);
 		});
 
+		it('authorises a match the bank holds without SCA (3076 without 3091) with HKVPA alone', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(5, '3076::Keine starke Kundenauthentifizierung notwendig.'),
+					hivppSingle('RCVC'),
+				),
+				answer(OK, hirms(3, '0020::Auftrag ausgefuehrt.')),
+				endOk(),
+			);
+
+			const first = await client.transfer(ACCOUNT, TRANSFER);
+			expect(first).toMatchObject({
+				success: true,
+				requiresVopConfirmation: true,
+				vop: { result: 'match' },
+			});
+
+			const response = await client.confirmTransfer(first.transferId);
+
+			expect(response).toMatchObject({
+				success: true,
+				requiresTan: false,
+				requiresVopConfirmation: false,
+				outcomeUncertain: false,
+			});
+			expect(sentOrders().slice(1)).toEqual([['HKVPP', 'HKCCS', 'HKTAN'], ['HKVPA'], ['HKEND']]);
+		});
+
+		it('reports an authorisation alone without an acceptance as an uncertain outcome', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(5, '3076::Keine starke Kundenauthentifizierung notwendig.'),
+					hivppSingle('RCVC'),
+				),
+				answer(WARNINGS),
+				endOk(),
+			);
+
+			const first = await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.confirmTransfer(first.transferId);
+
+			expect(response).toMatchObject({ success: false, outcomeUncertain: true });
+			expect(sentOrders().slice(2)).toEqual([['HKVPA'], ['HKEND']]);
+		});
+
 		it('reports an order the bank accepted as accepted, whatever the result, so it is not sent twice', async () => {
 			bank.responses.push(
 				initOk(),

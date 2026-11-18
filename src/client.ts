@@ -13,6 +13,7 @@ import {
 	CreditTransferOrder,
 	type PreparedTransfer,
 	type TransferResponse,
+	VopAuthorizationInteraction,
 	type VopParameters,
 	VopPollInteraction,
 } from './interactions/creditTransferInteraction.js';
@@ -491,7 +492,11 @@ export class FinTSClient {
 		transfer.order.confirmed = true;
 
 		return this.driveTransfer(transfer, () =>
-			transfer.dialog.continueWith(new CreditTransferInteraction(transfer.order, 'confirm')),
+			transfer.dialog.continueWith(
+				transfer.order.authorizationOnly
+					? new VopAuthorizationInteraction(transfer.order)
+					: new CreditTransferInteraction(transfer.order, 'confirm'),
+			),
 		);
 	}
 

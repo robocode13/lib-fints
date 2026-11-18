@@ -149,6 +149,12 @@ export class CreditTransferOrder {
 	/** Whether HKVPA goes with the next TAN message (a match without code 3091) */
 	sendVopAuthorizationWithTan = false;
 	/**
+	 * Whether the bank holds the order after a match and waived the strong authentication
+	 * (3076 without 3091): the confirmation is HKVPA alone, without the order or HKTAN
+	 * (DK VoP specification E.8.1, figure 3)
+	 */
+	authorizationOnly = false;
+	/**
 	 * The reference under which the bank processes the order (3070 to HKCCS), possibly
 	 * empty; once set, nothing is offered that would send the order again
 	 */
@@ -723,6 +729,15 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 			return this.awaitTan(base);
 		}
 
+		// A match the bank holds and needs no SCA for: the caller decides, and HKVPA alone
+		// authorises the held order
+		this.order.authorizationOnly =
+			!base.requiresTan &&
+			!approvalVoided &&
+			result.result === 'match' &&
+			message.hasReturnCode(3076) &&
+			!message.hasReturnCode(3091);
+
 		// A deviation, or a match the bank wants confirmed: the caller decides. A TAN
 		// the bank asked for anyway is dropped; the confirm step brings a new one.
 		return this.awaitConfirmation(base);
@@ -759,6 +774,49 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 	private isExecuted(message: Message): boolean {
 		const executed = this.orderAnswers(message).some((answer) => answer.code === 20);
 		return executed || (message.hasReturnCode(3091) && message.hasReturnCode(3076));
+	}
+}
+
+/**
+ * Authorises an order the bank holds after a match and for which it waived the strong
+ * authentication (3076 without 3091): HKVPA alone, without the order and without HKTAN
+ * (DK VoP specification E.8.1, figure 3 and its note on small amounts).
+ */
+export class VopAuthorizationInteraction extends TransferOrderInteraction {
+	constructor(order: CreditTransferOrder) {
+		super(HKVPA.Id, order);
+	}
+
+	protected createSegments(_config: FinTSConfig): Segment[] {
+		return [this.order.createHkvpa()];
+	}
+
+	override needsTanSegment(_tanRequired: boolean): boolean {
+		return false;
+	}
+
+	protected override orderAnswers(message: Message): Answer[] {
+		// HKVPA stands for the held order: every segment answer is about it
+		return message.findAllSegments<HIRMSSegment>(HIRMS.Id).flatMap((hirms) => hirms.answers);
+	}
+
+	protected evaluate(message: Message, base: ClientResponse): TransferResponse {
+		if (this.order.status === 'awaitingTan') {
+			return this.evaluateTan(message, base);
+		}
+
+		if (message.hasReturnCode(3945)) {
+			return this.fail(
+				base,
+				'The bank refused the authorisation (3945). The transfer was not executed.',
+			);
+		}
+
+		if (base.requiresTan) {
+			return this.awaitTan(base);
+		}
+
+		return this.isAccepted(message) ? this.accept(base) : this.fail(base, OUTCOME_UNCERTAIN, true);
 	}
 }
 
