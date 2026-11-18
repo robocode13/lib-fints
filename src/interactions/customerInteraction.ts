@@ -1,7 +1,7 @@
 import type { BankAnswer } from '../bankAnswer.js';
 import type { FinTSConfig } from '../config.js';
 import type { Dialog } from '../dialog.js';
-import type { Message } from '../message.js';
+import type { CustomerMessage, Message } from '../message.js';
 import type { Segment } from '../segment.js';
 import { HITAN, type HITANSegment } from '../segments/HITAN.js';
 import { HNHBK, type HNHBKSegment } from '../segments/HNHBK.js';
@@ -71,6 +71,42 @@ export abstract class CustomerInteraction {
 
 		return clientResponse;
 	}
+
+	/**
+	 * Whether the dialog has to stop after this response for a decision of the caller,
+	 * although the response was successful and needs no TAN. The dialog stays open; the
+	 * caller continues it with `Dialog.continueWith()` or ends it with `Dialog.end()`.
+	 * @param _clientResponse the response just handled by this interaction
+	 */
+	awaitsCaller(_clientResponse: ClientResponse): boolean {
+		return false;
+	}
+
+	/**
+	 * Whether the message with this interaction's segments carries an HKTAN (process 4),
+	 * given what the bank's parameters say for its transaction. Called after `getSegments()`.
+	 * @param tanRequired whether the BPD require a TAN for the interaction's transaction
+	 */
+	needsTanSegment(tanRequired: boolean): boolean {
+		return tanRequired;
+	}
+
+	/**
+	 * Segments to send along with the TAN when this interaction is continued with
+	 * `Dialog.continue()`, placed before the HKTAN segment
+	 * @param _config the configuration of the dialog
+	 */
+	getTanMessageSegments(_config: FinTSConfig): Segment[] {
+		return [];
+	}
+
+	/**
+	 * Sees every message with this interaction's segments right before it is sent, the
+	 * repetition of a message for a parted answer included
+	 * @param _message the message, complete; its segments are numbered by position
+	 * @throws Error to refuse it: the message is not sent and takes no message number
+	 */
+	beforeSend(_message: CustomerMessage): void {}
 
 	protected abstract createSegments(config: FinTSConfig): Segment[];
 	protected abstract handleResponse(response: Message, clientResponse: ClientResponse): void;

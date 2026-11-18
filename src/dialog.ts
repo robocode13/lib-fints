@@ -16,6 +16,14 @@ import { HKEND } from './segments/HKEND.js';
 import { HKTAN, type HKTANSegment } from './segments/HKTAN.js';
 import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
 
+/**
+ * Whether a message can carry HKTAN for an order: it needs the PIN and a selected TAN
+ * method of version 6 or later (PSD2 SCA)
+ */
+export function canSendTanSegment(config: FinTSConfig): boolean {
+	return !!(config.userId && config.pin && (config.selectedTanMethod?.version ?? 0) >= 6);
+}
+
 export class Dialog {
 	dialogId: string = '0';
 	lastMessageNumber = 0;
@@ -24,6 +32,8 @@ export class Dialog {
 	currentInteractionIndex = 0;
 	isInitialized = false;
 	hasEnded = false;
+	/** Whether the current interaction has held the dialog open for a decision of the caller */
+	private awaitingCaller = false;
 	httpClient: HttpClient;
 
 	constructor(
@@ -59,32 +69,7 @@ export class Dialog {
 			throw new Error('dialog start can only be called on a new dialog');
 		}
 
-		let clientResponse: ClientResponse;
-
-		do {
-			const message = this.createCurrentCustomerMessage();
-			const responseMessage = await this.httpClient.sendMessage(message);
-			await this.handlePartedMessages(message, responseMessage, this.currentInteraction);
-			clientResponse = this.currentInteraction.handleClientResponse(responseMessage);
-			this.checkEnded(clientResponse);
-			this.dialogId = clientResponse.dialogId;
-			this.responses.set(this.currentInteraction.segId, clientResponse);
-
-			if (clientResponse.success && !clientResponse.requiresTan) {
-				this.currentInteractionIndex++;
-
-				if (this.currentInteractionIndex > 0) {
-					this.isInitialized = true;
-				}
-			}
-		} while (
-			!this.hasEnded &&
-			this.currentInteractionIndex < this.interactions.length &&
-			clientResponse.success &&
-			!clientResponse.requiresTan
-		);
-
-		return this.responses;
+		return this.run(() => this.createCurrentCustomerMessage());
 	}
 
 	async continue(tanOrderReference: string, tan?: string): Promise<Map<string, ClientResponse>> {
@@ -104,38 +89,71 @@ export class Dialog {
 			throw new Error('there is no running customer interaction in this dialog to continue');
 		}
 
-		let clientResponse: ClientResponse;
+		return this.run(() => this.createCurrentTanMessage(tanOrderReference, tan));
+	}
 
-		let isFirstMessage = true;
+	/**
+	 * Continues a dialog that an interaction has held open for a decision of the caller
+	 * (see `CustomerInteraction.awaitsCaller`) with a further interaction, sent next in the
+	 * same dialog.
+	 * @param interaction the interaction to run next
+	 * @throws Error, before anything is sent, when the current interaction has not paused
+	 * for the caller, such as while it waits for a TAN
+	 */
+	async continueWith(interaction: CustomerInteraction): Promise<Map<string, ClientResponse>> {
+		if (this.hasEnded) {
+			throw Error('cannot continue a dialog that has already ended');
+		}
 
-		do {
-			const message = isFirstMessage
-				? this.createCurrentTanMessage(tanOrderReference, tan)
-				: this.createCurrentCustomerMessage();
-			const responseMessage = await this.httpClient.sendMessage(message);
-			await this.handlePartedMessages(message, responseMessage, this.currentInteraction);
-			clientResponse = this.currentInteraction.handleClientResponse(responseMessage);
-			this.checkEnded(clientResponse);
-			this.dialogId = clientResponse.dialogId;
-			this.responses.set(this.currentInteraction.segId, clientResponse);
+		if (!this.isInitialized) {
+			throw Error('cannot continue a dialog that has not been initialized');
+		}
 
-			if (clientResponse.success && !clientResponse.requiresTan) {
-				this.currentInteractionIndex++;
+		// A TAN challenge, for one, is continued with continue() or ended, never skipped
+		if (!this.awaitingCaller) {
+			throw Error(
+				'cannot continue a dialog whose current interaction does not wait for the caller',
+			);
+		}
 
-				if (this.currentInteractionIndex > 0) {
-					this.isInitialized = true;
-				}
-			}
+		this.addCustomerInteraction(interaction, true);
+		this.currentInteractionIndex++;
 
-			isFirstMessage = false;
-		} while (
-			!this.hasEnded &&
-			this.currentInteractionIndex < this.interactions.length &&
-			clientResponse.success &&
-			!clientResponse.requiresTan
+		return this.run(() => this.createCurrentCustomerMessage());
+	}
+
+	/**
+	 * Ends the dialog with HKEND, skipping any interactions still queued. A dialog that has
+	 * not sent a message yet is only marked as ended.
+	 */
+	async end(): Promise<Map<string, ClientResponse>> {
+		if (this.hasEnded) {
+			return this.responses;
+		}
+
+		if (this.lastMessageNumber === 0) {
+			this.hasEnded = true;
+			return this.responses;
+		}
+
+		let endIndex = this.interactions.findIndex(
+			(interaction) => interaction instanceof EndDialogInteraction,
 		);
 
-		return this.responses;
+		if (endIndex < 0) {
+			const endInteraction = new EndDialogInteraction();
+			endInteraction.dialog = this;
+			this.interactions.push(endInteraction);
+			endIndex = this.interactions.length - 1;
+		}
+
+		this.currentInteractionIndex = endIndex;
+
+		try {
+			return await this.run(() => this.createCurrentCustomerMessage());
+		} finally {
+			this.hasEnded = true;
+		}
 	}
 
 	addCustomerInteraction(interaction: CustomerInteraction, afterCurrent = false): void {
@@ -161,7 +179,65 @@ export class Dialog {
 		this.interactions.splice(this.interactions.length - 1, 0, interaction);
 	}
 
+	/**
+	 * Sends the current interaction's message and moves on to the next interaction for as
+	 * long as each one succeeds without asking for a TAN or for a decision of the caller.
+	 * @param createFirstMessage creates the first message; every further one is the current interaction's
+	 */
+	private async run(
+		createFirstMessage: () => CustomerMessage,
+	): Promise<Map<string, ClientResponse>> {
+		let createMessage = createFirstMessage;
+		let proceed: boolean;
+
+		do {
+			const interaction = this.currentInteraction;
+			this.awaitingCaller = false;
+			const message = createMessage();
+			createMessage = () => this.createCurrentCustomerMessage();
+
+			const responseMessage = await this.send(message, interaction);
+			await this.handlePartedMessages(message, responseMessage, interaction);
+			const clientResponse = interaction.handleClientResponse(responseMessage);
+			this.checkEnded(clientResponse);
+			this.dialogId = clientResponse.dialogId;
+			this.responses.set(interaction.segId, clientResponse);
+
+			const settled = clientResponse.success && !clientResponse.requiresTan;
+			this.awaitingCaller = settled && interaction.awaitsCaller(clientResponse);
+			proceed = settled && !this.awaitingCaller;
+
+			if (proceed) {
+				this.currentInteractionIndex++;
+
+				if (this.currentInteractionIndex > 0) {
+					this.isInitialized = true;
+				}
+			}
+		} while (!this.hasEnded && this.currentInteractionIndex < this.interactions.length && proceed);
+
+		return this.responses;
+	}
+
+	/**
+	 * Sends a message that has just taken the latest message number, once its interaction
+	 * has seen it. A message the interaction refuses is not sent and gives its number back.
+	 */
+	private async send(message: CustomerMessage, interaction: CustomerInteraction): Promise<Message> {
+		try {
+			interaction.beforeSend(message);
+		} catch (error) {
+			this.lastMessageNumber--;
+			throw error;
+		}
+
+		return this.httpClient.sendMessage(message);
+	}
+
 	private createCurrentCustomerMessage(): CustomerMessage {
+		// First, so that an interaction refusing to build its segments leaves no gap in the
+		// message numbers
+		const segments = this.currentInteraction.getSegments(this.config);
 		this.lastMessageNumber++;
 
 		const isCustomerOrder = this.currentInteraction instanceof CustomerOrderInteraction;
@@ -183,7 +259,9 @@ export class Dialog {
 				(t) => t.transId === this.currentInteraction.segId,
 			);
 
-			isTanMethodNeeded = isTanMethodNeeded && bankTransaction?.tanRequired;
+			isTanMethodNeeded =
+				isTanMethodNeeded &&
+				this.currentInteraction.needsTanSegment(!!bankTransaction?.tanRequired);
 		}
 
 		if (this.config.userId && this.config.pin) {
@@ -197,12 +275,11 @@ export class Dialog {
 			);
 		}
 
-		const segments = this.currentInteraction.getSegments(this.config);
 		segments.forEach((segment) => {
 			message.addSegment(segment);
 		});
 
-		if (this.config.userId && this.config.pin && isTanMethodNeeded) {
+		if (isTanMethodNeeded && canSendTanSegment(this.config)) {
 			const hktan: HKTANSegment = {
 				header: { segId: HKTAN.Id, segNr: 0, version: tanMethod?.version ?? 0 },
 				tanProcess: TanProcess.Process4,
@@ -231,6 +308,10 @@ export class Dialog {
 				tan,
 			);
 		}
+
+		this.currentInteraction.getTanMessageSegments(this.config).forEach((segment) => {
+			message.addSegment(segment);
+		});
 
 		if (this.config.userId && this.config.pin && this.config.tanMethodId) {
 			const hktan: HKTANSegment = {
@@ -320,7 +401,7 @@ export class Dialog {
 				throw new Error('HNHBK segment not found in message');
 			}
 			hnhbkSegment.msgNr = ++this.lastMessageNumber;
-			const nextResponseMessage = await this.httpClient.sendMessage(message);
+			const nextResponseMessage = await this.send(message, interaction);
 			rawPortions.push(
 				...nextResponseMessage
 					.findAllSegments<PartedSegment>(PARTED.Id)

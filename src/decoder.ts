@@ -100,13 +100,17 @@ export function splitBySeparator(text: string, separator: string): string[] {
 	for (let index = 0; index < text.length; index++) {
 		const char = text[index];
 
-		if (char === '@' && !isEscaped(text, index)) {
+		// Read from left to right, so that a ? inside binary data, which is skipped as a
+		// whole, does not escape the separator after it
+		if (char === '?') {
+			index++;
+		} else if (char === '@') {
 			const next = text.indexOf('@', index + 1);
 			const size = Number.parseInt(text.slice(index + 1, next), 10);
 			if (size) {
 				index = next + size;
 			}
-		} else if (char === separator && !isEscaped(text, index)) {
+		} else if (char === separator) {
 			result.push(text.slice(pos, index));
 			pos = index + 1;
 		}
@@ -117,15 +121,4 @@ export function splitBySeparator(text: string, separator: string): string[] {
 	}
 
 	return result;
-}
-
-function isEscaped(text: string, pos: number) {
-	let count = 0;
-
-	while (pos > 0 && text[pos - 1] === '?') {
-		count++;
-		pos--;
-	}
-
-	return count % 2 === 1;
 }

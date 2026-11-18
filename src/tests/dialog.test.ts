@@ -12,6 +12,9 @@ import type {
 import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
 import { SepaAccountInteraction } from '../interactions/sepaAccountInteraction.js';
 import { Message } from '../message.js';
+import type { HKIDNSegment } from '../segments/HKIDN.js';
+import { HKVPA, type HKVPASegment } from '../segments/HKVPA.js';
+import type { HKVVBSegment } from '../segments/HKVVB.js';
 import { registerSegments } from '../segments/registry.js';
 
 // Mock HttpClient to prevent real HTTP calls
@@ -328,4 +331,248 @@ describe('Dialog', () => {
 			);
 		});
 	});
+
+	describe('awaitsCaller()', () => {
+		let waiting: SepaAccountInteraction;
+
+		beforeEach(() => {
+			waiting = new SepaAccountInteraction();
+			vi.spyOn(waiting, 'handleClientResponse').mockReturnValue(successResponse());
+			vi.spyOn(waiting, 'awaitsCaller').mockReturnValue(true);
+			dialog.addCustomerInteraction(waiting);
+		});
+
+		it('stops the dialog for a decision of the caller and keeps it open', async () => {
+			const responses = await dialog.start();
+
+			expect(httpClientSendMessageMock).toHaveBeenCalledTimes(2);
+			expect(responses.get(waiting.segId)?.success).toBe(true);
+			expect(dialog.currentInteraction).toBe(waiting);
+			expect(dialog.isInitialized).toBe(true);
+			expect(dialog.hasEnded).toBe(false);
+		});
+
+		it('is not consulted for responses that failed or need a TAN', async () => {
+			vi.mocked(waiting.handleClientResponse).mockReturnValue({
+				...successResponse(),
+				success: false,
+			});
+
+			await dialog.start();
+
+			expect(waiting.awaitsCaller).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('synchronization', () => {
+		const hkvvbOf = (syncSystemId: boolean) =>
+			new InitDialogInteraction(config, syncSystemId)
+				.createSegments(config)
+				.find((segment) => segment.header.segId === 'HKVVB') as HKVVBSegment;
+		const hkidnOf = () =>
+			new InitDialogInteraction(config, true)
+				.createSegments(config)
+				.find((segment) => segment.header.segId === 'HKIDN') as HKIDNSegment;
+		const addHkvpp = (params?: unknown, versions = [1]) => {
+			config.bankingInformation.bpd?.allowedTransactions.push({
+				transId: 'HKVPP',
+				tanRequired: false,
+				versions,
+				params,
+			});
+		};
+
+		it('asks for the whole BPD again when the cached HKVPP lacks its parameters', () => {
+			// As an earlier release saved it: the version of HIVPPS, but not its content
+			addHkvpp();
+
+			expect(hkvvbOf(true).bpdVersion).toBe(0);
+			expect(hkidnOf().systemId).toBe('MOCK_SYSTEM_ID');
+		});
+
+		it('keeps the cached BPD version for an HIVPPS version this library cannot read', () => {
+			addHkvpp(undefined, [2]);
+
+			expect(hkvvbOf(true).bpdVersion).toBe(1);
+		});
+
+		it('keeps the cached BPD version when the HKVPP parameters are there', () => {
+			addHkvpp({ vopRequiredTransactions: ['HKCCS'] });
+
+			expect(hkvvbOf(true).bpdVersion).toBe(1);
+		});
+	});
+
+	describe('continueWith()', () => {
+		let waiting: SepaAccountInteraction;
+
+		beforeEach(async () => {
+			waiting = new SepaAccountInteraction();
+			vi.spyOn(waiting, 'handleClientResponse').mockReturnValue(successResponse());
+			vi.spyOn(waiting, 'awaitsCaller').mockReturnValue(true);
+			dialog.addCustomerInteraction(waiting);
+		});
+
+		it('sends the given interaction next and then ends the dialog', async () => {
+			await dialog.start();
+
+			const next = new SepaAccountInteraction();
+			const handleNext = vi.spyOn(next, 'handleClientResponse').mockReturnValue(successResponse());
+
+			await dialog.continueWith(next);
+
+			expect(httpClientSendMessageMock).toHaveBeenCalledTimes(4);
+			expect(handleNext).toHaveBeenCalledTimes(1);
+			expect(dialog.interactions.indexOf(next)).toBe(dialog.interactions.indexOf(waiting) + 1);
+			expect(dialog.hasEnded).toBe(true);
+		});
+
+		it('stops again when the next interaction awaits the caller', async () => {
+			await dialog.start();
+
+			const next = new SepaAccountInteraction();
+			vi.spyOn(next, 'handleClientResponse').mockReturnValue(successResponse());
+			vi.spyOn(next, 'awaitsCaller').mockReturnValue(true);
+
+			await dialog.continueWith(next);
+
+			expect(httpClientSendMessageMock).toHaveBeenCalledTimes(3);
+			expect(dialog.currentInteraction).toBe(next);
+			expect(dialog.hasEnded).toBe(false);
+		});
+
+		it('throws when the dialog has not been initialized', async () => {
+			await expect(dialog.continueWith(new SepaAccountInteraction())).rejects.toThrow(
+				'cannot continue a dialog that has not been initialized',
+			);
+		});
+
+		it('throws before sending anything while the current interaction waits for a TAN', async () => {
+			vi.mocked(waiting.handleClientResponse).mockReturnValue({
+				...successResponse(),
+				requiresTan: true,
+				tanReference: 'TAN-REF-1',
+			});
+			await dialog.start();
+			const calls = httpClientSendMessageMock.mock.calls.length;
+
+			await expect(dialog.continueWith(new SepaAccountInteraction())).rejects.toThrow(
+				'cannot continue a dialog whose current interaction does not wait for the caller',
+			);
+			expect(httpClientSendMessageMock).toHaveBeenCalledTimes(calls);
+			expect(dialog.currentInteraction).toBe(waiting);
+		});
+
+		it('throws when the dialog has ended', async () => {
+			await dialog.start();
+			dialog.hasEnded = true;
+
+			await expect(dialog.continueWith(new SepaAccountInteraction())).rejects.toThrow(
+				'cannot continue a dialog that has already ended',
+			);
+		});
+	});
+
+	describe('end()', () => {
+		it('ends an open dialog with HKEND and skips queued interactions', async () => {
+			const waiting = new SepaAccountInteraction();
+			vi.spyOn(waiting, 'handleClientResponse').mockReturnValue(successResponse());
+			vi.spyOn(waiting, 'awaitsCaller').mockReturnValue(true);
+			dialog.addCustomerInteraction(waiting);
+			const queued = new SepaAccountInteraction();
+			const handleQueued = vi.spyOn(queued, 'handleClientResponse');
+			dialog.addCustomerInteraction(queued);
+
+			await dialog.start();
+			await dialog.end();
+
+			expect(httpClientSendMessageMock).toHaveBeenCalledTimes(3);
+			expect(sentSegmentIds(2)).toContain('HKEND');
+			expect(handleQueued).not.toHaveBeenCalled();
+			expect(dialog.hasEnded).toBe(true);
+		});
+
+		it('marks the dialog as ended even when HKEND fails', async () => {
+			const waiting = new SepaAccountInteraction();
+			vi.spyOn(waiting, 'handleClientResponse').mockReturnValue(successResponse());
+			vi.spyOn(waiting, 'awaitsCaller').mockReturnValue(true);
+			dialog.addCustomerInteraction(waiting);
+			await dialog.start();
+			httpClientSendMessageMock.mockRejectedValueOnce(new Error('network down'));
+
+			await expect(dialog.end()).rejects.toThrow('network down');
+			expect(dialog.hasEnded).toBe(true);
+		});
+
+		it('only marks a dialog as ended that has not sent a message', async () => {
+			await dialog.end();
+
+			expect(httpClientSendMessageMock).not.toHaveBeenCalled();
+			expect(dialog.hasEnded).toBe(true);
+		});
+
+		it('does nothing when the dialog has already ended', async () => {
+			await dialog.start();
+			const calls = httpClientSendMessageMock.mock.calls.length;
+
+			await dialog.end();
+
+			expect(httpClientSendMessageMock).toHaveBeenCalledTimes(calls);
+		});
+	});
+
+	describe('getTanMessageSegments()', () => {
+		it('sends the segments of the interaction along with the TAN, before HKTAN', async () => {
+			vi.spyOn(dialog.currentInteraction, 'handleClientResponse').mockReturnValue({
+				...successResponse(),
+				requiresTan: true,
+				tanReference: 'TAN_REF_123',
+			});
+			await dialog.start();
+
+			const hkvpa: HKVPASegment = {
+				header: { segId: HKVPA.Id, segNr: 0, version: HKVPA.Version },
+				vopId: 'VOP-ID-1',
+			};
+			vi.spyOn(dialog.currentInteraction, 'getTanMessageSegments').mockReturnValue([hkvpa]);
+			vi.spyOn(dialog.currentInteraction, 'handleClientResponse').mockReturnValue(
+				successResponse(),
+			);
+
+			await dialog.continue('TAN_REF_123', '123456');
+
+			expect(sentSegmentIds(1)).toEqual(['HNHBK', 'HNSHK', 'HKVPA', 'HKTAN', 'HNSHA', 'HNHBS']);
+		});
+
+		it('sends only HKTAN by default', async () => {
+			vi.spyOn(dialog.currentInteraction, 'handleClientResponse').mockReturnValue({
+				...successResponse(),
+				requiresTan: true,
+				tanReference: 'TAN_REF_123',
+			});
+			await dialog.start();
+			vi.spyOn(dialog.currentInteraction, 'handleClientResponse').mockReturnValue(
+				successResponse(),
+			);
+
+			await dialog.continue('TAN_REF_123', '123456');
+
+			expect(sentSegmentIds(1)).toEqual(['HNHBK', 'HNSHK', 'HKTAN', 'HNSHA', 'HNHBS']);
+		});
+	});
+
+	function successResponse(): ClientResponse {
+		return {
+			dialogId: 'MOCK_DIALOG_123',
+			success: true,
+			requiresTan: false,
+			bankingInformationUpdated: false,
+			bankAnswers: [{ code: 20, text: 'Success' }],
+		};
+	}
+
+	function sentSegmentIds(callIndex: number): string[] {
+		const message = httpClientSendMessageMock.mock.calls[callIndex][0] as Message;
+		return message.segments.map((segment) => segment.header.segId);
+	}
 });

@@ -142,6 +142,104 @@ see also the `decoupled` property on the `TanMethod` object for related paramete
 
 For chipTAN methods the bank sends the challenge data for the TAN generator in the HITAN segment. The response exposes it unchanged as `tanChallengeHhdUc` (a string with the HHD 1.3/1.4 start code and data elements), so that a client can render the optical flicker animation; `tanPhoto` only applies to photoTAN banks that put an image container into the same field.
 
+### SEPA credit transfers
+
+Until transfers were added, this library only read data from the bank. Three methods change that: `transfer()` starts a payment, and its first call can already be final, because a bank may execute the transfer without asking for a confirmation or a TAN; `confirmTransfer()` and `transferWithTan()` can authorise a payment that is pending. All other methods only read, so an application that never calls these three never sends an order that moves money.
+
+A transfer is a single SEPA credit transfer (HKCCS), executed as soon as possible. Where the bank requires Verification of Payee (VoP) for transfers, as all banks in the euro area must since October 2025, the bank first checks the payee's name against the IBAN, and the application gets the result before the transfer can be executed. The bank may ask for a decision or a TAN in any order, and more than once (a TAN for the login first, a decision after a TAN), so the application asks again after every call for as long as either flag is set:
+
+```typescript
+if (!client.canTransfer(account)) {
+  return;
+}
+
+let response = await client.transfer(account, {
+  name: 'Max Mustermann',
+  iban: 'DE02120300000000202051',
+  amount: 42.5,
+  purpose: 'Invoice 2026-001',
+  endToEndId: 'INVOICE-2026-001',
+});
+
+while (response.success && (response.requiresVopConfirmation || response.requiresTan)) {
+  if (response.requiresVopConfirmation) {
+    const vop = response.vop!;
+    console.log(`Verification of Payee: ${vop.result}`);
+    if (vop.suggestedName) {
+      console.log(`The payee's bank holds the name ${vop.suggestedName}`);
+    }
+    // the bank's notices must be shown before the user decides: those of the
+    // payment status report start with the result code they are about
+    for (const line of vop.paymentStatusReport?.groupReasons ?? []) {
+      console.log(line.replace(/^[A-Z]{4} /, ''));
+    }
+    if (vop.notice) {
+      console.log(vop.notice);
+    }
+
+    if ((await rl.question('Send the transfer anyway? (yes/no) ')) !== 'yes') {
+      await client.cancelTransfer(response.transferId);
+      return;
+    }
+    response = await client.confirmTransfer(response.transferId);
+  } else {
+    // with a decoupled TAN method, the user approves in the app and just presses enter
+    const tan = await rl.question(response.tanChallenge + ': ');
+    response = await client.transferWithTan(response.tanReference!, tan || undefined);
+  }
+}
+
+if (response.success) {
+  console.log(`The bank accepted the transfer ${response.endToEndId}`);
+} else if (response.outcomeUncertain) {
+  console.log('The bank may have executed the transfer; check the account before sending it again');
+} else {
+  console.log(response.failureReason, response.bankAnswers);
+}
+```
+
+Each call returns a `TransferResponse`:
+
+| Response                                   | Meaning                                                                 | Next call                               |
+| ------------------------------------------ | ----------------------------------------------------------------------- | --------------------------------------- |
+| `success` and `requiresVopConfirmation`    | The bank has checked the payee and waits for a decision; see `vop`      | `confirmTransfer(transferId)` or `cancelTransfer(transferId)` |
+| `success` and `requiresTan`                | The bank asks for the TAN                                               | `transferWithTan()` or `cancelTransfer(transferId)` |
+| `success`, neither flag                    | The bank reports the transfer as executed (0020, or 3091 with 3076)    | -                                       |
+| `success: false`                           | The transfer stopped; `failureReason` and `bankAnswers` say why         | -                                       |
+| `success: false` and `outcomeUncertain`    | The bank may have executed the transfer without confirming it: it received the order (0010, 0030, 3070), holds it for an approval or waived the checks (3091 with 3076), and a later step failed, got no answer or timed out; or it answered 9000, reported a duplicate (9390) or an authorisation of an order that may have been executed already (9210); or it reported an execution its other answers contradict | Check the account before sending it again |
+
+The transfer is done only when `success` is true and neither `requiresTan` nor `requiresVopConfirmation` is.
+
+The result in `vop`:
+
+| `vop.result`    | Code | Meaning                                                                                  |
+| --------------- | ---- | ---------------------------------------------------------------------------------------- |
+| `match`         | RCVC | The name matches the account                                                             |
+| `closeMatch`    | RVMC | The name almost matches; `suggestedName` is the name the payee's bank holds              |
+| `noMatch`       | RVNM | The name does not match                                                                  |
+| `notApplicable` | RVNA | The check was not possible, for example because the payee's bank does not take part     |
+
+`vop.notice` is the bank's explanation of what authorising a transfer despite a deviation means; the DK specification requires showing it before the user decides. Authorising anyway may send the money to someone else, and the payer's bank is then not liable for that. A bank that sends a payment status report (pain.002) may put its notices into the report instead, as the lines of `vop.paymentStatusReport.groupReasons`, each starting with the result code it is about; show them as well.
+
+Things to know before using it:
+
+- **Nothing is confirmed automatically.** The library never calls `confirmTransfer()` itself. For a match, banks usually ask for the TAN straight away; a bank that still asks for a confirmation of a match may be confirmed by the application without asking the user again. Every other result needs the user's decision.
+- **The first call can be final.** A bank may execute the transfer without a confirmation and without a TAN, for example after a match when it requires no strong authentication (codes 3091 and 3076). Call `transfer()` only once the user has decided to send the money.
+- **Input is checked, never changed.** `transfer()` throws a `SepaValidationError` naming the `field` before anything is sent (its message never repeats the value, so that it can be logged): the IBAN (its characters, the length for its country and the check digits), the BIC, the amount (positive, at most two decimal places, at most 999,999,999.99 EUR), the lengths and the allowed characters. Nothing is transliterated or shortened.
+- **Unexpected answers stop the transfer.** An unknown result code, a missing VoP ID, a payment status report that is about another order or contradicts itself, a TAN challenge without its reference, or another answer the library does not expect ends the transfer with `success: false` and the bank answers, instead of guessing.
+- **The order goes to the bank once.** The only time it is sent again is with the confirmation of a payee check result (HKVPA with the order, as the DK specification has it), once, and only while the bank holds nothing of the first one that it could execute. Whatever else would send it again ends the transfer with `outcomeUncertain` instead.
+- **A decision holds for its result only.** When the bank sends a different payee check result after the user decided on one, with a TAN or a confirmation, the transfer ends instead of asking again: unexecuted where the bank holds nothing it could execute, otherwise with `outcomeUncertain`. Changing the `vop` of a response changes nothing.
+- **A TAN goes out with the TAN method of its challenge.** `confirmTransfer()` and `transferWithTan()` throw without sending anything when no TAN method of version 6 or later is selected, or, for a TAN, when it is not the method the challenge was issued for; the transfer stays pending, so select the method again and repeat the call.
+- **An exception after the first message leaves the outcome unknown.** If, for example, the connection fails while the order is at the bank, the bank may have executed it. Once the bank has received the order, a lost answer resolves with `outcomeUncertain` and the answers so far instead. Check the account before sending it again: sending it again is a new payment, even with the same `endToEndId`, and nothing stops the bank from executing both.
+- **The `endToEndId` identifies a transfer only when you give it one.** Without it, every transfer carries the shared `NOTPROVIDED`. Even a reference of your own may not show on the payer's statement, so finding a transfer there may need the account, the amount, the payee and the date.
+- **One transfer at a time.** A client handles one transfer at a time, in its own dialog, which stays open while the client waits for the decision or the TAN. Banks end idle dialogs after some minutes. Every response carries the `transferId` of its transfer; `confirmTransfer()` and `cancelTransfer()` take it, and `transferWithTan()` takes only the `tanReference` of the challenge outstanding, so that a late decision cannot act on another transfer. A call made while the previous one still waits for the bank throws without sending anything.
+- **Synchronize once after upgrading.** A `bankingInformation` saved by an earlier release of this library lacks the bank's Verification of Payee parameters (HIVPPS), and `canTransfer()` stays false without them. `synchronize()` then asks the bank for its whole BPD again, keeping the system ID; persist the updated `bankingInformation` afterwards.
+- **Asynchronous checks are polled for up to 60 seconds.** Some banks deliver the VoP result only after a while; `transfer()` waits as long as the bank says before asking again, and stops the transfer when it would have to wait more than 60 seconds in total: unexecuted if the bank has not yet received the order, otherwise with `outcomeUncertain`, since the bank may still execute it.
+
+The transfer flow has been tested against mocked bank answers only. The behaviour of individual banks it handles comes from the DK specification and from what other FinTS libraries report; reports from real banks are welcome.
+
+The pain.001 builder (`buildPain001()`) and the pain.002 parser (`parsePain002()`) are exported for applications that need them on their own.
+
 ### Starting a session from saved banking information
 
 As mentioned earlier there is a second way to initialize the `FinTSClient` with a `FinTSConfig` when you already performed a synchronization in a previous session and this is by providing the `bankingInformation` object received from previous uses. This `bankingInformation` object, which contains the general bank (BPD) and accounts information (UPD), should be persisted after a session and reloaded in the next session.
@@ -209,6 +307,7 @@ The following table shows all transactions supported by the FinTSClient interfac
 | **Portfolio**              | `getPortfolio(account: AccountRef, currency?, priceQuality?, maxEntries?)` | Fetches securities portfolio information for depot accounts                  | HKWPD                      | ✓           | ✓                |
 | **Credit Card Statements** | `getCreditCardStatements(account: AccountRef, from?, to?)`            | Fetches credit card statements for credit card accounts                         | HKKKU, DKKKU               | ✓           | ✓                |
 | **Electronic Statements**  | `getElectronicStatements(account: AccountRef, options?)`              | Fetches the statement document from the electronic mailbox, usually a PDF       | HKEKA                      | ✓           | ✓                |
+| **SEPA Credit Transfer**   | `transfer(account: AccountRef, transfer: CreditTransfer)`             | Sends a SEPA credit transfer, executed as soon as possible, with Verification of Payee where the bank requires it (see [SEPA credit transfers](#sepa-credit-transfers)) | HKCCS, HKVPP, HKVPA        | ✓           | ✓                |
 | **TAN Method Selection**   | `selectTanMethod(tanMethodId)`                                       | Selects a TAN method by ID from available methods                               | -                          | ❌          | ❌               |
 | **TAN Media Selection**    | `selectTanMedia(tanMediaName)`                                       | Selects a specific TAN media device by name                                     | -                          | ❌          | ❌               |
 
@@ -223,6 +322,7 @@ For each account-specific transaction, the client provides corresponding `can*` 
 | `canGetPortfolio(account?: AccountRef)`            | Checks if portfolio information fetching is supported           |
 | `canGetCreditCardStatements(account?: AccountRef)` | Checks if credit card statements fetching is supported          |
 | `canGetElectronicStatements(account?: AccountRef)` | Checks if electronic account statements fetching is supported   |
+| `canTransfer(account?: AccountRef)`                | Checks if SEPA credit transfers are supported                   |
 
 ### Transaction Parameters
 
@@ -274,14 +374,17 @@ Every transaction that supports TAN authentication has a corresponding `*WithTan
 - `getAccountStatementsWithTan(tanReference, tan?)`
 - `getPortfolioWithTan(tanReference, tan?)`
 - `getCreditCardStatementsWithTan(tanReference, tan?)`
+- `transferWithTan(tanReference, tan?)`
 
 The `tan` parameter can be omitted when using decoupled TAN methods.
+
+A transfer can also stop for the user's decision on the Verification of Payee result, before any TAN; `confirmTransfer(transferId)` and `cancelTransfer(transferId)` continue it from there (see [SEPA credit transfers](#sepa-credit-transfers)).
 
 ## Limitations
 
 - Only FinTS 3.0 is supported (older versions may not work)
 - Only PIN/TAN security is supported (including decoupled TAN methods)
-- No support for payment transactions or transfers yet
+- The only payment is a single SEPA credit transfer executed as soon as possible; instant payments (HKIPZ), batch transfers (HKCCM), scheduled transfers (HKCSE), standing orders and direct debits are not supported yet
 
 Implementing further transactions should be straight forward and contributions are highly appreciated
 
@@ -295,7 +398,7 @@ Implementing further transactions should be straight forward and contributions a
 ## Built With
 
 - [Typescript](https://www.typescriptlang.org/) - Programming Language
-- [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - XML parsing for CAMT statements
+- [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - XML parsing for CAMT statements and pain.002 payment status reports
 - [Vitest](https://vitest.dev/) - Testing Framework
 - [pnpm](https://pnpm.io/) - Package manager
 
