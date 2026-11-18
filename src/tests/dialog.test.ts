@@ -12,7 +12,9 @@ import type {
 import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
 import { SepaAccountInteraction } from '../interactions/sepaAccountInteraction.js';
 import { Message } from '../message.js';
+import type { HKIDNSegment } from '../segments/HKIDN.js';
 import { HKVPA, type HKVPASegment } from '../segments/HKVPA.js';
+import type { HKVVBSegment } from '../segments/HKVVB.js';
 import { registerSegments } from '../segments/registry.js';
 
 // Mock HttpClient to prevent real HTTP calls
@@ -359,6 +361,39 @@ describe('Dialog', () => {
 			await dialog.start();
 
 			expect(waiting.awaitsCaller).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('synchronization', () => {
+		const hkvvbOf = (syncSystemId: boolean) =>
+			new InitDialogInteraction(config, syncSystemId)
+				.createSegments(config)
+				.find((segment) => segment.header.segId === 'HKVVB') as HKVVBSegment;
+		const hkidnOf = () =>
+			new InitDialogInteraction(config, true)
+				.createSegments(config)
+				.find((segment) => segment.header.segId === 'HKIDN') as HKIDNSegment;
+		const addHkvpp = (params?: unknown) => {
+			config.bankingInformation.bpd?.allowedTransactions.push({
+				transId: 'HKVPP',
+				tanRequired: false,
+				versions: [1],
+				params,
+			});
+		};
+
+		it('asks for the whole BPD again when the cached HKVPP lacks its parameters', () => {
+			// As an earlier release saved it: the version of HIVPPS, but not its content
+			addHkvpp();
+
+			expect(hkvvbOf(true).bpdVersion).toBe(0);
+			expect(hkidnOf().systemId).toBe('MOCK_SYSTEM_ID');
+		});
+
+		it('keeps the cached BPD version when the HKVPP parameters are there', () => {
+			addHkvpp({ vopRequiredTransactions: ['HKCCS'] });
+
+			expect(hkvvbOf(true).bpdVersion).toBe(1);
 		});
 	});
 

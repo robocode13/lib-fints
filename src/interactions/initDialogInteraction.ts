@@ -15,10 +15,12 @@ import { HISYN, type HISYNSegment } from '../segments/HISYN.js';
 import { HITANS, type HITANSSegment, type HitansTanMethod } from '../segments/HITANS.js';
 import { HIUPA, type HIUPASegment } from '../segments/HIUPA.js';
 import { HIUPD, type HIUPDSegment } from '../segments/HIUPD.js';
+import type { HIVPPSParameter } from '../segments/HIVPPS.js';
 import { HKIDN, type HKIDNSegment } from '../segments/HKIDN.js';
 import { HKSPA } from '../segments/HKSPA.js';
 import { HKSYN, type HKSYNSegment } from '../segments/HKSYN.js';
 import { HKTAB } from '../segments/HKTAB.js';
+import { HKVPP } from '../segments/HKVPP.js';
 import { HKVVB, type HKVVBSegment } from '../segments/HKVVB.js';
 import type { TanMethod } from '../tanMethod.js';
 import { type ClientResponse, CustomerInteraction } from './customerInteraction.js';
@@ -52,7 +54,7 @@ export class InitDialogInteraction extends CustomerInteraction {
 
 		const hkvvb: HKVVBSegment = {
 			header: { segId: HKVVB.Id, segNr: 0, version: HKVVB.Version },
-			bpdVersion: init.bankingInformation.bpd?.version ?? 0,
+			bpdVersion: this.needsFullBpd(init) ? 0 : (init.bankingInformation.bpd?.version ?? 0),
 			updVersion: init.bankingInformation.upd?.version ?? 0,
 			dialogLanguage: Language.Default,
 			productId: init.productId,
@@ -71,6 +73,20 @@ export class InitDialogInteraction extends CustomerInteraction {
 		}
 
 		return segments;
+	}
+
+	/**
+	 * Whether a synchronization asks for the whole BPD again although a version is cached:
+	 * an earlier release saved the version of HIVPPS without its content, and the bank
+	 * sends the BPD only when the version asked for is older than its own
+	 */
+	private needsFullBpd(init: FinTSConfig): boolean {
+		if (!this.syncSystemId || !init.isTransactionSupported(HKVPP.Id)) {
+			return false;
+		}
+
+		const params = init.getTransactionParameters<HIVPPSParameter>(HKVPP.Id);
+		return !Array.isArray(params?.vopRequiredTransactions);
 	}
 
 	handleResponse(response: Message, clientResponse: InitResponse) {
