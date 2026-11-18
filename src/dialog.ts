@@ -196,7 +196,7 @@ export class Dialog {
 			const message = createMessage();
 			createMessage = () => this.createCurrentCustomerMessage();
 
-			const responseMessage = await this.httpClient.sendMessage(message);
+			const responseMessage = await this.send(message, interaction);
 			await this.handlePartedMessages(message, responseMessage, interaction);
 			const clientResponse = interaction.handleClientResponse(responseMessage);
 			this.checkEnded(clientResponse);
@@ -217,6 +217,21 @@ export class Dialog {
 		} while (!this.hasEnded && this.currentInteractionIndex < this.interactions.length && proceed);
 
 		return this.responses;
+	}
+
+	/**
+	 * Sends a message that has just taken the latest message number, once its interaction
+	 * has seen it. A message the interaction refuses is not sent and gives its number back.
+	 */
+	private async send(message: CustomerMessage, interaction: CustomerInteraction): Promise<Message> {
+		try {
+			interaction.beforeSend(message);
+		} catch (error) {
+			this.lastMessageNumber--;
+			throw error;
+		}
+
+		return this.httpClient.sendMessage(message);
 	}
 
 	private createCurrentCustomerMessage(): CustomerMessage {
@@ -386,7 +401,7 @@ export class Dialog {
 				throw new Error('HNHBK segment not found in message');
 			}
 			hnhbkSegment.msgNr = ++this.lastMessageNumber;
-			const nextResponseMessage = await this.httpClient.sendMessage(message);
+			const nextResponseMessage = await this.send(message, interaction);
 			rawPortions.push(
 				...nextResponseMessage
 					.findAllSegments<PartedSegment>(PARTED.Id)

@@ -1,7 +1,7 @@
 import type { BankAnswer } from '../bankAnswer.js';
 import type { FinTSConfig } from '../config.js';
 import type { Dialog } from '../dialog.js';
-import type { Message } from '../message.js';
+import type { CustomerMessage, Message } from '../message.js';
 import type { Segment } from '../segment.js';
 import { HITAN, type HITANSegment } from '../segments/HITAN.js';
 import { HNHBK, type HNHBKSegment } from '../segments/HNHBK.js';
@@ -99,6 +99,14 @@ export abstract class CustomerInteraction {
 	getTanMessageSegments(_config: FinTSConfig): Segment[] {
 		return [];
 	}
+
+	/**
+	 * Sees every message with this interaction's segments right before it is sent, the
+	 * repetition of a message for a parted answer included
+	 * @param _message the message, complete; its segments are numbered by position
+	 * @throws Error to refuse it: the message is not sent and takes no message number
+	 */
+	beforeSend(_message: CustomerMessage): void {}
 
 	protected abstract createSegments(config: FinTSConfig): Segment[];
 	protected abstract handleResponse(response: Message, clientResponse: ClientResponse): void;

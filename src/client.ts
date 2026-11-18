@@ -782,7 +782,7 @@ export class FinTSClient {
 				this.currentTransfer = undefined;
 			}
 		};
-		let response: TransferResponse;
+		let response: TransferResponse | undefined;
 		// Any message of the call may update it, the dialog initialisation above all
 		const bankingInformation = JSON.stringify(this.config.bankingInformation);
 		const withUpdate = (response: TransferResponse): TransferResponse =>
@@ -820,7 +820,7 @@ export class FinTSClient {
 				order.lastResponse = undefined;
 				await dialog.continueWith(new VopPollInteraction(order));
 				// The caller sees what the bank said on every poll of this call
-				const earlierAnswers = response.bankAnswers;
+				const earlierAnswers: TransferResponse['bankAnswers'] = response.bankAnswers;
 				response = this.toTransferResponse(order, dialog);
 				response = { ...response, bankAnswers: [...earlierAnswers, ...response.bankAnswers] };
 			}
@@ -833,7 +833,28 @@ export class FinTSClient {
 			}
 
 			await this.endQuietly(dialog);
-			throw error;
+			const { refused } = order.evidence;
+
+			// Without an answer the outcome is unknown, as any error says; once the answers so
+			// far allow that the bank executes the payment, or the payment was refused here,
+			// the caller gets them with the uncertainty
+			if (!refused && !order.evidence.mayHaveExecuted()) {
+				throw error;
+			}
+
+			order.status = 'failed';
+			const { reason } = order.evidence.giveUp(
+				refused ?? `The answer of the bank did not arrive (${(error as Error).message}).`,
+				true,
+			);
+			return withUpdate({
+				...(response ?? this.unanswered(order, dialog)),
+				success: false,
+				requiresTan: false,
+				requiresVopConfirmation: false,
+				outcomeUncertain: true,
+				failureReason: reason,
+			});
 		}
 
 		response = withUpdate(response);
@@ -890,6 +911,22 @@ export class FinTSClient {
 			requiresTan: false,
 			failureReason:
 				'The dialog stopped before the transfer was sent, see bankAnswers. The transfer was not executed.',
+		};
+	}
+
+	/** The response of a transfer step the bank did not answer */
+	private unanswered(order: CreditTransferOrder, dialog: Dialog): TransferResponse {
+		return {
+			dialogId: dialog.dialogId,
+			success: false,
+			bankingInformationUpdated: false,
+			bankAnswers: [],
+			requiresTan: false,
+			requiresVopConfirmation: false,
+			vop: order.vopResult,
+			transferId: order.transferId,
+			endToEndId: order.pain.endToEndId,
+			outcomeUncertain: true,
 		};
 	}
 

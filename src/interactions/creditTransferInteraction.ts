@@ -2,24 +2,16 @@ import { randomBytes } from 'node:crypto';
 import type { FinTSConfig } from '../config.js';
 import type { InternationalAccount } from '../dataGroups/InternationalAccount.js';
 import { canSendTanSegment } from '../dialog.js';
-import type { Message } from '../message.js';
+import type { CustomerMessage, Message } from '../message.js';
 import type { Pain001Message } from '../pain001Builder.js';
 import type { Segment } from '../segment.js';
-import { HIRMG, type HIRMGSegment } from '../segments/HIRMG.js';
-import { HIRMS, type HIRMSSegment } from '../segments/HIRMS.js';
 import { HIVPP, type HIVPPSegment } from '../segments/HIVPP.js';
 import { HKCCS, type HKCCSSegment } from '../segments/HKCCS.js';
 import { HKVPA, type HKVPASegment } from '../segments/HKVPA.js';
 import { HKVPP, type HKVPPSegment } from '../segments/HKVPP.js';
 import { HNHBK, type HNHBKSegment } from '../segments/HNHBK.js';
 import { type ClientResponse, CustomerOrderInteraction } from './customerInteraction.js';
-import {
-	type AnswerRole,
-	type MessageAnswers,
-	type Outcome,
-	type Proposal,
-	TransferEvidence,
-} from './transferOutcome.js';
+import { type Outcome, type Proposal, TransferEvidence } from './transferOutcome.js';
 import { VopCheck, type VopResult } from './vopCheck.js';
 
 export { extractVopResult, type VopResult, type VopResultCode } from './vopCheck.js';
@@ -255,29 +247,20 @@ function withoutTan(response: ClientResponse): ClientResponse {
 	return { ...rest, requiresTan: false };
 }
 
-/** What the answers to each segment of a transfer message are about */
-const ROLES: Record<string, AnswerRole> = {
-	[HKCCS.Id]: 'payment',
-	[HKVPP.Id]: 'check',
-	[HKVPA.Id]: 'authorization',
-};
-
 /**
  * What the transfer interactions share: the order state, the evaluation of every
  * answer against it, and holding the dialog open while the bank or the caller has
  * to act before the next message.
  *
- * Every answer goes into the order's evidence first; the interaction then reads what
- * the Verification of Payee allows next, and the evidence decides the outcome
+ * Every message goes through the order's evidence before it is sent, and every answer
+ * into it before anything branches on it; the interaction then reads what the
+ * Verification of Payee allows next, and the evidence decides the outcome
  * (TransferEvidence). Nothing that can move money is sent without the caller seeing the
  * VoP result first, unless the bank itself executes the order on the first message (DK
  * VoP specification E.8.1 rule 2: codes 3091 and 3076). Anything unexpected ends the
  * transfer with `success: false` instead of sending another message.
  */
 abstract class TransferOrderInteraction extends CustomerOrderInteraction {
-	/** This interaction's segments in the message just sent */
-	private sent: Segment[] = [];
-
 	constructor(
 		segId: string,
 		public order: CreditTransferOrder,
@@ -285,19 +268,8 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 		super(segId, HIVPP.Id);
 	}
 
-	override getSegments(config: FinTSConfig): Segment[] {
-		this.sent = this.createSegments(config);
-		return this.sent;
-	}
-
-	override getTanMessageSegments(_config: FinTSConfig): Segment[] {
-		this.sent = this.createTanMessageSegments();
-		return this.sent;
-	}
-
-	/** Segments to send in front of HKTAN in a TAN message */
-	protected createTanMessageSegments(): Segment[] {
-		return [];
+	override beforeSend(message: CustomerMessage): void {
+		this.order.evidence.send(message);
 	}
 
 	override handleClientResponse(message: Message): TransferResponse {
@@ -318,7 +290,11 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 			};
 		}
 
-		this.order.evidence.record(this.readAnswers(message, base, unreadable));
+		this.order.evidence.record(message, {
+			tanRequested: base.requiresTan || unreadable !== undefined,
+			unreadable,
+			externalApproval: !!this.dialog?.config.selectedTanMethod?.isDecoupled,
+		});
 		// An error ends the transfer whatever else the answer says; the base response counts
 		// a TAN request as success even next to an error code
 		const proposal =
@@ -328,42 +304,6 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 		const response = this.conclude(base, this.order.evidence.decide(proposal));
 		this.order.lastResponse = response;
 		return response;
-	}
-
-	/**
-	 * The bank's answers by the segment they refer to. HKTAN follows this interaction's
-	 * segments directly; every other segment, and HIRMG, stands for the message.
-	 */
-	private readAnswers(
-		message: Message,
-		base: ClientResponse,
-		unreadable: string | undefined,
-	): MessageAnswers {
-		const tanSegNr = Math.max(2, ...this.sent.map((segment) => segment.header.segNr)) + 1;
-		const roleOf = (refSegNr: number): AnswerRole => {
-			const segment = this.sent.find((s) => s.header.segNr === refSegNr);
-			return segment
-				? (ROLES[segment.header.segId] ?? 'message')
-				: refSegNr === tanSegNr
-					? 'tan'
-					: 'message';
-		};
-
-		return {
-			answers: [
-				...message
-					.findAllSegments<HIRMGSegment>(HIRMG.Id)
-					.flatMap((hirmg) => hirmg.answers.map((a) => ({ ...a, role: 'message' as const }))),
-				...message
-					.findAllSegments<HIRMSSegment>(HIRMS.Id)
-					.flatMap((hirms) =>
-						hirms.answers.map((a) => ({ ...a, role: roleOf(hirms.header.refSegNr ?? 0) })),
-					),
-			],
-			carriesPayment: this.sent.some((segment) => segment.header.segId === HKCCS.Id),
-			tanRequested: base.requiresTan || unreadable !== undefined,
-			unreadable,
-		};
 	}
 
 	override awaitsCaller(): boolean {
@@ -549,7 +489,7 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 		return tanRequired || !!this.order.vopParameters;
 	}
 
-	protected override createTanMessageSegments(): Segment[] {
+	override getTanMessageSegments(_config: FinTSConfig): Segment[] {
 		// After a match without 3091, HKVPA goes with the TAN (E.8.1, figure 3); only
 		// with the first TAN message, not with the status requests of a decoupled method
 		if (this.order.status === 'awaitingTan' && this.order.sendVopAuthorizationWithTan) {
@@ -592,20 +532,10 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 		// elsewhere (observed at that bank, reported in python-fints PR #223)
 		const approvalVoided = message.hasReturnCode(3945);
 		const hivpp = findHivpp(message);
+		// 3091 with 3076 in this answer, the bank executed the order without a challenge
+		// (E.8.1 rule 2; Hamburger Sparkasse does this, as reported to python-fints): the
+		// evidence decides that before anything this reads
 		order.check.take(message, hivpp);
-
-		if (
-			!base.requiresTan &&
-			!approvalVoided &&
-			message.hasReturnCode(3091) &&
-			message.hasReturnCode(3076)
-		) {
-			// The bank waived the check and the strong authentication and executed the order
-			// (E.8.1 rule 2; Hamburger Sparkasse does this, as reported to python-fints); the
-			// result is for information only
-			order.readResult();
-			return 'executed';
-		}
 
 		if (!hivpp) {
 			return { stop: 'The bank answered without a Verification of Payee result.' };
