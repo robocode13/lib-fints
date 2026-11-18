@@ -11,6 +11,7 @@ import { CreditCardStatementInteractionHKKKU } from './interactions/creditcardSt
 import {
 	CreditTransferInteraction,
 	CreditTransferOrder,
+	type PreparedTransfer,
 	type TransferResponse,
 	type VopParameters,
 	VopPollInteraction,
@@ -396,24 +397,13 @@ export class FinTSClient {
 	 * @returns true if the bank (and account) supports SEPA credit transfers
 	 */
 	canTransfer(account?: AccountRef): boolean {
-		if (!this.config.getMaxSupportedTransactionVersion(HKCCS.Id)) {
-			return false;
-		}
-
-		if (
-			account &&
-			(!this.config.isAccountTransactionSupported(account, HKCCS.Id) ||
-				!this.config.getBankAccount(account).iban)
-		) {
-			return false;
-		}
-
-		if (!this.selectTransferFormat()) {
-			return false;
+		if (account) {
+			// An unknown account is a mistake of the caller, as for the other can... methods
+			this.config.getBankAccount(account);
 		}
 
 		try {
-			this.getVopParameters();
+			this.checkTransferSupport(account);
 			return true;
 		} catch {
 			return false;
@@ -459,7 +449,7 @@ export class FinTSClient {
 			);
 		}
 
-		const order = this.createTransferOrder(account, transfer);
+		const order = new CreditTransferOrder(() => this.prepareTransfer(account, transfer));
 		const dialog = new Dialog(this.config, false);
 		dialog.addCustomerInteraction(new CreditTransferInteraction(order, 'submit'));
 		const pending: PendingTransfer = { order, dialog, inFlight: false };
@@ -610,7 +600,11 @@ export class FinTSClient {
 		}
 	}
 
-	private createTransferOrder(account: AccountRef, transfer: CreditTransfer): CreditTransferOrder {
+	/**
+	 * What canTransfer() checks, from the banking information as it is now
+	 * @throws Error naming what does not allow the transfer
+	 */
+	private checkTransferSupport(account?: AccountRef) {
 		const hkccsVersion = this.config.getMaxSupportedTransactionVersion(HKCCS.Id);
 
 		if (!hkccsVersion) {
@@ -619,9 +613,13 @@ export class FinTSClient {
 			);
 		}
 
-		const bankAccount = this.config.getBankAccount(account);
+		if (account && !this.config.isAccountTransactionSupported(account, HKCCS.Id)) {
+			throw new Error(
+				`account ${describeAccount(account)} does not allow SEPA credit transfers (HKCCS) according to the bank's account information (UPD)`,
+			);
+		}
 
-		if (!bankAccount.iban) {
+		if (account && !this.config.getBankAccount(account).iban) {
 			throw new Error(`account ${describeAccount(account)} has no IBAN to transfer from`);
 		}
 
@@ -633,23 +631,33 @@ export class FinTSClient {
 			);
 		}
 
-		const vopParameters = this.getVopParameters();
+		return { hkccsVersion, descriptor, vopParameters: this.getVopParameters() };
+	}
+
+	/**
+	 * Builds the order from the banking information as it is at the time of the call: once
+	 * when the transfer is created, and again right before it is first sent, after the dialog
+	 * initialisation may have brought new parameters
+	 */
+	private prepareTransfer(account: AccountRef, transfer: CreditTransfer): PreparedTransfer {
+		const { hkccsVersion, descriptor, vopParameters } = this.checkTransferSupport(account);
+		const bankAccount = this.config.getBankAccount(account);
 		const pain = buildPain001(
 			{
 				name: transfer.debtorName ?? bankAccount.holder1,
-				iban: bankAccount.iban,
+				iban: bankAccount.iban ?? '',
 				bic: bankAccount.bic,
 			},
 			transfer,
 			descriptor,
 		);
 
-		return new CreditTransferOrder(
-			internationalAccount(this.config, bankAccount),
+		return {
+			account: internationalAccount(this.config, bankAccount),
 			pain,
 			hkccsVersion,
 			vopParameters,
-		);
+		};
 	}
 
 	private selectTransferFormat(): string | undefined {

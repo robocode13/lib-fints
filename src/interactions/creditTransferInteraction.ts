@@ -81,6 +81,18 @@ export type VopParameters = {
 	hkvpaVersion: number;
 };
 
+/**
+ * The order as built from the banking information: the account, the pain.001 and what
+ * the bank's parameters say about HKCCS and Verification of Payee
+ */
+export type PreparedTransfer = {
+	account: InternationalAccount;
+	pain: Pain001Message;
+	hkccsVersion: number;
+	/** Absent when the bank does not require Verification of Payee for HKCCS */
+	vopParameters?: VopParameters;
+};
+
 export type TransferStatus =
 	| 'pending'
 	| 'polling'
@@ -98,9 +110,15 @@ const VOP_RESULTS: Record<VopResultCode, VopResult['result']> = {
 
 const CHECK_ACCOUNT = 'Check bankAnswers and the account before retrying.';
 
+/** The return codes about a Verification of Payee: 3090 check the result, 3091 no HKVPA
+ * needed, 3093 the check is still running */
+const VOP_CODES = [3090, 3091, 3093];
+
 /**
- * The state of one credit transfer across the messages of its dialog: the order as
- * built once, before anything was sent, and what the bank has said about it so far.
+ * The state of one credit transfer across the messages of its dialog: the order, built
+ * when it is created (to check the input before anything is sent) and built again from
+ * the banking information as the dialog initialisation left it, right before it is first
+ * sent; and what the bank has said about it so far.
  */
 export class CreditTransferOrder {
 	/** The opaque reference of this transfer for the caller (TransferResponse.transferId) */
@@ -119,13 +137,40 @@ export class CreditTransferOrder {
 	lastResponse?: TransferResponse;
 	/** The latest HIVPP that carried a result, for a final HIVPP that carries only the VoP ID */
 	private resultSegment?: HIVPPSegment;
+	private prepared: PreparedTransfer;
 
-	constructor(
-		readonly account: InternationalAccount,
-		readonly pain: Pain001Message,
-		readonly hkccsVersion: number,
-		readonly vopParameters?: VopParameters,
-	) {}
+	/**
+	 * @param build builds the order from the banking information as it is at the time of
+	 * the call; throws when the account, the bank or the input does not allow the transfer
+	 */
+	constructor(private readonly build: () => PreparedTransfer) {
+		this.prepared = build();
+	}
+
+	get account(): InternationalAccount {
+		return this.prepared.account;
+	}
+
+	get pain(): Pain001Message {
+		return this.prepared.pain;
+	}
+
+	get hkccsVersion(): number {
+		return this.prepared.hkccsVersion;
+	}
+
+	get vopParameters(): VopParameters | undefined {
+		return this.prepared.vopParameters;
+	}
+
+	/**
+	 * Builds the order again from the banking information as it is now. Called right
+	 * before the order is first sent, after the dialog initialisation, which may have
+	 * brought new bank or account parameters; every later message reuses this order.
+	 */
+	prepare(): void {
+		this.prepared = this.build();
+	}
 
 	createHkccs(): HKCCSSegment {
 		return {
@@ -441,13 +486,20 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 	}
 
 	protected createSegments(_config: FinTSConfig): Segment[] {
-		this.hkccs = this.order.createHkccs();
-
 		if (this.step === 'confirm') {
+			this.hkccs = this.order.createHkccs();
 			return [this.order.createHkvpa(), this.hkccs];
 		}
 
+		this.order.prepare();
+		this.hkccs = this.order.createHkccs();
 		return this.order.vopParameters ? [this.order.createHkvpp(), this.hkccs] : [this.hkccs];
+	}
+
+	override needsTanSegment(tanRequired: boolean): boolean {
+		// HKVPP or HKVPA, HKTAN and the order always go together (DK VoP specification
+		// E.8.1 rules 1 and 4), whatever the BPD say about a TAN for HKCCS
+		return tanRequired || !!this.order.vopParameters;
 	}
 
 	override getTanMessageSegments(_config: FinTSConfig): Segment[] {
@@ -480,6 +532,17 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 			return this.fail(
 				base,
 				'The bank asked for a Verification of Payee its parameters do not announce for HKCCS (3945). The transfer was not executed.',
+			);
+		}
+
+		// The banking information said no check was needed, but the bank checked: its result
+		// has to reach the caller before any TAN, which this order cannot offer
+		if (findHivpp(message) || VOP_CODES.some((code) => message.hasReturnCode(code))) {
+			return this.fail(
+				base,
+				base.requiresTan
+					? 'The bank reported a Verification of Payee its parameters do not announce for HKCCS. The transfer was not executed; synchronize to update the bank parameters and try again.'
+					: `The bank reported a Verification of Payee its parameters do not announce for HKCCS. ${CHECK_ACCOUNT}`,
 			);
 		}
 

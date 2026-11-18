@@ -201,6 +201,9 @@ export class Dialog {
 	}
 
 	private createCurrentCustomerMessage(): CustomerMessage {
+		// First, so that an interaction refusing to build its segments leaves no gap in the
+		// message numbers
+		const segments = this.currentInteraction.getSegments(this.config);
 		this.lastMessageNumber++;
 
 		const isCustomerOrder = this.currentInteraction instanceof CustomerOrderInteraction;
@@ -222,7 +225,9 @@ export class Dialog {
 				(t) => t.transId === this.currentInteraction.segId,
 			);
 
-			isTanMethodNeeded = isTanMethodNeeded && bankTransaction?.tanRequired;
+			isTanMethodNeeded =
+				isTanMethodNeeded &&
+				this.currentInteraction.needsTanSegment(!!bankTransaction?.tanRequired);
 		}
 
 		if (this.config.userId && this.config.pin) {
@@ -236,7 +241,6 @@ export class Dialog {
 			);
 		}
 
-		const segments = this.currentInteraction.getSegments(this.config);
 		segments.forEach((segment) => {
 			message.addSegment(segment);
 		});

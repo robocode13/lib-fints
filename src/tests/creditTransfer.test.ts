@@ -6,6 +6,7 @@ import { FinTSClient } from '../client.js';
 import { Language, TanMediaRequirement } from '../codes.js';
 import { FinTSConfig } from '../config.js';
 import { extractVopResult } from '../interactions/creditTransferInteraction.js';
+import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
 import { type CustomerMessage, Message } from '../message.js';
 import { PAIN_001_001_03, PAIN_001_001_09, SepaValidationError } from '../pain001Builder.js';
 import type { HIVPPSParameter } from '../segments/HIVPPS.js';
@@ -13,6 +14,7 @@ import type { HKCCSSegment } from '../segments/HKCCS.js';
 import type { HKTANSegment } from '../segments/HKTAN.js';
 import type { HKVPASegment } from '../segments/HKVPA.js';
 import type { HKVPPSegment } from '../segments/HKVPP.js';
+import type { HNHBKSegment } from '../segments/HNHBK.js';
 import { registerSegments } from '../segments/registry.js';
 
 /**
@@ -924,6 +926,130 @@ describe('FinTSClient SEPA credit transfer', () => {
 
 			expect(response.success).toBe(false);
 			expect(sentOrders().at(-1)).toEqual(['HKEND']);
+		});
+	});
+
+	describe('parameters at the time of the order', () => {
+		/** Changes the banking information the way a dialog initialisation answer would */
+		const atInitialisation = (change: () => void) => {
+			const original = InitDialogInteraction.prototype.handleResponse;
+			vi.spyOn(InitDialogInteraction.prototype, 'handleResponse').mockImplementation(function (
+				this: InitDialogInteraction,
+				...args
+			) {
+				original.apply(this, args);
+				change();
+			});
+		};
+		const hkspaParams = () =>
+			config.bankingInformation.bpd?.allowedTransactions.find((t) => t.transId === 'HKSPA')
+				?.params as { supportedSepaFormats: string[] };
+
+		it('refuses an account the UPD does not allow transfers from, as canTransfer() does', async () => {
+			expect(client.canTransfer('9876543210')).toBe(false);
+
+			await expect(client.transfer('9876543210', TRANSFER)).rejects.toThrow(
+				/does not allow SEPA credit transfers/,
+			);
+			expect(bank.sent).toHaveLength(0);
+		});
+
+		it('checks the payee when the dialog initialisation brings parameters that require it', async () => {
+			const withVop = config.bankingInformation.bpd?.allowedTransactions ?? [];
+			removeTransaction('HKVPP');
+			atInitialisation(() => {
+				const bpd = config.bankingInformation.bpd;
+				if (bpd) bpd.allowedTransactions = withVop;
+			});
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, CHECK_RESULT),
+					hirms(5, TAN_REQUIRED),
+					hivppSingle('RVNM'),
+					hitan(),
+				),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({ requiresVopConfirmation: true, vop: { result: 'noMatch' } });
+			expect(sentOrders()[1]).toEqual(['HKVPP', 'HKCCS', 'HKTAN']);
+		});
+
+		it('writes the pain.001 format the dialog initialisation announces, and confirms the same bytes', async () => {
+			atInitialisation(() => {
+				hkspaParams().supportedSepaFormats = [PAIN_001_001_03];
+			});
+			bank.responses.push(initOk(), answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')));
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+			bank.responses.push(answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')));
+			await client.confirmTransfer(response.transferId);
+
+			const submitted = bank.sent[1].findSegment<HKCCSSegment>('HKCCS');
+			const confirmed = bank.sent[2].findSegment<HKCCSSegment>('HKCCS');
+			expect(submitted?.sepaDescriptor).toBe(PAIN_001_001_03);
+			expect(submitted?.sepaPainMessage).toContain('pain.001.001.03');
+			expect(confirmed?.sepaDescriptor).toBe(PAIN_001_001_03);
+			expect(confirmed?.sepaPainMessage).toBe(submitted?.sepaPainMessage);
+		});
+
+		it('sends no order from an account the dialog initialisation withdrew transfers from', async () => {
+			atInitialisation(() => {
+				const account = config.bankingInformation.upd?.bankAccounts[0];
+				if (account) account.allowedTransactions = [{ transId: 'HKSAL', numSignatures: 1 }];
+			});
+			bank.responses.push(initOk(), endOk());
+
+			await expect(client.transfer(ACCOUNT, TRANSFER)).rejects.toThrow(
+				/does not allow SEPA credit transfers/,
+			);
+			expect(sentOrders()).toEqual([['HKIDN', 'HKVVB', 'HKTAN'], ['HKEND']]);
+			expect(bank.sent[1].findSegment<HNHBKSegment>('HNHBK')?.msgNr).toBe(2);
+		});
+
+		it('stops for the caller when the bank reports a check its stored parameters do not ask for', async () => {
+			removeTransaction('HKVPP');
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, CHECK_RESULT),
+					hirms(4, TAN_REQUIRED),
+					hivppSingle('RVNM'),
+					hitan(),
+				),
+				endOk(),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({
+				success: false,
+				requiresTan: false,
+				requiresVopConfirmation: false,
+			});
+			expect(response.failureReason).toMatch(/Verification of Payee/);
+			expect(sentOrders().slice(1)).toEqual([['HKCCS', 'HKTAN'], ['HKEND']]);
+		});
+
+		it('sends HKTAN with the check and with the authorisation where the bank requires no TAN for HKCCS (E.8.1)', async () => {
+			const hkccs = config.bankingInformation.bpd?.allowedTransactions.find(
+				(t) => t.transId === 'HKCCS',
+			);
+			if (hkccs) hkccs.tanRequired = false;
+			bank.responses.push(initOk(), answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')));
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+			bank.responses.push(answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')));
+			await client.confirmTransfer(response.transferId);
+
+			expect(sentOrders().slice(1)).toEqual([
+				['HKVPP', 'HKCCS', 'HKTAN'],
+				['HKVPA', 'HKCCS', 'HKTAN'],
+			]);
 		});
 	});
 

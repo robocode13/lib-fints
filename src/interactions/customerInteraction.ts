@@ -83,6 +83,15 @@ export abstract class CustomerInteraction {
 	}
 
 	/**
+	 * Whether the message with this interaction's segments carries an HKTAN (process 4),
+	 * given what the bank's parameters say for its transaction. Called after `getSegments()`.
+	 * @param tanRequired whether the BPD require a TAN for the interaction's transaction
+	 */
+	needsTanSegment(tanRequired: boolean): boolean {
+		return tanRequired;
+	}
+
+	/**
 	 * Segments to send along with the TAN when this interaction is continued with
 	 * `Dialog.continue()`, placed before the HKTAN segment
 	 * @param _config the configuration of the dialog
