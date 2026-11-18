@@ -111,7 +111,7 @@ Check capability with `can*()` methods (e.g., `canGetAccountBalance()`). Not all
 
 - **FinTS 3.0 only** - older protocol versions not supported
 - **PIN/TAN authentication only** - no certificate-based auth
-- **No payment transactions** - read-only operations (balances, statements, portfolios)
+- **One payment transaction** - everything is read-only (balances, statements, portfolios) except the SEPA credit transfer (HKCCS with Verification of Payee), the only order that can move money; it must keep returning the VoP result to the caller before the transfer can be executed and fail closed on unexpected answers
 - **German banking focus** - country code defaults to 280
 
 When extending functionality, follow the established segment definition pattern and ensure proper registration in the registry.
