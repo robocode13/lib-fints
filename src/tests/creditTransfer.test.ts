@@ -10,6 +10,7 @@ import { extractVopResult } from '../interactions/creditTransferInteraction.js';
 import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
 import { type CustomerMessage, Message } from '../message.js';
 import { PAIN_001_001_03, PAIN_001_001_09, SepaValidationError } from '../pain001Builder.js';
+import type { HIVPPSegment } from '../segments/HIVPP.js';
 import type { HIVPPSParameter } from '../segments/HIVPPS.js';
 import type { HKCCSSegment } from '../segments/HKCCS.js';
 import type { HKTANSegment } from '../segments/HKTAN.js';
@@ -20,12 +21,16 @@ import { registerSegments } from '../segments/registry.js';
 
 /**
  * The bank: every message sent is numbered as the real HttpClient does (encode), kept, and
- * answered with the next response in the queue. Nothing leaves the process.
+ * answered with the next response in the queue. Nothing leaves the process. A pain.002 in
+ * the answer names the order the bank last received: the placeholder ORDER_MESSAGE_ID
+ * gives way to the message reference of the latest pain.001 sent.
  */
 const bank = vi.hoisted(() => ({
 	responses: [] as unknown[],
 	sent: [] as CustomerMessage[],
+	orderMessageId: '',
 }));
+const ORDER_MESSAGE_ID = vi.hoisted(() => 'ORDER-MESSAGE-ID-OF-THE-TRANSFER');
 
 vi.mock('../httpClient.js', () => ({
 	HttpClient: class MockHttpClient {
@@ -38,6 +43,11 @@ vi.mock('../httpClient.js', () => ({
 		async sendMessage(message: CustomerMessage) {
 			message.encode();
 			bank.sent.push(message);
+			const order = message.segments.find((segment) => segment.header.segId === 'HKCCS') as
+				| HKCCSSegment
+				| undefined;
+			bank.orderMessageId =
+				/<MsgId>([^<]*)<\/MsgId>/.exec(order?.sepaPainMessage ?? '')?.[1] ?? bank.orderMessageId;
 
 			const response = bank.responses.shift();
 
@@ -47,6 +57,17 @@ vi.mock('../httpClient.js', () => ({
 
 			if (response instanceof Error) {
 				throw response;
+			}
+
+			if (response instanceof Promise) {
+				return response;
+			}
+
+			for (const hivpp of (response as Message).findAllSegments<HIVPPSegment>('HIVPP')) {
+				hivpp.paymentStatusReport = hivpp.paymentStatusReport?.replace(
+					ORDER_MESSAGE_ID,
+					bank.orderMessageId,
+				);
 			}
 
 			return response;
@@ -199,7 +220,7 @@ function pain002(status: string, reason?: string, creditorName = 'Max Mustermann
 		'<?xml version="1.0" encoding="UTF-8"?>' +
 		'<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.002.001.10"><CstmrPmtStsRpt>' +
 		'<GrpHdr><MsgId>REPORT-1</MsgId><CreDtTm>2026-11-18T12:00:00</CreDtTm></GrpHdr>' +
-		'<OrgnlGrpInfAndSts><OrgnlMsgId>MSG-1</OrgnlMsgId><OrgnlMsgNmId>pain.001.001.09</OrgnlMsgNmId></OrgnlGrpInfAndSts>' +
+		`<OrgnlGrpInfAndSts><OrgnlMsgId>${ORDER_MESSAGE_ID}</OrgnlMsgId><OrgnlMsgNmId>pain.001.001.09</OrgnlMsgNmId></OrgnlGrpInfAndSts>` +
 		'<OrgnlPmtInfAndSts><OrgnlPmtInfId>PMT-1</OrgnlPmtInfId><TxInfAndSts>' +
 		`<OrgnlEndToEndId>E2E-0001</OrgnlEndToEndId><TxSts>${status}</TxSts>` +
 		(reason ? `<StsRsnInf><AddtlInf>${reason}</AddtlInf></StsRsnInf>` : '') +
@@ -233,6 +254,7 @@ describe('FinTSClient SEPA credit transfer', () => {
 	beforeEach(() => {
 		bank.responses = [];
 		bank.sent = [];
+		bank.orderMessageId = '';
 		config = FinTSConfig.fromBankingInformation(
 			'product',
 			'1.0',
@@ -746,20 +768,24 @@ describe('FinTSClient SEPA credit transfer', () => {
 			expect(polls[1]?.touchdownPoint).toBe('TP-2');
 		});
 
-		it('sends a touchdown point only with the poll after the answer that gave it', async () => {
+		it('asks again only with a current touchdown point, the polling ID alongside it', async () => {
 			bank.responses.push(
 				initOk(),
 				answer(WARNINGS, hirms(3, '3040::Weitere Daten.:TP-1'), hivppPending('POLL-0001', 1)),
+				// No 3040: the polling ID alone is no touchdown point to ask again from
 				answer(OK, hivppPending('POLL-0001', 1)),
-				answer(OK, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+				endOk(),
 			);
 
-			await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.transfer(ACCOUNT, TRANSFER);
 
-			const polls = bank.sent.slice(2).map((m) => m.findSegment<HKVPPSegment>('HKVPP'));
-			expect(polls[0]).toMatchObject({ pollingId: 'POLL-0001', touchdownPoint: 'TP-1' });
-			expect(polls[1]?.pollingId).toBe('POLL-0001');
-			expect(polls[1]?.touchdownPoint).toBeUndefined();
+			expect(response).toMatchObject({ success: false, requiresVopConfirmation: false });
+			expect(response.failureReason).toMatch(/without a VoP ID/);
+			expect(sentOrders().slice(2)).toEqual([['HKVPP'], ['HKEND']]);
+			expect(bank.sent[2].findSegment<HKVPPSegment>('HKVPP')).toMatchObject({
+				pollingId: 'POLL-0001',
+				touchdownPoint: 'TP-1',
+			});
 		});
 
 		it('gives up after 60 seconds of waiting without executing anything', async () => {
@@ -847,6 +873,29 @@ describe('FinTSClient SEPA credit transfer', () => {
 			expect(sentOrders().slice(1)).toEqual([['HKVPP', 'HKCCS', 'HKTAN'], ['HKVPA'], ['HKEND']]);
 		});
 
+		it('authorises with HKVPA alone a held match whose result came by polling (3076 before it)', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Daten.:TP-1'),
+					hirms(5, '3076::Keine starke Kundenauthentifizierung notwendig.'),
+					hivppPending(),
+				),
+				answer(OK, hirms(3, CHECK_RESULT), hivppSingle('RCVC')),
+				answer(OK, hirms(3, '0020::Auftrag ausgefuehrt.')),
+				endOk(),
+			);
+
+			const first = await client.transfer(ACCOUNT, TRANSFER);
+			expect(first).toMatchObject({ requiresVopConfirmation: true, vop: { result: 'match' } });
+
+			const done = await client.confirmTransfer(first.transferId);
+
+			expect(done).toMatchObject({ success: true, requiresTan: false, outcomeUncertain: false });
+			expect(sentOrders().slice(3)).toEqual([['HKVPA'], ['HKEND']]);
+		});
+
 		it('reports an authorisation alone without an acceptance as an uncertain outcome', async () => {
 			bank.responses.push(
 				initOk(),
@@ -920,6 +969,45 @@ describe('FinTSClient SEPA credit transfer', () => {
 				requiresTan: true,
 				vop: { result: 'match', code: 'RCVC' },
 			});
+		});
+
+		const transferWithTanAndReport = async (report: string) => {
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(5, TAN_REQUIRED), hivppReport(report), hitan()),
+				endOk(),
+			);
+			return client.transfer(ACCOUNT, TRANSFER);
+		};
+
+		it('stops at a transaction status the counts contradict', async () => {
+			const report = pain002('RCVC').replace(
+				'</OrgnlGrpInfAndSts>',
+				`${COUNTS('RVNM')}</OrgnlGrpInfAndSts>`,
+			);
+
+			const response = await transferWithTanAndReport(report);
+
+			expect(response).toMatchObject({ success: false, requiresTan: false });
+			expect(response.failureReason).toMatch(/contradicts/);
+		});
+
+		it('stops at a report about another payment', async () => {
+			const response = await transferWithTanAndReport(
+				pain002('RCVC').replace('E2E-0001', 'OTHER-INVOICE'),
+			);
+
+			expect(response).toMatchObject({ success: false, requiresTan: false });
+			expect(response.failureReason).toMatch(/another payment/);
+		});
+
+		it('stops at a report about another order', async () => {
+			const response = await transferWithTanAndReport(
+				pain002('RCVC').replace(ORDER_MESSAGE_ID, 'SOME-OTHER-ORDER'),
+			);
+
+			expect(response).toMatchObject({ success: false, requiresTan: false });
+			expect(response.failureReason).toMatch(/another order/);
 		});
 
 		it('stops at counts that do not name one result', async () => {
@@ -1031,6 +1119,71 @@ describe('FinTSClient SEPA credit transfer', () => {
 			expect((await client.transfer(ACCOUNT, TRANSFER)).vop).toMatchObject({
 				result: 'closeMatch',
 				suggestedName: 'Company A',
+			});
+		});
+
+		it('keeps the notice and reason lines of the delivery whose details it keeps', async () => {
+			vopParams().reportDelivery = 'S';
+			const before = pain002('RVMC', 'Company A').replace(
+				'</OrgnlGrpInfAndSts>',
+				'<StsRsnInf><AddtlInf>RVMC Achtung.</AddtlInf></StsRsnInf></OrgnlGrpInfAndSts>',
+			);
+			const after = withoutTransactions(pain002('RVMC'), COUNTS('RVMC'));
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Daten.:TP-1'),
+					`HIVPP:5:1:3+++@1@P+${REPORT_FORMAT}+@${before.length}@${before}++Hinweis.'`,
+				),
+				answer(OK, hirms(3, CHECK_RESULT), hivppReport(after)),
+			);
+
+			expect((await client.transfer(ACCOUNT, TRANSFER)).vop).toMatchObject({
+				result: 'closeMatch',
+				suggestedName: 'Company A',
+				notice: 'Hinweis.',
+				reasons: ['RVMC Achtung.', 'Company A'],
+				paymentStatusReport: { groupReasons: ['RVMC Achtung.'] },
+			});
+		});
+
+		it('checks the payee of an earlier delivery whose details it keeps', async () => {
+			vopParams().reportDelivery = 'S';
+			const before = pain002('RVMC', 'Company A', 'Erika Musterfrau');
+			const after = withoutTransactions(pain002('RVMC'), COUNTS('RVMC'));
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Daten.:TP-1'),
+					`HIVPP:5:1:3+++@1@P+${REPORT_FORMAT}+@${before.length}@${before}'`,
+				),
+				answer(OK, hirms(3, CHECK_RESULT), hivppReport(after)),
+				endOk(),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({ success: false, requiresVopConfirmation: false });
+			expect(response.failureReason).toMatch(/another payee name/);
+		});
+
+		it('takes white space after the end of a report as part of it', async () => {
+			const report = pain002('RVNM');
+			bank.responses.push(
+				initOk(),
+				answer(
+					WARNINGS,
+					hirms(3, '3040::Weitere Daten.:TP-1'),
+					`HIVPP:5:1:3+++@1@P+${REPORT_FORMAT}+@${report.length}@${report}'`,
+				),
+				answer(OK, hirms(3, CHECK_RESULT), hivppReport('\r\n')),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+				requiresVopConfirmation: true,
+				vop: { result: 'noMatch' },
 			});
 		});
 
@@ -1182,6 +1335,72 @@ describe('FinTSClient SEPA credit transfer', () => {
 
 			const hkvpa = bank.sent.at(-1)?.findSegment<HKVPASegment>('HKVPA');
 			expect(hkvpa?.vopId).toBe('VOP-02');
+		});
+
+		it('stops instead of continuing the approval when a later answer brings a deviation', async () => {
+			client.selectTanMethod(946);
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(
+					WARNINGS,
+					hirms(3, '3956::Freigabe noch ausstehend.'),
+					hivppSingle('RVNM'),
+					hitan('TAN-REF-2', 'S'),
+				),
+				endOk(),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.transferWithTan('TAN-REF-1');
+
+			// The approval the bank still waits for may go through all the same
+			expect(response).toMatchObject({
+				success: false,
+				outcomeUncertain: true,
+				requiresTan: false,
+				requiresVopConfirmation: false,
+				vop: { result: 'noMatch' },
+			});
+			expect(sentOrders().slice(3)).toEqual([['HKEND']]);
+		});
+
+		it('replaces the earlier match with a later answer that has no result (notprovided)', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(
+					WARNINGS,
+					hirms(3, APPROVAL_VOIDED, CHECK_RESULT),
+					"HIVPP:5:1:3+@11@notprovided++++++Bitte erneut pruefen.'",
+				),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.transferWithTan('TAN-REF-1', '123456');
+
+			expect(response).toMatchObject({
+				requiresVopConfirmation: true,
+				vop: { result: 'notApplicable', notice: 'Bitte erneut pruefen.' },
+			});
+			expect(response.vop?.code).toBeUndefined();
+		});
+
+		it('does not authorise a later result before its own VoP ID arrives', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(WARNINGS, hirms(3, APPROVAL_VOIDED), hivppSingle('RVNM').replace('@6@VOP-01', '')),
+				endOk(),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+			const response = await client.transferWithTan('TAN-REF-1', '123456');
+
+			expect(response).toMatchObject({ success: false, requiresVopConfirmation: false });
+			expect(response.vop).toBeUndefined();
+			expect(response.failureReason).toMatch(/without a VoP ID/);
+			expect(bank.sent.some((message) => message.findSegment('HKVPA'))).toBe(false);
 		});
 
 		it('stops when the result at the TAN step is for another IBAN', async () => {
@@ -1836,10 +2055,13 @@ describe('FinTSClient SEPA credit transfer', () => {
 		});
 
 		it('shows the notice of the report and asks after a TAN for the login, then cancels', async () => {
-			const report = pain002('RVNM').replace(
-				'</OrgnlGrpInfAndSts>',
-				'<GrpSts>RVCM</GrpSts><StsRsnInf><AddtlInf>RVNM Bei Abweichungen haftet die Bank nicht.</AddtlInf></StsRsnInf></OrgnlGrpInfAndSts>',
-			);
+			// The example's own end-to-end reference
+			const report = pain002('RVNM')
+				.replace('E2E-0001', 'INVOICE-2026-001')
+				.replace(
+					'</OrgnlGrpInfAndSts>',
+					'<GrpSts>RVCM</GrpSts><StsRsnInf><AddtlInf>RVNM Bei Abweichungen haftet die Bank nicht.</AddtlInf></StsRsnInf></OrgnlGrpInfAndSts>',
+				);
 			bank.responses.push(
 				answer(OK, "HIRMS:3:2:5+0030::Sicherheitsfreigabe erforderlich.'", hitan('INIT-REF')),
 				initOk(),

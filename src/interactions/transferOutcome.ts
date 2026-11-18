@@ -28,9 +28,10 @@ export type Continuation = 'confirmation' | 'tan' | 'poll';
  * What an interaction reads from an answer beyond the codes: a continuation; 'executed'
  * when the codes of the check say the bank executed the order without a challenge (3091
  * with 3076, DK VoP specification E.8.1 rule 2); 'none' when it has nothing to offer and
- * the codes alone decide; or why the transfer has to stop
+ * the codes alone decide; or why the transfer has to stop, `uncertain` when the bank may
+ * execute it all the same, such as with an approval still open
  */
-export type Proposal = Continuation | 'executed' | 'none' | { stop: string };
+export type Proposal = Continuation | 'executed' | 'none' | { stop: string; uncertain?: boolean };
 
 export type Outcome =
 	| { status: 'accepted' }
@@ -148,6 +149,10 @@ export class TransferEvidence {
 			// earlier receipt
 			if (received && !(paymentRejected && !receivedNow)) {
 				return failed(`${reason} The bank ${received} and may execute it. ${CHECK_ACCOUNT}`, true);
+			}
+
+			if (typeof proposal === 'object' && proposal.uncertain && reason === proposal.stop) {
+				return failed(`${reason} ${CHECK_ACCOUNT}`, true);
 			}
 
 			return failed(`${reason} ${NOT_EXECUTED}`, false);

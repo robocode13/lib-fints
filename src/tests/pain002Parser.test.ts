@@ -74,6 +74,7 @@ describe('parsePain002', () => {
 		);
 
 		expect(report).toEqual({
+			originalMessageId: 'a1',
 			groupStatus: 'RCVC',
 			groupReasons: [],
 			groupStatusCounts: [],

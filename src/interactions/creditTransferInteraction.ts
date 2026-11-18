@@ -1,14 +1,8 @@
 import { randomBytes } from 'node:crypto';
-import { XMLValidator } from 'fast-xml-parser';
 import type { FinTSConfig } from '../config.js';
 import type { InternationalAccount } from '../dataGroups/InternationalAccount.js';
 import type { Message } from '../message.js';
 import type { Pain001Message } from '../pain001Builder.js';
-import {
-	type PaymentStatusReport,
-	type PaymentTransactionStatus,
-	parsePain002,
-} from '../pain002Parser.js';
 import type { Segment } from '../segment.js';
 import { HIRMG, type HIRMGSegment } from '../segments/HIRMG.js';
 import { HIRMS, type HIRMSSegment } from '../segments/HIRMS.js';
@@ -25,41 +19,9 @@ import {
 	type Proposal,
 	TransferEvidence,
 } from './transferOutcome.js';
+import { VopCheck, type VopResult } from './vopCheck.js';
 
-/**
- * The ISO 20022 codes of a Verification of Payee result
- */
-export type VopResultCode = 'RCVC' | 'RVMC' | 'RVNM' | 'RVNA';
-
-/**
- * The result of a Verification of Payee check of the payee's name against the IBAN
- */
-export interface VopResult {
-	/**
-	 * match: the name matches; closeMatch: it almost matches, see suggestedName;
-	 * noMatch: it does not match; notApplicable: the check was not possible
-	 */
-	result: 'match' | 'closeMatch' | 'noMatch' | 'notApplicable';
-	/** The code the bank reported; absent when the bank delivered no result at all */
-	code?: VopResultCode;
-	/** The payee IBAN the result is for */
-	iban?: string;
-	/** For a close match: the name the payee's bank holds for the account */
-	suggestedName?: string;
-	/** For notApplicable: why the check was not possible, when the bank says */
-	notApplicableReason?: string;
-	/**
-	 * The bank's explanation of what authorising despite a deviation means. The DK
-	 * specification requires showing it to the customer before they confirm.
-	 */
-	notice?: string;
-	/** Whether the notice may contain formatting tags such as <br> or <b> (HIVPPS) */
-	noticeStructured: boolean;
-	/** All additional information lines of the payment status report */
-	reasons: string[];
-	/** The pain.002 report, when the bank sent one */
-	paymentStatusReport?: PaymentStatusReport;
-}
+export { extractVopResult, type VopResult, type VopResultCode } from './vopCheck.js';
 
 /**
  * The response to a SEPA credit transfer step. The transfer is done only when
@@ -120,16 +82,14 @@ export type TransferStatus =
 	| 'accepted'
 	| 'failed';
 
-const VOP_RESULTS: Record<VopResultCode, VopResult['result']> = {
-	RCVC: 'match',
-	RVMC: 'closeMatch',
-	RVNM: 'noMatch',
-	RVNA: 'notApplicable',
-};
-
 /** The return codes about a Verification of Payee: 3090 check the result, 3091 no HKVPA
  * needed, 3093 the check is still running */
 const VOP_CODES = [3090, 3091, 3093];
+
+const NO_VOP_ID = 'The bank sent a Verification of Payee result without a VoP ID.';
+
+const UNANNOUNCED_CHECK =
+	'The bank reported a Verification of Payee its parameters do not announce for HKCCS; synchronize to update the bank parameters.';
 
 /**
  * The state of one credit transfer across the messages of its dialog: the order, built
@@ -141,11 +101,6 @@ export class CreditTransferOrder {
 	/** The opaque reference of this transfer for the caller (TransferResponse.transferId) */
 	readonly transferId = randomBytes(16).toString('hex');
 	status: TransferStatus = 'pending';
-	vopId?: string;
-	pollingId?: string;
-	touchdownPoint?: string;
-	waitSeconds?: number;
-	vopResult?: VopResult;
 	/** Whether the caller has confirmed the VoP result with `confirmTransfer()` */
 	confirmed = false;
 	/** Whether HKVPA goes with the next TAN message (a match without code 3091) */
@@ -160,15 +115,8 @@ export class CreditTransferOrder {
 	readonly evidence = new TransferEvidence();
 	/** The response of the latest message this order's interactions handled */
 	lastResponse?: TransferResponse;
-	/** The latest HIVPP that carried a result, for a final HIVPP that carries only the VoP ID */
-	private resultSegment?: HIVPPSegment;
-	/** The complete pain.002 reports of the current check, in the order they arrived */
-	private reports: string[] = [];
-	/**
-	 * The part of a pain.002 received so far: a bank may cut a report into pieces it
-	 * sends with successive answers, to be joined in that order (DK VoP specification)
-	 */
-	private reportFragment = '';
+	/** The current Verification of Payee check: its result, VoP ID, notice and codes */
+	check = new VopCheck();
 	private prepared: PreparedTransfer;
 
 	/**
@@ -195,6 +143,18 @@ export class CreditTransferOrder {
 		return this.prepared.vopParameters;
 	}
 
+	get vopId(): string | undefined {
+		return this.check.vopId;
+	}
+
+	get vopResult(): VopResult | undefined {
+		return this.check.result;
+	}
+
+	get waitSeconds(): number | undefined {
+		return this.check.waitSeconds;
+	}
+
 	/**
 	 * Builds the order again from the banking information as it is now. Called right
 	 * before the order is first sent, after the dialog initialisation, which may have
@@ -202,6 +162,22 @@ export class CreditTransferOrder {
 	 */
 	prepare(): void {
 		this.prepared = this.build();
+		this.startCheck();
+	}
+
+	/** Starts a new check: whatever the bank said about an earlier one no longer counts */
+	startCheck(): VopCheck {
+		this.check = new VopCheck();
+		this.authorizationOnly = false;
+		return this.check;
+	}
+
+	/**
+	 * Reads the result of the current check
+	 * @returns the result, or why it cannot be trusted
+	 */
+	readResult(): VopResult | string {
+		return this.check.read(this.pain, this.vopParameters?.noticeStructured ?? false);
 	}
 
 	createHkccs(): HKCCSSegment {
@@ -224,341 +200,38 @@ export class CreditTransferOrder {
 		};
 	}
 
+	/**
+	 * HKVPP to start the check, or, while it runs, to ask for the rest of the result with
+	 * the touchdown point and polling ID of the latest answer
+	 */
 	createHkvpp(): HKVPPSegment {
 		if (!this.vopParameters) {
 			throw new Error('cannot check the payee when the bank does not require it');
 		}
 
+		const { touchdownPoint, pollingId } = this.check;
 		return {
 			header: { segId: HKVPP.Id, segNr: 0, version: this.vopParameters.hkvppVersion },
 			supportedReports: this.vopParameters.reportFormats,
-			pollingId: this.pollingId,
-			touchdownPoint: this.touchdownPoint,
+			pollingId: touchdownPoint ? pollingId : undefined,
+			touchdownPoint,
 		};
 	}
 
 	/**
-	 * Takes over what a HIVPP says about polling: the touchdown point comes with code
-	 * 3040 and, like the wait time, is read from every response anew; the optional
-	 * polling ID is kept once the bank has sent one (DK VoP specification C.10.7.1.1).
+	 * Whether the bank holds the order after the match of the current check and needs no
+	 * strong authentication for it (3076 without 3091 or 3945, no TAN asked for): HKVPA
+	 * alone then authorises it
 	 */
-	track(message: Message, hivpp: HIVPPSegment) {
-		this.touchdownPoint =
-			message.getBankAnswers().find((answer) => answer.code === 3040)?.params?.[0] || undefined;
-
-		if (hivpp.pollingId) {
-			this.pollingId = hivpp.pollingId;
-		}
-
-		this.waitSeconds = hivpp.waitSeconds;
-		this.collect(hivpp);
-	}
-
-	/**
-	 * Whether the bank said how to ask for the rest of the result: a touchdown point in
-	 * the latest answer, or a polling ID
-	 */
-	canPoll(): boolean {
-		return !!this.touchdownPoint || !!this.pollingId;
-	}
-
-	/**
-	 * Reads the result from the reports and the single result received so far for the
-	 * final HIVPP (which track() or takeNewerResult() has taken in): from the latest HIVPP
-	 * that carried a result, with the details of an earlier report when the latest one
-	 * gives the transaction only as a count
-	 * @returns the result, or why it cannot be trusted
-	 */
-	readResult(final: HIVPPSegment): VopResult | string {
-		const source = final.paymentStatusReport || final.singleResult ? final : this.resultSegment;
-		let result: VopResult;
-
-		try {
-			if (this.reportFragment) {
-				throw new Error('The bank did not deliver the complete payment status report');
-			}
-
-			result = interpretVopResult(
-				source?.singleResult,
-				source?.paymentStatusReport ? this.reports.map(parsePain002) : [],
-				final.notice ?? source?.notice,
-				this.vopParameters?.noticeStructured ?? false,
-			);
-		} catch (error) {
-			return `${(error as Error).message}.`;
-		}
-
-		return this.checkPayee(result) ?? result;
-	}
-
-	/**
-	 * Takes over a result the bank sends with a later answer, such as with 3945 to the TAN,
-	 * in place of the earlier one
-	 * @returns why the result cannot be trusted, if it cannot
-	 */
-	takeNewerResult(hivpp: HIVPPSegment | undefined): string | undefined {
-		if (!hivpp || (!hivpp.paymentStatusReport && !hivpp.singleResult)) {
-			return undefined;
-		}
-
-		// A result sent with a later answer is a new check, not a continuation
-		this.reports = [];
-		this.reportFragment = '';
-		this.collect(hivpp);
-		const result = this.readResult(hivpp);
-
-		if (typeof result === 'string') {
-			return result;
-		}
-
-		this.vopResult = result;
-
-		if (hivpp.vopId !== undefined) {
-			this.vopId = hivpp.vopId;
-		}
-
-		return undefined;
-	}
-
-	/**
-	 * Takes in the result parts of a HIVPP: a pain.002 piece is joined to the pieces
-	 * before it until the report is complete
-	 */
-	private collect(hivpp: HIVPPSegment) {
-		if (hivpp.paymentStatusReport) {
-			this.reportFragment += hivpp.paymentStatusReport;
-
-			if (XMLValidator.validate(decodeReport(this.reportFragment)) === true) {
-				this.reports.push(decodeReport(this.reportFragment));
-				this.reportFragment = '';
-			}
-		}
-
-		if (hivpp.paymentStatusReport || hivpp.singleResult) {
-			this.resultSegment = hivpp;
-		}
-	}
-
-	/**
-	 * A result counts only for the payee of this order: the IBAN it names, and the payee
-	 * name a pain.002 repeats from the order, must be the submitted ones
-	 * @returns why the result is not about this order, if it is not
-	 */
-	private checkPayee(result: VopResult): string | undefined {
-		const transactions = result.paymentStatusReport?.transactions ?? [];
-		const ibans = [result.iban, ...transactions.map((t) => t.creditorIban)].filter(
-			(iban): iban is string => !!iban,
+	holdsMatch(tanRequested: boolean): boolean {
+		return (
+			!tanRequested &&
+			this.vopResult?.result === 'match' &&
+			this.check.has(3076) &&
+			!this.check.has(3091) &&
+			!this.check.has(3945)
 		);
-
-		if (ibans.some((iban) => iban.replace(/\s+/g, '').toUpperCase() !== this.pain.creditorIban)) {
-			return 'The Verification of Payee result is for another IBAN than the transfer.';
-		}
-
-		const normalizeName = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
-		const names = transactions.map((t) => t.creditorName).filter((name): name is string => !!name);
-
-		if (names.some((name) => normalizeName(name) !== normalizeName(this.pain.creditorName))) {
-			return 'The Verification of Payee result is for another payee name than the transfer.';
-		}
-
-		return undefined;
 	}
-}
-
-/**
- * Reads a Verification of Payee result from a HIVPP, from its single result, its
- * pain.002 report, or both. When both are present and disagree, the one that is not
- * a match wins: the caller then has to decide, which is the safe side.
- * @throws Error when a code is not one of RCVC, RVMC, RVNM and RVNA (PDNG included:
- * a pending check with a VoP ID is a contradiction) or the report cannot be read
- */
-export function extractVopResult(
-	hivpp: HIVPPSegment,
-	notice: string | undefined,
-	noticeStructured: boolean,
-): VopResult {
-	return interpretVopResult(
-		hivpp.singleResult,
-		hivpp.paymentStatusReport ? [parsePain002(decodeReport(hivpp.paymentStatusReport))] : [],
-		notice,
-		noticeStructured,
-	);
-}
-
-/** The transaction codes of a pain.002 about a payee check (DFÜ-Abkommen Anlage 3) */
-const TRANSACTION_CODES = ['RCVC', 'RVMC', 'RVNM', 'RVNA', 'PDNG'];
-
-/**
- * The group and payment information codes: RCVC when every transaction matches, RVCM
- * when some do not, PDNG while the check runs. The transaction codes of a deviation are
- * taken for RVCM as well.
- */
-const AGGREGATE_CODES: Record<string, 'match' | 'deviation' | 'pending'> = {
-	RCVC: 'match',
-	RVCM: 'deviation',
-	RVMC: 'deviation',
-	RVNM: 'deviation',
-	RVNA: 'deviation',
-	PDNG: 'pending',
-};
-
-/** The length of the first additional information line that holds a payee name */
-const NAME_LINE_LENGTH = 105;
-
-function unknownResult(code: string): Error {
-	return new Error(`The bank reported the unknown Verification of Payee result '${code}'`);
-}
-
-/**
- * The status of the one transaction of a transfer in a pain.002: from its own entry,
- * or, when the report lists none, from the number of transactions per status, or from
- * the payment information or group status when that alone decides it
- */
-function reportStatus(report: PaymentStatusReport): string | undefined {
-	const aggregates = [report.paymentInfoStatus, report.groupStatus].filter(
-		(code): code is string => !!code,
-	);
-
-	for (const code of aggregates) {
-		if (!(code in AGGREGATE_CODES)) {
-			throw unknownResult(code);
-		}
-	}
-
-	const listed = report.transactions
-		.map((transaction) => transaction.status)
-		.filter((code): code is string => !!code);
-	const counts = (
-		report.paymentInfoStatusCounts.length
-			? report.paymentInfoStatusCounts
-			: report.groupStatusCounts
-	).filter((entry) => entry.count > 0);
-	let status: string | undefined;
-
-	if (listed.length) {
-		status = listed.find((code) => code !== 'RCVC') ?? 'RCVC';
-	} else if (counts.length) {
-		if (counts.length !== 1 || counts[0].count !== 1) {
-			throw new Error('The payment status report does not name one Verification of Payee result');
-		}
-		status = counts[0].status;
-	} else if (aggregates.length) {
-		if (AGGREGATE_CODES[aggregates[0]] === 'deviation') {
-			throw new Error(
-				'The payment status report names a deviation without the result of the transaction',
-			);
-		}
-		status = aggregates[0];
-	}
-
-	if (status === undefined) {
-		return undefined;
-	}
-
-	if (!TRANSACTION_CODES.includes(status)) {
-		throw unknownResult(status);
-	}
-
-	const kind = AGGREGATE_CODES[status];
-
-	if (
-		aggregates.some(
-			(code) =>
-				(AGGREGATE_CODES[code] === 'match' && kind !== 'match') ||
-				(AGGREGATE_CODES[code] === 'deviation' && kind === 'match'),
-		)
-	) {
-		throw new Error('The payment status report contradicts itself');
-	}
-
-	return status;
-}
-
-/**
- * The payee name of a close match: the first additional information line, continued
- * in the second when it is longer than 105 characters; the continuation begins with
- * the quote mark “, which is not part of the name
- */
-function suggestedNameOf(transaction: PaymentTransactionStatus | undefined): string | undefined {
-	const [first, second] = transaction?.reasons ?? [];
-
-	if (first === undefined) {
-		return undefined;
-	}
-
-	const continued =
-		second !== undefined && (first.length >= NAME_LINE_LENGTH || second.startsWith('“'));
-	return (continued ? first + second.replace(/^“/, '') : first).trim();
-}
-
-/**
- * Reads a Verification of Payee result from a single result and the complete pain.002
- * reports of a check, in the order they arrived. The latest report decides; an earlier
- * one only lends the details of a transaction with the status the latest one gives.
- */
-function interpretVopResult(
-	single: HIVPPSegment['singleResult'],
-	reports: PaymentStatusReport[],
-	notice: string | undefined,
-	noticeStructured: boolean,
-): VopResult {
-	const report = reports.at(-1);
-	const codes = [single?.result, report ? reportStatus(report) : undefined].filter(
-		(code): code is string => !!code,
-	);
-
-	for (const code of codes) {
-		if (!(code in VOP_RESULTS)) {
-			throw unknownResult(code);
-		}
-	}
-
-	const code = codes.length
-		? ((codes.find((c) => c !== 'RCVC') ?? 'RCVC') as VopResultCode)
-		: undefined;
-	const transaction =
-		[...reports]
-			.reverse()
-			.flatMap((r) => r.transactions)
-			.find((t) => t.status === code) ?? report?.transactions[0];
-
-	return {
-		// The DK specification allows a HIVPP without a result where none can exist
-		// ("notprovided" as the VoP ID); the caller still has to decide
-		result: code ? VOP_RESULTS[code] : 'notApplicable',
-		code,
-		iban: single?.iban ?? transaction?.creditorIban,
-		// In a pain.002 the payee bank's name for a close match is the transaction's
-		// status reason line (DFÜ-Abkommen Anlage 3, 2.2.6)
-		suggestedName:
-			single?.closeMatchName ?? (code === 'RVMC' ? suggestedNameOf(transaction) : undefined),
-		notApplicableReason:
-			single?.notApplicableReason ?? (code === 'RVNA' ? transaction?.reasonCode : undefined),
-		notice,
-		noticeStructured,
-		reasons: report
-			? [
-					...report.groupReasons,
-					...report.paymentInfoReasons,
-					...report.transactions.flatMap((t) => t.reasons),
-				]
-			: [],
-		paymentStatusReport: report,
-	};
-}
-
-/**
- * The pain.002 arrives as bytes, one character per byte. It is UTF-8 unless its XML
- * declaration says otherwise; ISO-8859-1 is then read as it stands.
- */
-function decodeReport(bytes: string): string {
-	const encoding = /^<\?xml[^>]*encoding\s*=\s*["']([^"']+)["']/i.exec(bytes)?.[1];
-
-	if (encoding && !/^utf-?8$/i.test(encoding)) {
-		return bytes;
-	}
-
-	return Buffer.from(bytes, 'latin1').toString('utf8').replace(/^﻿/, '');
 }
 
 /**
@@ -704,18 +377,36 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 	protected abstract evaluate(message: Message, base: ClientResponse): Proposal;
 
 	/**
-	 * The answer to the TAN message, whichever step asked for the TAN
+	 * The answer to a message after the check: the TAN message, whichever step asked for
+	 * the TAN, or the message that carries HKVPA, the caller's authorisation despite the
+	 * result
 	 */
-	protected evaluateTan(message: Message, base: ClientResponse): Proposal {
-		const untrusted = this.order.takeNewerResult(findHivpp(message));
+	protected evaluateLater(message: Message, base: ClientResponse): Proposal {
+		const order = this.order;
+		const later = this.takeLaterResult(message);
 
-		if (untrusted) {
-			return { stop: untrusted };
+		if (typeof later === 'object') {
+			return later;
 		}
 
-		if (message.hasReturnCode(3945)) {
-			// The bank voided the approval and wants HKVPA with the order (E.8.1 rule 5)
-			if (this.order.vopParameters && this.order.vopId !== undefined && !this.order.confirmed) {
+		// A new result that is not a match needs the caller's decision again
+		const undecided = later === 'changed' && order.vopResult?.result !== 'match';
+		const approvalVoided = message.hasReturnCode(3945);
+
+		if (undecided) {
+			order.confirmed = false;
+
+			if (base.requiresTan && !approvalVoided) {
+				return {
+					stop: 'The bank sent a new Verification of Payee result that needs a decision while it still waits for the approval of the transfer, which may still go through.',
+					uncertain: true,
+				};
+			}
+		}
+
+		if (approvalVoided || undecided) {
+			// 3945: the bank voided the approval and wants HKVPA with the order (E.8.1 rule 5)
+			if (order.vopParameters && order.vopId !== undefined && !order.confirmed) {
 				return 'confirmation';
 			}
 
@@ -723,7 +414,9 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 		}
 
 		if (base.requiresTan) {
-			// Decoupled approval still pending (3956), or another TAN asked for
+			// Decoupled approval still pending (3956), another TAN asked for, or the TAN for
+			// the authorisation; HKVPA has gone, the TAN message carries none
+			order.sendVopAuthorizationWithTan = false;
 			return 'tan';
 		}
 
@@ -735,27 +428,48 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 	}
 
 	/**
-	 * The answer to the message that carries HKVPA, the caller's authorisation despite the
-	 * result: the bank may still ask for the TAN
+	 * Takes in a result the bank sends with an answer after the check, such as with 3945 to
+	 * the TAN: a new check, which replaces the earlier one whole, with its own VoP ID
+	 * @returns whether the answer brought a result, and whether it differs from the
+	 * earlier one, or why the transfer has to stop
 	 */
-	protected evaluateAuthorization(message: Message, base: ClientResponse): Proposal {
-		const untrusted = this.order.takeNewerResult(findHivpp(message));
+	private takeLaterResult(message: Message): 'none' | 'same' | 'changed' | { stop: string } {
+		const hivpp = findHivpp(message);
 
-		if (untrusted) {
-			return { stop: untrusted };
+		if (!hivpp) {
+			return 'none';
 		}
 
-		if (message.hasReturnCode(3945)) {
-			return { stop: 'The bank refused the authorisation (3945).' };
+		const order = this.order;
+		const previous = { vopId: order.vopId, code: order.vopResult?.code };
+
+		if (!order.vopParameters) {
+			return { stop: UNANNOUNCED_CHECK };
 		}
 
-		if (base.requiresTan) {
-			// HKVPA has gone; the TAN message carries none
-			this.order.sendVopAuthorizationWithTan = false;
-			return 'tan';
+		order.startCheck().take(message, hivpp);
+		const result = order.readResult();
+
+		if (typeof result === 'string') {
+			return { stop: result };
 		}
 
-		return 'none';
+		return previous.vopId === order.vopId && previous.code === result.code ? 'same' : 'changed';
+	}
+
+	/**
+	 * Hands the result of the check to the caller. A match the bank holds and needs no
+	 * strong authentication for, by the codes of every answer of the check, is authorised
+	 * by HKVPA alone (E.8.1, figure 3).
+	 */
+	protected offerConfirmation(tanRequested: boolean): Proposal {
+		this.order.authorizationOnly = this.order.holdsMatch(tanRequested);
+
+		if (this.order.authorizationOnly) {
+			this.order.evidence.hold();
+		}
+
+		return 'confirmation';
 	}
 
 	private conclude(base: ClientResponse, outcome: Outcome): TransferResponse {
@@ -839,12 +553,8 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 	}
 
 	protected evaluate(message: Message, base: ClientResponse): Proposal {
-		if (this.order.status === 'awaitingTan') {
-			return this.evaluateTan(message, base);
-		}
-
-		if (this.step === 'confirm') {
-			return this.evaluateAuthorization(message, base);
+		if (this.order.status === 'awaitingTan' || this.step === 'confirm') {
+			return this.evaluateLater(message, base);
 		}
 
 		return this.order.vopParameters
@@ -862,23 +572,19 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 		// The banking information said no check was needed, but the bank checked: its result
 		// has to reach the caller before any TAN, which this order cannot offer
 		if (findHivpp(message) || VOP_CODES.some((code) => message.hasReturnCode(code))) {
-			return {
-				stop: 'The bank reported a Verification of Payee its parameters do not announce for HKCCS; synchronize to update the bank parameters.',
-			};
+			return { stop: UNANNOUNCED_CHECK };
 		}
 
 		return base.requiresTan ? 'tan' : 'none';
 	}
 
 	private evaluateSubmitWithVop(message: Message, base: ClientResponse): Proposal {
+		const order = this.order;
 		// Searched in every answer, not only the HKTAN's: Commerzbank attaches 3945
 		// elsewhere (observed at that bank, reported in python-fints PR #223)
 		const approvalVoided = message.hasReturnCode(3945);
 		const hivpp = findHivpp(message);
-
-		if (hivpp) {
-			this.order.track(message, hivpp);
-		}
+		order.check.take(message, hivpp);
 
 		if (
 			!base.requiresTan &&
@@ -889,8 +595,7 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 			// The bank waived the check and the strong authentication and executed the order
 			// (E.8.1 rule 2; Hamburger Sparkasse does this, as reported to python-fints); the
 			// result is for information only
-			const result = hivpp ? this.order.readResult(hivpp) : undefined;
-			this.order.vopResult = typeof result === 'object' ? result : undefined;
+			order.readResult();
 			return 'executed';
 		}
 
@@ -902,44 +607,26 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 			// Atruvia banks check asynchronously: polling ID, touchdown point (3040) and
 			// code 3905 instead of a challenge (observed there, reported in python-fints
 			// PR #223). A TAN request before the result is complete is not expected.
-			return this.order.canPoll() && !base.requiresTan
-				? 'poll'
-				: { stop: 'The bank sent a Verification of Payee result without a VoP ID.' };
+			return order.check.canPoll() && !base.requiresTan ? 'poll' : { stop: NO_VOP_ID };
 		}
 
-		const result = this.order.readResult(hivpp);
+		const result = order.readResult();
 
 		if (typeof result === 'string') {
 			return { stop: result };
 		}
 
-		this.order.vopId = hivpp.vopId;
-		this.order.vopResult = result;
-
 		// The codes decide the flow, not the result (E.8.1): 3945 voids the approval
 		// even for a match
 		if (base.requiresTan && !approvalVoided && result.result === 'match') {
 			// 3091: the bank needs no HKVPA, the TAN alone answers the challenge (rule 3)
-			this.order.sendVopAuthorizationWithTan = !message.hasReturnCode(3091);
+			order.sendVopAuthorizationWithTan = !order.check.has(3091);
 			return 'tan';
-		}
-
-		// A match the bank holds and needs no SCA for: the caller decides, and HKVPA alone
-		// authorises the held order
-		this.order.authorizationOnly =
-			!base.requiresTan &&
-			!approvalVoided &&
-			result.result === 'match' &&
-			message.hasReturnCode(3076) &&
-			!message.hasReturnCode(3091);
-
-		if (this.order.authorizationOnly) {
-			this.order.evidence.hold();
 		}
 
 		// A deviation, or a match the bank wants confirmed: the caller decides. A TAN
 		// the bank asked for anyway is dropped; the confirm step brings a new one.
-		return 'confirmation';
+		return this.offerConfirmation(base.requiresTan);
 	}
 }
 
@@ -962,9 +649,7 @@ export class VopAuthorizationInteraction extends TransferOrderInteraction {
 	}
 
 	protected evaluate(message: Message, base: ClientResponse): Proposal {
-		return this.order.status === 'awaitingTan'
-			? this.evaluateTan(message, base)
-			: this.evaluateAuthorization(message, base);
+		return this.evaluateLater(message, base);
 	}
 }
 
@@ -993,26 +678,22 @@ export class VopPollInteraction extends TransferOrderInteraction {
 			return { stop: 'Unexpected answer to the Verification of Payee poll.' };
 		}
 
-		this.order.track(message, hivpp);
+		const check = this.order.check;
+		check.take(message, hivpp);
 
 		if (hivpp.vopId === undefined) {
 			// The VoP ID comes with the final part of the result (C.10.7.1.1)
-			return this.order.canPoll()
-				? 'poll'
-				: { stop: 'The bank sent a Verification of Payee result without a VoP ID.' };
+			return check.canPoll() ? 'poll' : { stop: NO_VOP_ID };
 		}
 
-		const result = this.order.readResult(hivpp);
+		const result = this.order.readResult();
 
 		if (typeof result === 'string') {
 			return { stop: result };
 		}
 
-		this.order.vopId = hivpp.vopId;
-		this.order.vopResult = result;
-
 		// No challenge was issued yet, so even a match goes back to the caller: the
 		// confirm step may execute the order straight away where no TAN is needed
-		return 'confirmation';
+		return this.offerConfirmation(false);
 	}
 }

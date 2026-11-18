@@ -33,6 +33,8 @@ export type StatusCount = {
  * A pain.002 payment status report, as banks send it as the result of Verification of Payee
  */
 export type PaymentStatusReport = {
+	/** The message reference of the order the report is about (OrgnlMsgId) */
+	originalMessageId?: string;
 	/** The status of the whole order (group): RCVC, RVCM (with mismatches) or PDNG */
 	groupStatus?: string;
 	/** The additional information lines of the group status reason, each starting with the
@@ -129,6 +131,7 @@ export function parsePain002(xml: string): PaymentStatusReport {
 	}
 
 	return {
+		originalMessageId: text(groupInfo?.OrgnlMsgId),
 		groupStatus: text(groupInfo?.GrpSts),
 		groupReasons: reasons(groupInfo?.StsRsnInf),
 		groupStatusCounts: statusCounts(groupInfo?.NbOfTxsPerSts),
