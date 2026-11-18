@@ -233,15 +233,12 @@ export class CreditTransferOrder {
 
 	/**
 	 * Takes over what a HIVPP says about polling: the touchdown point comes with code
-	 * 3040, and the wait time is read from every response anew.
+	 * 3040 and, like the wait time, is read from every response anew; the optional
+	 * polling ID is kept once the bank has sent one (DK VoP specification C.10.7.1.1).
 	 */
 	track(message: Message, hivpp: HIVPPSegment) {
-		const touchdownPoint = message.getBankAnswers().find((answer) => answer.code === 3040)
-			?.params?.[0];
-
-		if (touchdownPoint) {
-			this.touchdownPoint = touchdownPoint;
-		}
+		this.touchdownPoint =
+			message.getBankAnswers().find((answer) => answer.code === 3040)?.params?.[0] || undefined;
 
 		if (hivpp.pollingId) {
 			this.pollingId = hivpp.pollingId;
@@ -259,6 +256,14 @@ export class CreditTransferOrder {
 	 * result when the final one carries only the VoP ID
 	 * @returns the result, or why it cannot be trusted
 	 */
+	/**
+	 * Whether the bank said how to ask for the rest of the result: a touchdown point in
+	 * the latest answer, or a polling ID
+	 */
+	canPoll(): boolean {
+		return !!this.touchdownPoint || !!this.pollingId;
+	}
+
 	readResult(final: HIVPPSegment): VopResult | string {
 		const source = final.paymentStatusReport || final.singleResult ? final : this.resultSegment;
 		let result: VopResult;
@@ -773,7 +778,7 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 			// Atruvia banks check asynchronously: polling ID, touchdown point (3040) and
 			// code 3905 instead of a challenge (observed there, reported in python-fints
 			// PR #223). A TAN request before the result is complete is not expected.
-			if (this.order.pollingId && !base.requiresTan) {
+			if (this.order.canPoll() && !base.requiresTan) {
 				return this.poll(base);
 			}
 
@@ -905,9 +910,10 @@ export class VopAuthorizationInteraction extends TransferOrderInteraction {
 
 /**
  * Asks again for a Verification of Payee result the bank is still producing: HKVPP
- * alone, with the polling ID and the touchdown point (DK VoP specification C.10.7.1.1;
- * both are required, Atruvia answers 9210 to either alone, as reported in
- * python-fints PR #223).
+ * alone, with the touchdown point of the latest answer and the polling ID, when the bank
+ * sent them (DK VoP specification C.10.7.1.1; the polling ID is optional, but where the
+ * bank sends both, Atruvia answers 9210 to either alone, as reported in python-fints
+ * PR #223).
  *
  * The dialog adds HKTAN only if the bank's parameters require a TAN for HKVPP itself.
  */
@@ -934,7 +940,7 @@ export class VopPollInteraction extends TransferOrderInteraction {
 
 		if (hivpp.vopId === undefined) {
 			// The VoP ID comes with the final part of the result (C.10.7.1.1)
-			return this.order.pollingId
+			return this.order.canPoll()
 				? this.poll(base)
 				: this.fail(
 						base,

@@ -732,6 +732,40 @@ describe('FinTSClient SEPA credit transfer', () => {
 			expect(sentOrders().slice(4)).toEqual([['HKVPA', 'HKCCS', 'HKTAN'], ['HKTAN'], ['HKEND']]);
 		});
 
+		it('polls with the touchdown point alone when the bank sends no polling ID', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(3, '3040::Weitere Daten.:TP-1'), "HIVPP:5:1:3++++++++2'"),
+				answer(WARNINGS, hirms(3, '3040::Weitere Daten.:TP-2'), "HIVPP:5:1:3++++++++1'"),
+				answer(OK, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({ requiresVopConfirmation: true, vop: { result: 'noMatch' } });
+			expect(sentOrders().slice(2)).toEqual([['HKVPP'], ['HKVPP']]);
+			const polls = bank.sent.slice(2).map((m) => m.findSegment<HKVPPSegment>('HKVPP'));
+			expect(polls[0]?.touchdownPoint).toBe('TP-1');
+			expect(polls[0]?.pollingId).toBeUndefined();
+			expect(polls[1]?.touchdownPoint).toBe('TP-2');
+		});
+
+		it('sends a touchdown point only with the poll after the answer that gave it', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(3, '3040::Weitere Daten.:TP-1'), hivppPending('POLL-0001', 1)),
+				answer(OK, hivppPending('POLL-0001', 1)),
+				answer(OK, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+			);
+
+			await client.transfer(ACCOUNT, TRANSFER);
+
+			const polls = bank.sent.slice(2).map((m) => m.findSegment<HKVPPSegment>('HKVPP'));
+			expect(polls[0]).toMatchObject({ pollingId: 'POLL-0001', touchdownPoint: 'TP-1' });
+			expect(polls[1]?.pollingId).toBe('POLL-0001');
+			expect(polls[1]?.touchdownPoint).toBeUndefined();
+		});
+
 		it('gives up after 60 seconds of waiting without executing anything', async () => {
 			bank.responses.push(
 				initOk(),
