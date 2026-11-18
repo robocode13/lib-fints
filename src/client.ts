@@ -430,16 +430,19 @@ export class FinTSClient {
 	 * Where the bank requires Verification of Payee, it checks the payee's name against the IBAN
 	 * first, and the response carries the result in `vop`. Then:
 	 * - `requiresVopConfirmation`: the bank waits for a decision. Show `vop` (with `vop.notice`
-	 *   and, for a close match, `vop.suggestedName`) to the user, then call `confirmTransfer()` to
-	 *   authorise the transfer anyway, or `cancelTransfer()` to drop it. Nothing is confirmed
+	 *   and, for a close match, `vop.suggestedName`) to the user, then call
+	 *   `confirmTransfer(transferId)` to authorise the transfer anyway, or
+	 *   `cancelTransfer(transferId)` to drop it. Nothing is confirmed
 	 *   automatically, whatever the result.
 	 * - `requiresTan`: the payee matched (or the bank requires no check) and the bank asks for
-	 *   the TAN; continue with `transferWithTan()`, or drop the transfer with `cancelTransfer()`.
+	 *   the TAN; continue with `transferWithTan()`, or drop the transfer with
+	 *   `cancelTransfer(transferId)`.
 	 * - `success` and neither flag: the bank accepted the transfer.
 	 * - `success: false`: the transfer stopped; `bankAnswers` and `failureReason` say why. Anything
 	 *   unexpected, such as an unknown result code or a missing VoP ID, ends it this way.
 	 *
-	 * Only one transfer can be in progress per client.
+	 * Only one transfer can be in progress per client. Every response carries the same
+	 * `transferId` for it.
 	 *
 	 * @param account - the account to transfer from, must be an account available in the config.bankingInformation.upd.bankAccounts with an IBAN
 	 * @param transfer - the payee, amount and purpose
@@ -472,16 +475,22 @@ export class FinTSClient {
 	 *
 	 * Authorising a transfer to a payee whose name does not match may mean the money goes to
 	 * someone else, and the payer's bank is then not liable for that.
+	 * @param transferId the `transferId` of the response the user decided on
 	 * @returns the transfer response
+	 * @throws Error when that transfer is not the one waiting for a confirmation
 	 */
-	async confirmTransfer(): Promise<TransferResponse> {
+	async confirmTransfer(transferId: string): Promise<TransferResponse> {
 		const transfer = this.currentTransfer;
 
 		if (transfer?.inFlight) {
 			throw new Error(STEP_IN_FLIGHT);
 		}
 
-		if (!transfer || transfer.order.status !== 'awaitingConfirmation') {
+		if (
+			!transfer ||
+			transfer.order.transferId !== transferId ||
+			transfer.order.status !== 'awaitingConfirmation'
+		) {
 			throw new Error(
 				'no transfer is waiting for a confirmation of its Verification of Payee result',
 			);
@@ -512,6 +521,12 @@ export class FinTSClient {
 			throw new Error('no transfer is waiting for a TAN');
 		}
 
+		if (transfer.lastResponse.tanReference !== tanReference) {
+			throw new Error(
+				'the TAN reference does not belong to the challenge of the transfer in progress',
+			);
+		}
+
 		if (!this.config.selectedTanMethod?.isDecoupled && !tan) {
 			throw new Error('TAN must be provided for non-decoupled TAN methods');
 		}
@@ -522,20 +537,25 @@ export class FinTSClient {
 	/**
 	 * Drops the transfer in progress without executing it and ends its dialog. Call it after a
 	 * response with `requiresVopConfirmation` or `requiresTan` when the user decides against the
-	 * transfer. Does nothing when no transfer is in progress.
+	 * transfer. Does nothing when that transfer is no longer in progress.
+	 * @param transferId the `transferId` of the transfer to drop
 	 * @throws Error while a step of the transfer still waits for the bank's answer: that
 	 * answer may already have executed it
 	 */
-	async cancelTransfer(): Promise<void> {
+	async cancelTransfer(transferId: string): Promise<void> {
 		const transfer = this.currentTransfer;
 
-		if (transfer?.inFlight) {
+		if (!transfer || transfer.order.transferId !== transferId) {
+			return;
+		}
+
+		if (transfer.inFlight) {
 			throw new Error(STEP_IN_FLIGHT);
 		}
 
 		this.currentTransfer = undefined;
 
-		if (transfer && !transfer.dialog.hasEnded) {
+		if (!transfer.dialog.hasEnded) {
 			await transfer.dialog.end();
 		}
 	}
@@ -785,6 +805,7 @@ export class FinTSClient {
 			...response,
 			requiresVopConfirmation: false,
 			vop: order.vopResult,
+			transferId: order.transferId,
 			endToEndId: order.pain.endToEndId,
 		};
 

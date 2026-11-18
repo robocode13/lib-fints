@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import type { FinTSConfig } from '../config.js';
 import type { InternationalAccount } from '../dataGroups/InternationalAccount.js';
 import type { Message } from '../message.js';
@@ -54,6 +55,9 @@ export interface VopResult {
  * caller's decision: `FinTSClient.confirmTransfer()` authorises the transfer despite
  * the result in `vop`, `FinTSClient.cancelTransfer()` drops it
  * @property vop the result of the Verification of Payee check, once known
+ * @property transferId an opaque reference of this transfer, the same on every response to
+ * it; `FinTSClient.confirmTransfer()` and `FinTSClient.cancelTransfer()` take it, so that a
+ * decision about one transfer cannot act on another
  * @property endToEndId the end-to-end reference the transfer carries
  * @property failureReason why the transfer stopped, when `success` is false and the
  * bank answers alone do not say
@@ -61,6 +65,7 @@ export interface VopResult {
 export interface TransferResponse extends ClientResponse {
 	requiresVopConfirmation: boolean;
 	vop?: VopResult;
+	transferId: string;
 	endToEndId: string;
 	failureReason?: string;
 }
@@ -98,6 +103,8 @@ const CHECK_ACCOUNT = 'Check bankAnswers and the account before retrying.';
  * built once, before anything was sent, and what the bank has said about it so far.
  */
 export class CreditTransferOrder {
+	/** The opaque reference of this transfer for the caller (TransferResponse.transferId) */
+	readonly transferId = randomBytes(16).toString('hex');
 	status: TransferStatus = 'pending';
 	vopId?: string;
 	pollingId?: string;
@@ -381,6 +388,7 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 			...base,
 			requiresVopConfirmation,
 			vop: this.order.vopResult,
+			transferId: this.order.transferId,
 			endToEndId: this.order.pain.endToEndId,
 		};
 	}

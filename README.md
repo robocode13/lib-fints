@@ -171,10 +171,10 @@ if (response.requiresVopConfirmation) {
   console.log(vop.notice);
 
   if ((await rl.question('Send the transfer anyway? (yes/no) ')) !== 'yes') {
-    await client.cancelTransfer();
+    await client.cancelTransfer(response.transferId);
     return;
   }
-  response = await client.confirmTransfer();
+  response = await client.confirmTransfer(response.transferId);
 }
 
 while (response.requiresTan) {
@@ -194,8 +194,8 @@ Each call returns a `TransferResponse`:
 
 | Response                                   | Meaning                                                                 | Next call                               |
 | ------------------------------------------ | ----------------------------------------------------------------------- | --------------------------------------- |
-| `success` and `requiresVopConfirmation`    | The bank has checked the payee and waits for a decision; see `vop`      | `confirmTransfer()` or `cancelTransfer()` |
-| `success` and `requiresTan`                | The bank asks for the TAN                                               | `transferWithTan()` or `cancelTransfer()` |
+| `success` and `requiresVopConfirmation`    | The bank has checked the payee and waits for a decision; see `vop`      | `confirmTransfer(transferId)` or `cancelTransfer(transferId)` |
+| `success` and `requiresTan`                | The bank asks for the TAN                                               | `transferWithTan()` or `cancelTransfer(transferId)` |
 | `success`, neither flag                    | The bank has accepted the transfer                                      | -                                       |
 | `success: false`                           | The transfer stopped; `failureReason` and `bankAnswers` say why         | -                                       |
 
@@ -219,7 +219,7 @@ Things to know before using it:
 - **Input is checked, never changed.** `transfer()` throws a `SepaValidationError` naming the `field` before anything is sent: the IBAN checksum, the BIC, the amount (positive, at most two decimal places, at most 999,999,999.99 EUR), the lengths and the allowed characters. Nothing is transliterated or shortened.
 - **Unexpected answers stop the transfer.** An unknown result code, a missing VoP ID or another answer the library does not expect ends the transfer with `success: false` and the bank answers, instead of guessing.
 - **An exception after the first message leaves the outcome unknown.** If, for example, the connection fails while the order is at the bank, the bank may have executed it. Check the account (the `endToEndId` identifies the transfer) before sending it again.
-- **One transfer at a time.** A client handles one transfer at a time, in its own dialog, which stays open while the client waits for the decision or the TAN. Banks end idle dialogs after some minutes.
+- **One transfer at a time.** A client handles one transfer at a time, in its own dialog, which stays open while the client waits for the decision or the TAN. Banks end idle dialogs after some minutes. Every response carries the `transferId` of its transfer; `confirmTransfer()` and `cancelTransfer()` take it, and `transferWithTan()` takes only the `tanReference` of the challenge outstanding, so that a late decision cannot act on another transfer. A call made while the previous one still waits for the bank throws without sending anything.
 - **Asynchronous checks are polled for up to 60 seconds.** Some banks deliver the VoP result only after a while; `transfer()` waits as long as the bank says before asking again, and stops the transfer, unexecuted, when it would have to wait more than 60 seconds in total.
 
 The transfer flow has been tested against mocked bank answers only. The behaviour of individual banks it handles comes from the DK specification and from what other FinTS libraries report; reports from real banks are welcome.
@@ -364,7 +364,7 @@ Every transaction that supports TAN authentication has a corresponding `*WithTan
 
 The `tan` parameter can be omitted when using decoupled TAN methods.
 
-A transfer can also stop for the user's decision on the Verification of Payee result, before any TAN; `confirmTransfer()` and `cancelTransfer()` continue it from there (see [SEPA credit transfers](#sepa-credit-transfers)).
+A transfer can also stop for the user's decision on the Verification of Payee result, before any TAN; `confirmTransfer(transferId)` and `cancelTransfer(transferId)` continue it from there (see [SEPA credit transfers](#sepa-credit-transfers)).
 
 ## Limitations
 
