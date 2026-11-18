@@ -72,6 +72,25 @@ export abstract class CustomerInteraction {
 		return clientResponse;
 	}
 
+	/**
+	 * Whether the dialog has to stop after this response for a decision of the caller,
+	 * although the response was successful and needs no TAN. The dialog stays open; the
+	 * caller continues it with `Dialog.continueWith()` or ends it with `Dialog.end()`.
+	 * @param _clientResponse the response just handled by this interaction
+	 */
+	awaitsCaller(_clientResponse: ClientResponse): boolean {
+		return false;
+	}
+
+	/**
+	 * Segments to send along with the TAN when this interaction is continued with
+	 * `Dialog.continue()`, placed before the HKTAN segment
+	 * @param _config the configuration of the dialog
+	 */
+	getTanMessageSegments(_config: FinTSConfig): Segment[] {
+		return [];
+	}
+
 	protected abstract createSegments(config: FinTSConfig): Segment[];
 	protected abstract handleResponse(response: Message, clientResponse: ClientResponse): void;
 
