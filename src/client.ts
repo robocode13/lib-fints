@@ -69,6 +69,8 @@ type PendingTransfer = {
 	 * bank sent it: the response handed to the caller may be changed, this is not
 	 */
 	tanReference?: string;
+	/** The TAN method the challenge was issued for */
+	tanMethodId?: number;
 	/** Whether a step of the transfer has been sent and its answer is not handled yet */
 	inFlight: boolean;
 };
@@ -469,7 +471,19 @@ export class FinTSClient {
 
 		// The payment as it is now: the caller's objects may change during the login
 		const accountRef = typeof account === 'string' ? account : { ...account };
-		const payment = { ...transfer };
+		const payment: CreditTransfer =
+			transfer && typeof transfer === 'object'
+				? {
+						// Read one by one, so that a getter counts like a field
+						name: transfer.name,
+						iban: transfer.iban,
+						bic: transfer.bic,
+						amount: transfer.amount,
+						purpose: transfer.purpose,
+						endToEndId: transfer.endToEndId,
+						debtorName: transfer.debtorName,
+					}
+				: transfer;
 		const order = new CreditTransferOrder(() => this.prepareTransfer(accountRef, payment));
 		const dialog = new Dialog(this.config, false);
 		dialog.addCustomerInteraction(new CreditTransferInteraction(order, 'submit'));
@@ -488,7 +502,9 @@ export class FinTSClient {
 	 * someone else, and the payer's bank is then not liable for that.
 	 * @param transferId the `transferId` of the response the user decided on
 	 * @returns the transfer response
-	 * @throws Error when that transfer is not the one waiting for a confirmation
+	 * @throws Error when that transfer is not the one waiting for a confirmation, or, before
+	 * anything is sent and with the transfer still pending, when no TAN method of version 6
+	 * or later is selected
 	 */
 	async confirmTransfer(transferId: string): Promise<TransferResponse> {
 		const transfer = this.currentTransfer;
@@ -504,6 +520,14 @@ export class FinTSClient {
 		) {
 			throw new Error(
 				'no transfer is waiting for a confirmation of its Verification of Payee result',
+			);
+		}
+
+		// HKVPA, the order and HKTAN go together (DK VoP E.8.1 rule 4): nothing goes out
+		// without a TAN method that can send HKTAN
+		if (!transfer.order.authorizationOnly && !canSendTanSegment(this.config)) {
+			throw new Error(
+				'the confirmation needs a TAN method of version 6 or later; select one with selectTanMethod()',
 			);
 		}
 
@@ -524,6 +548,8 @@ export class FinTSClient {
 	 * @param tanReference The TAN reference provided in the previous response
 	 * @param tan The TAN entered by the user, can be omitted if a decoupled TAN method is used
 	 * @returns the transfer response
+	 * @throws Error, before anything is sent and with the transfer still pending, when the
+	 * TAN method the challenge was issued for is no longer selected
 	 */
 	async transferWithTan(tanReference: string, tan?: string): Promise<TransferResponse> {
 		const transfer = this.currentTransfer;
@@ -539,6 +565,14 @@ export class FinTSClient {
 		if (transfer.tanReference !== tanReference) {
 			throw new Error(
 				'the TAN reference does not belong to the challenge of the transfer in progress',
+			);
+		}
+
+		// The answer to the challenge, HKVPA included, goes out only with the HKTAN of the
+		// method the challenge is for
+		if (!canSendTanSegment(this.config) || this.config.tanMethodId !== transfer.tanMethodId) {
+			throw new Error(
+				'the TAN method of the challenge is no longer selected; select it again with selectTanMethod()',
 			);
 		}
 
@@ -860,7 +894,8 @@ export class FinTSClient {
 		response = withUpdate(response);
 
 		if (response.success && response.requiresTan) {
-			transfer.tanReference = response.tanReference ?? '';
+			transfer.tanReference = response.tanReference;
+			transfer.tanMethodId = this.config.tanMethodId;
 		}
 
 		if (order.status === 'accepted') {
@@ -900,7 +935,7 @@ export class FinTSClient {
 			outcomeUncertain: false,
 		};
 
-		if (response.requiresTan && response.success) {
+		if (response.requiresTan && response.success && response.tanReference) {
 			return transferResponse;
 		}
 

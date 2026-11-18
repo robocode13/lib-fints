@@ -417,6 +417,97 @@ describe('FinTSClient SEPA credit transfer safety', () => {
 		});
 	});
 
+	describe('nothing goes out that the bank cannot take', () => {
+		it('sends no part of the answer to a challenge whose TAN method is gone', async () => {
+			// A match without 3091: HKVPA goes with the TAN
+			bank.responses.push(
+				initOk(),
+				answer(OK, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+				answer(OK, hirms(4, EXECUTED)),
+				endOk(),
+			);
+			await client.transfer(ACCOUNT, TRANSFER);
+			config.tanMethodId = undefined;
+
+			await expect(client.transferWithTan('TAN-REF-1', '123456')).rejects.toThrow(/TAN method/);
+			expect(bank.sent).toHaveLength(2);
+
+			// The challenge still waits: with its method selected again, the answer goes out whole
+			client.selectTanMethod(912);
+			const response = await client.transferWithTan('TAN-REF-1', '123456');
+
+			expect(sentOrders()[2]).toEqual(['HKVPA', 'HKTAN']);
+			expect(response).toMatchObject({ success: true, outcomeUncertain: false });
+		});
+
+		it('answers a challenge only with the TAN method it was issued for', async () => {
+			bank.responses.push(initOk(), matchWithTan(), endOk());
+			await client.transfer(ACCOUNT, TRANSFER);
+			client.selectTanMethod(946);
+
+			await expect(client.transferWithTan('TAN-REF-1')).rejects.toThrow(/TAN method/);
+			expect(bank.sent).toHaveLength(2);
+		});
+
+		it('keeps the transfer for a confirmation refused for want of a TAN method', async () => {
+			bank.responses.push(initOk(), answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')));
+			const first = await client.transfer(ACCOUNT, TRANSFER);
+			config.tanMethodId = undefined;
+
+			await expect(client.confirmTransfer(first.transferId)).rejects.toThrow(/TAN method/);
+			client.selectTanMethod(912);
+			bank.responses.push(answer(OK, hirms(5, TAN_REQUIRED), hitan('TAN-REF-2')));
+
+			expect(await client.confirmTransfer(first.transferId)).toMatchObject({ requiresTan: true });
+			expect(payments()).toBe(2);
+		});
+
+		it('offers no TAN step for a challenge without its reference', async () => {
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan('')),
+				endOk(),
+			);
+
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+
+			expect(response).toMatchObject({ success: false, requiresTan: false });
+			expect(sentOrders().at(-1)).toEqual(['HKEND']);
+		});
+
+		it('polls only with a touchdown point the bank gives the payee check', async () => {
+			// 3040 to HKCCS, segment 4, is no continuation of the check
+			bank.responses.push(
+				initOk(),
+				answer(WARNINGS, hirms(4, '3040::Weitere Daten folgen.:TP-1'), hivppPending()),
+				answer(OK, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+				endOk(),
+			);
+
+			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({ success: false });
+			expect(sentOrders()).not.toContainEqual(['HKVPP']);
+		});
+
+		it('sends the payment fields a getter provides', async () => {
+			class PaymentForm {
+				name = TRANSFER.name;
+				iban = TRANSFER.iban;
+				amount = TRANSFER.amount;
+				get endToEndId() {
+					return 'INVOICE-42';
+				}
+			}
+			const bpd = config.bankingInformation.bpd;
+			if (bpd)
+				bpd.allowedTransactions = bpd.allowedTransactions.filter((t) => t.transId !== 'HKVPP');
+			bank.responses.push(initOk(), answer(OK, hirms(3, EXECUTED)), endOk());
+
+			const response = await client.transfer(ACCOUNT, new PaymentForm());
+
+			expect(response).toMatchObject({ success: true, endToEndId: 'INVOICE-42' });
+		});
+	});
+
 	describe('errors that allow an earlier execution', () => {
 		it('ends uncertain on a duplicate after the bank received the order', async () => {
 			bank.responses.push(

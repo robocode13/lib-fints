@@ -85,19 +85,18 @@ export class VopCheck {
 
 	/**
 	 * Takes in an answer of this check: the codes that steer what follows, and what its
-	 * HIVPP says. The touchdown point comes with code 3040 and, like the wait time, is
-	 * read from every answer anew; the optional polling ID is kept once the bank has sent
-	 * one (DK VoP specification C.10.7.1.1).
+	 * HIVPP says. The touchdown point, that of code 3040 to HKVPP, is read from every
+	 * answer anew like the wait time; the optional polling ID is kept once the bank has
+	 * sent one (DK VoP specification C.10.7.1.1).
 	 */
-	take(message: Message, hivpp: HIVPPSegment | undefined): void {
+	take(message: Message, hivpp: HIVPPSegment | undefined, touchdownPoint?: string): void {
 		for (const code of FLOW_CODES) {
 			if (message.hasReturnCode(code)) {
 				this.codes.add(code);
 			}
 		}
 
-		this.touchdownPoint =
-			message.getBankAnswers().find((answer) => answer.code === 3040)?.params?.[0] || undefined;
+		this.touchdownPoint = touchdownPoint;
 
 		if (!hivpp) {
 			return;

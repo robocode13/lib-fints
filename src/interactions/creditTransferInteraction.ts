@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { FinTSConfig } from '../config.js';
 import type { InternationalAccount } from '../dataGroups/InternationalAccount.js';
-import { canSendTanSegment } from '../dialog.js';
 import type { CustomerMessage, Message } from '../message.js';
 import type { Pain001Message } from '../pain001Builder.js';
 import type { Segment } from '../segment.js';
@@ -328,6 +327,11 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 			};
 		}
 
+		if (base.requiresTan && !base.tanReference) {
+			// A challenge that cannot be answered: the evidence so far decides
+			unreadable = 'The bank asked for a TAN without the reference of its challenge.';
+		}
+
 		this.order.evidence.record(message, {
 			tanRequested: base.requiresTan || unreadable !== undefined,
 			unreadable,
@@ -411,7 +415,7 @@ abstract class TransferOrderInteraction extends CustomerOrderInteraction {
 			return { stop: UNANNOUNCED_CHECK };
 		}
 
-		order.startCheck().take(message, hivpp);
+		order.startCheck().take(message, hivpp, order.evidence.touchdownPoint);
 		const result = order.readResult();
 
 		if (typeof result === 'string') {
@@ -498,15 +502,8 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 		super(HKCCS.Id, order);
 	}
 
-	protected createSegments(config: FinTSConfig): Segment[] {
+	protected createSegments(_config: FinTSConfig): Segment[] {
 		if (this.step === 'confirm') {
-			// The submit checked it, but the TAN method may have changed since
-			if (!canSendTanSegment(config)) {
-				throw new Error(
-					'the confirmation needs a TAN method of version 6 or later; select one with selectTanMethod()',
-				);
-			}
-
 			return [this.order.createHkvpa(), this.order.createHkccs()];
 		}
 
@@ -567,7 +564,7 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 		// 3091 with 3076 in this answer, the bank executed the order without a challenge
 		// (E.8.1 rule 2; Hamburger Sparkasse does this, as reported to python-fints): the
 		// evidence decides that before anything this reads
-		order.check.take(message, hivpp);
+		order.check.take(message, hivpp, order.evidence.touchdownPoint);
 
 		if (!hivpp) {
 			return { stop: 'The bank answered without a Verification of Payee result.' };
@@ -649,7 +646,7 @@ export class VopPollInteraction extends TransferOrderInteraction {
 		}
 
 		const check = this.order.check;
-		check.take(message, hivpp);
+		check.take(message, hivpp, this.order.evidence.touchdownPoint);
 
 		if (hivpp.vopId === undefined) {
 			// The VoP ID comes with the final part of the result (C.10.7.1.1)

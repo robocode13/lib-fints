@@ -33,11 +33,17 @@ type MessageKind =
 	| 'authorization'
 	| 'other';
 
-type SentMessage = { msgNr: number; kind: MessageKind; roles: Map<number, AnswerRole> };
+type SentMessage = {
+	msgNr: number;
+	kind: MessageKind;
+	segments: Map<number, { segId: string; role: AnswerRole }>;
+};
 
 /** The latest answer, as read against the message it answers */
 type CurrentAnswer = {
 	codes: number[];
+	/** The touchdown point the answer gives the payee check (3040 to HKVPP), if any */
+	touchdownPoint?: string;
 	unreadable?: string;
 	/** Whether the bank rejected the payment in a message that carried it */
 	rejected: boolean;
@@ -178,7 +184,12 @@ export class TransferEvidence {
 			msgNr: message.findSegment<HNHBKSegment>(HNHBK.Id)?.msgNr ?? 0,
 			kind,
 			// Numbered by position, as CustomerMessage.encode() numbers them
-			roles: new Map(segments.map((segment, index) => [index + 1, roleOf(segment)])),
+			segments: new Map(
+				segments.map((segment, index) => [
+					index + 1,
+					{ segId: segment.header.segId, role: roleOf(segment) },
+				]),
+			),
 		});
 
 		if (kind === 'approval' || (kind !== 'continuation' && has(HKVPA.Id))) {
@@ -226,16 +237,18 @@ export class TransferEvidence {
 		const reference = message.findSegment<HNHBKSegment>(HNHBK.Id)?.refMsg?.msgNr;
 		const sent = this.sent.find((entry) => entry.msgNr === reference) ?? this.sent.at(-1);
 		const kind = sent?.kind ?? 'other';
-		const answers: (Answer & { role: AnswerRole })[] = [
+		const answers: (Answer & { role: AnswerRole; segId?: string })[] = [
 			...message
 				.findAllSegments<HIRMGSegment>(HIRMG.Id)
 				.flatMap((hirmg) => hirmg.answers.map((a) => ({ ...a, role: 'message' as const }))),
-			...message.findAllSegments<HIRMSSegment>(HIRMS.Id).flatMap((hirms) =>
-				hirms.answers.map((a) => ({
+			...message.findAllSegments<HIRMSSegment>(HIRMS.Id).flatMap((hirms) => {
+				const segment = sent?.segments.get(hirms.header.refSegNr ?? 0);
+				return hirms.answers.map((a) => ({
 					...a,
-					role: sent?.roles.get(hirms.header.refSegNr ?? 0) ?? ('message' as const),
-				})),
-			),
+					role: segment?.role ?? ('message' as const),
+					segId: segment?.segId,
+				}));
+			}),
 		];
 		const codes = answers.map((answer) => answer.code);
 		const carriesPayment = kind === 'submission' || kind === 'continuation';
@@ -316,6 +329,9 @@ export class TransferEvidence {
 
 		this.current = {
 			codes,
+			touchdownPoint:
+				answers.find((answer) => answer.code === PENDING[0] && answer.segId === HKVPP.Id)
+					?.params?.[0] || undefined,
 			unreadable,
 			rejected,
 			contradicts:
@@ -330,6 +346,14 @@ export class TransferEvidence {
 						PENDING.includes(code),
 				),
 		};
+	}
+
+	/**
+	 * The touchdown point of the latest answer for the rest of the payee check: that of
+	 * code 3040 to HKVPP, not to any other segment
+	 */
+	get touchdownPoint(): string | undefined {
+		return this.current?.touchdownPoint;
 	}
 
 	/** The bank holds the order for an authorisation by HKVPA alone (3076 after a match) */
