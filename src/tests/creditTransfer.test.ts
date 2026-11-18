@@ -176,7 +176,7 @@ const WARNINGS = "HIRMG:2:2+3060::Bitte beachten Sie die enthaltenen Warnungen.'
 
 const initOk = () => answer(OK, "HIRMS:3:2:3+0020::Auftrag ausgefuehrt.'");
 const endOk = () => answer("HIRMG:2:2+0100::Dialog beendet.'");
-const tanAccepted = () => answer(OK, "HIRMS:3:2:3+0010::Auftrag entgegengenommen.'");
+const tanAccepted = () => answer(OK, "HIRMS:3:2:3+0020::Auftrag ausgefuehrt.'");
 
 /** HKVPP is segment 3, HKCCS 4 and HKTAN 5 in the first transfer message */
 const hirms = (refSegNr: number, ...answers: string[]) =>
@@ -1205,174 +1205,286 @@ describe('FinTSClient SEPA credit transfer', () => {
 	});
 
 	describe('outcome codes', () => {
-		const expectUncertain = (response: Awaited<ReturnType<FinTSClient['transfer']>>) => {
-			expect(response).toMatchObject({
-				success: false,
-				outcomeUncertain: true,
-				requiresTan: false,
-				requiresVopConfirmation: false,
-			});
-			expect(response.failureReason).toMatch(/Check the account/);
+		const OTHER = 'DE89370400440532013000';
+		const RECEIVED = '0010::Auftrag entgegengenommen.';
+		const EXECUTED = '0020::Auftrag ausgefuehrt.';
+		const PROCESSING = '3070::Auftrag wird unter Referenz R-1 verarbeitet.:R-1';
+		const MORE = '3040::Weitere Informationen.:TP-0001';
+		const POLL_REJECTED = '9210::Polling-ID ungueltig.';
+		const TAN_WRONG = '9941::TAN ungueltig.';
+		const NO_SCA = '3076::Keine starke Kundenauthentifizierung notwendig.';
+		const matchWithTan = () =>
+			answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan());
+
+		type Row = {
+			/** The bank's answers after the dialog initialisation */
+			answers: Message[];
+			/** What the caller does after the first response */
+			next?: 'tan' | 'confirm';
+			withoutCheck?: true;
+			decoupled?: true;
+			/** The bank ends the dialog itself, which the library takes 9000 to mean */
+			endedByBank?: true;
+			expected: {
+				success: boolean;
+				outcomeUncertain: boolean;
+				requiresVopConfirmation?: boolean;
+			};
+			/** How often HKCCS goes out, once unless given */
+			payments?: number;
+			reason?: RegExp;
 		};
 
-		it('does not take 0010 to the order as its execution while the check is pending', async () => {
-			bank.responses.push(
-				initOk(),
-				answer(
-					WARNINGS,
-					hirms(3, '3040::Weitere Informationen.:TP-0001', '3093::Namensabgleich in Bearbeitung.'),
-					hirms(4, '0010::Auftrag entgegengenommen.'),
-					hirms(5, '3905::Es wurde keine Challenge erzeugt.'),
-					hivppPending(),
-				),
-				answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
-			);
+		// Each row is one combination of codes; every terminal outcome leaves nothing to
+		// confirm, and an uncertain one says to check the account
+		const rows: Record<string, Row> = {
+			'0010 to the order while the check is pending is no execution (P3)': {
+				answers: [
+					answer(
+						WARNINGS,
+						hirms(3, MORE, '3093::Namensabgleich in Bearbeitung.'),
+						hirms(4, RECEIVED),
+						hirms(5, '3905::Es wurde keine Challenge erzeugt.'),
+						hivppPending(),
+					),
+					answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+				],
+				expected: { success: true, outcomeUncertain: false, requiresVopConfirmation: true },
+			},
+			'0010 to the order next to a deviation is no execution (P3)': {
+				answers: [
+					answer(WARNINGS, hirms(3, CHECK_RESULT), hirms(4, RECEIVED), hivppSingle('RVNM')),
+				],
+				expected: { success: true, outcomeUncertain: false, requiresVopConfirmation: true },
+			},
+			'9000 to the order (M5)': {
+				answers: [answer(OK, hirms(4, '9000::Status indifferent.'))],
+				endedByBank: true,
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'0020 to the order next to a failed check (M4)': {
+				answers: [
+					answer(
+						"HIRMG:2:2+9050::Die Nachricht enthaelt Fehler.'",
+						hirms(3, '9210::Namensabgleich abgelehnt.'),
+						hirms(4, EXECUTED),
+					),
+				],
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'0020 to the order next to a deviation (M4)': {
+				answers: [answer(OK, hirms(4, EXECUTED), hivppSingle('RVNM'))],
+				expected: { success: true, outcomeUncertain: false },
+			},
+			'3091 with 3076: executed without a challenge (E.8.1 rule 2)': {
+				answers: [
+					answer(WARNINGS, hirms(3, NO_HKVPA_NEEDED), hirms(5, NO_SCA), hivppSingle('RCVC')),
+				],
+				expected: { success: true, outcomeUncertain: false },
+			},
+			'3070 to the order next to a match offers no confirmation (M5)': {
+				answers: [answer(WARNINGS, hirms(4, PROCESSING), hivppSingle('RCVC'))],
+				expected: { success: false, outcomeUncertain: true },
+				reason: /R-1/,
+			},
+			'3070 to the order, then a deviation by polling (M5)': {
+				answers: [
+					answer(WARNINGS, hirms(3, MORE), hirms(4, PROCESSING), hivppPending()),
+					answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
+				],
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'3958 to a decoupled approval': {
+				decoupled: true,
+				answers: [
+					answer(OK, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+					answer(WARNINGS, hirms(4, '3958::Freigabe-Anwendung unterstuetzt das Verfahren nicht.')),
+				],
+				next: 'tan',
+				expected: { success: false, outcomeUncertain: false },
+				reason: /3958/,
+			},
+			'a TAN answered with 3040 alone': {
+				answers: [matchWithTan(), answer(WARNINGS, hirms(3, '3040::Weitere Informationen.:MORE'))],
+				next: 'tan',
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'3040 alone to an order without check': {
+				withoutCheck: true,
+				answers: [answer(WARNINGS, hirms(3, '3040::Auftrag nur teilweise ausgefuehrt.:MORE'))],
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'0020 to an order without check': {
+				withoutCheck: true,
+				answers: [answer(OK, hirms(3, EXECUTED))],
+				expected: { success: true, outcomeUncertain: false },
+			},
+			'R7a: 0010 alone to an order without check is no execution': {
+				withoutCheck: true,
+				answers: [answer(OK, hirms(3, '0010::Auftrag zur Ausfuehrung vorgemerkt.'))],
+				expected: { success: false, outcomeUncertain: true },
+				reason: /0010/,
+			},
+			'R7b: a TAN answered with 0010 to HKVPA and 3905 to HKTAN': {
+				answers: [
+					answer(OK, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
+					answer(WARNINGS, hirms(3, RECEIVED), hirms(4, '3905::Keine Challenge erzeugt.')),
+				],
+				next: 'tan',
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'R7c: 0020 to an order without check next to an unexpected result': {
+				withoutCheck: true,
+				answers: [answer(OK, hirms(3, EXECUTED), hivppSingle('RCVC'))],
+				expected: { success: true, outcomeUncertain: false },
+			},
+			'R7d: 9000 next to a TAN request without HITAN': {
+				answers: [answer(WARNINGS, hirms(4, '9000::Status indifferent.'), hirms(5, TAN_REQUIRED))],
+				endedByBank: true,
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'R2: 0020 to the order while 3945 voids the approval': {
+				answers: [
+					answer(WARNINGS, hirms(4, EXECUTED), hirms(5, APPROVAL_VOIDED), hivppSingle('RVNM')),
+				],
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'R4: a receipt next to 3945 and a result for another IBAN at the TAN': {
+				answers: [
+					matchWithTan(),
+					answer(
+						WARNINGS,
+						hirms(3, RECEIVED, APPROVAL_VOIDED),
+						hivppSingle('RVNM').replace(PAYEE_IBAN, OTHER),
+					),
+				],
+				next: 'tan',
+				expected: { success: false, outcomeUncertain: true },
+				reason: /another IBAN/,
+			},
+			'R6: 0010 to the order, then a failed poll': {
+				answers: [
+					answer(WARNINGS, hirms(3, MORE), hirms(4, RECEIVED), hivppPending()),
+					answer(WARNINGS, hirms(3, POLL_REJECTED)),
+				],
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'R6: 3070 to the order, then a failed poll': {
+				answers: [
+					answer(WARNINGS, hirms(3, MORE), hirms(4, PROCESSING), hivppPending()),
+					answer(WARNINGS, hirms(3, POLL_REJECTED)),
+				],
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'R6: 0010 to the order, then polling that takes too long': {
+				answers: [answer(WARNINGS, hirms(3, MORE), hirms(4, RECEIVED), hivppPending('P', 61))],
+				expected: { success: false, outcomeUncertain: true },
+				reason: /within 60 seconds/,
+			},
+			'a failed poll without any receipt': {
+				answers: [
+					answer(WARNINGS, hirms(3, MORE), hivppPending()),
+					answer(WARNINGS, hirms(3, POLL_REJECTED)),
+				],
+				expected: { success: false, outcomeUncertain: false },
+			},
+			'an error to the order itself': {
+				answers: [answer("HIRMG:2:2+9050::Teilweise fehlerhaft.'", hirms(4, '9210::Abgelehnt.'))],
+				expected: { success: false, outcomeUncertain: false },
+				reason: /not executed/,
+			},
+			'0010 to the order, then the confirmed order rejected': {
+				answers: [
+					answer(WARNINGS, hirms(3, CHECK_RESULT), hirms(4, RECEIVED), hivppSingle('RVNM')),
+					answer("HIRMG:2:2+9050::Teilweise fehlerhaft.'", hirms(4, '9210::Abgelehnt.')),
+				],
+				next: 'confirm',
+				payments: 2,
+				expected: { success: false, outcomeUncertain: false },
+			},
+			'an order held after a match (3076), then HKVPA rejected': {
+				answers: [
+					answer(WARNINGS, hirms(5, NO_SCA), hivppSingle('RCVC')),
+					answer("HIRMG:2:2+9050::Teilweise fehlerhaft.'", hirms(3, '9210::Abgelehnt.')),
+				],
+				next: 'confirm',
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'0010 to the order, then a wrong TAN': {
+				answers: [
+					answer(
+						OK,
+						hirms(3, NO_HKVPA_NEEDED),
+						hirms(4, RECEIVED),
+						hirms(5, TAN_REQUIRED),
+						hivppSingle('RCVC'),
+						hitan(),
+					),
+					answer("HIRMG:2:2+9050::Teilweise fehlerhaft.'", hirms(3, TAN_WRONG)),
+				],
+				next: 'tan',
+				expected: { success: false, outcomeUncertain: true },
+			},
+			'a wrong TAN without any receipt': {
+				answers: [
+					matchWithTan(),
+					answer("HIRMG:2:2+9050::Teilweise fehlerhaft.'", hirms(3, TAN_WRONG)),
+				],
+				next: 'tan',
+				expected: { success: false, outcomeUncertain: false },
+			},
+		};
 
-			const response = await client.transfer(ACCOUNT, TRANSFER);
+		it.each(Object.entries(rows))('%s', async (_name, row) => {
+			if (row.withoutCheck) {
+				removeTransaction('HKVPP');
+			}
+
+			if (row.decoupled) {
+				client.selectTanMethod(946);
+			}
+
+			bank.responses.push(initOk(), ...row.answers, endOk());
+			let response = await client.transfer(ACCOUNT, TRANSFER);
+
+			if (row.next === 'tan') {
+				expect(response.requiresTan).toBe(true);
+				response = await client.transferWithTan(
+					response.tanReference ?? '',
+					row.decoupled ? undefined : '123456',
+				);
+			} else if (row.next === 'confirm') {
+				expect(response.requiresVopConfirmation).toBe(true);
+				response = await client.confirmTransfer(response.transferId);
+			}
 
 			expect(response).toMatchObject({
-				success: true,
-				requiresVopConfirmation: true,
-				outcomeUncertain: false,
-				vop: { result: 'noMatch' },
-			});
-			expect(sentOrders()[2]).toEqual(['HKVPP']);
-		});
-
-		it('does not take 0010 to the order next to a deviation as its execution', async () => {
-			bank.responses.push(
-				initOk(),
-				answer(
-					WARNINGS,
-					hirms(3, CHECK_RESULT),
-					hirms(4, '0010::Auftrag entgegengenommen.'),
-					hivppSingle('RVNM'),
-				),
-			);
-
-			const response = await client.transfer(ACCOUNT, TRANSFER);
-
-			expect(response).toMatchObject({ requiresVopConfirmation: true, vop: { result: 'noMatch' } });
-		});
-
-		it('reports 9000 (status indifferent) as an uncertain outcome', async () => {
-			bank.responses.push(initOk(), answer(OK, hirms(4, '9000::Status indifferent.')), endOk());
-
-			expectUncertain(await client.transfer(ACCOUNT, TRANSFER));
-		});
-
-		it('reports an executed order next to a failed check as an uncertain outcome', async () => {
-			bank.responses.push(
-				initOk(),
-				answer(
-					"HIRMG:2:2+9050::Die Nachricht enthaelt Fehler.'",
-					hirms(3, '9210::Namensabgleich abgelehnt.'),
-					hirms(4, '0020::Auftrag ausgefuehrt.'),
-				),
-				endOk(),
-			);
-
-			const response = await client.transfer(ACCOUNT, TRANSFER);
-
-			expectUncertain(response);
-			expect(response.failureReason).not.toMatch(/rejected/);
-		});
-
-		it('does not offer a confirmation for an order the bank processes under a reference (3070)', async () => {
-			bank.responses.push(
-				initOk(),
-				answer(
-					WARNINGS,
-					hirms(4, '3070::Auftrag wird unter Referenz R-1 verarbeitet.:R-1'),
-					hivppSingle('RCVC'),
-				),
-				endOk(),
-			);
-
-			const response = await client.transfer(ACCOUNT, TRANSFER);
-
-			expectUncertain(response);
-			expect(response.failureReason).toMatch(/R-1/);
-			expect(sentOrders().at(-1)).toEqual(['HKEND']);
-			expect(sentOrders().filter((segments) => segments.includes('HKCCS'))).toHaveLength(1);
-		});
-
-		it('does not offer a confirmation after polling for an order processed under a reference', async () => {
-			bank.responses.push(
-				initOk(),
-				answer(
-					WARNINGS,
-					hirms(3, '3040::Weitere Informationen.:TP-0001'),
-					hirms(4, '3070::Auftrag wird unter Referenz R-1 verarbeitet.:R-1'),
-					hivppPending(),
-				),
-				answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')),
-				endOk(),
-			);
-
-			expectUncertain(await client.transfer(ACCOUNT, TRANSFER));
-		});
-
-		it('reports a failed decoupled approval (3958) as not executed', async () => {
-			client.selectTanMethod(946);
-			bank.responses.push(
-				initOk(),
-				answer(OK, hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
-				answer(
-					WARNINGS,
-					hirms(4, '3958::Freigabe-Anwendung unterstuetzt das gewaehlte Verfahren nicht.'),
-				),
-				endOk(),
-			);
-
-			await client.transfer(ACCOUNT, TRANSFER);
-			const response = await client.transferWithTan('TAN-REF-1');
-
-			expect(response).toMatchObject({
-				success: false,
-				outcomeUncertain: false,
+				requiresVopConfirmation: false,
 				requiresTan: false,
+				...row.expected,
 			});
-			expect(response.failureReason).toMatch(/3958/);
-			expect(sentOrders().at(-1)).toEqual(['HKEND']);
-		});
-
-		it('reports a TAN answered without any acceptance as an uncertain outcome', async () => {
-			bank.responses.push(
-				initOk(),
-				answer(OK, hirms(3, NO_HKVPA_NEEDED), hirms(5, TAN_REQUIRED), hivppSingle('RCVC'), hitan()),
-				answer(WARNINGS, hirms(3, '3040::Weitere Informationen.:MORE')),
-				endOk(),
+			expect(sentOrders().filter((segments) => segments.includes('HKCCS'))).toHaveLength(
+				row.payments ?? 1,
 			);
 
-			await client.transfer(ACCOUNT, TRANSFER);
-			expectUncertain(await client.transferWithTan('TAN-REF-1', '123456'));
-		});
+			if (row.reason) {
+				expect(response.failureReason).toMatch(row.reason);
+			}
 
-		it('reports 3040 alone to an order without check as an uncertain outcome', async () => {
-			removeTransaction('HKVPP');
-			bank.responses.push(
-				initOk(),
-				answer(WARNINGS, hirms(3, '3040::Auftrag nur teilweise ausgefuehrt.:MORE')),
-				endOk(),
-			);
+			if (row.expected.outcomeUncertain) {
+				expect(response.failureReason).toMatch(/Check the account/);
+				expect(response.failureReason).not.toMatch(/rejected|not executed/);
+			}
 
-			expectUncertain(await client.transfer(ACCOUNT, TRANSFER));
-		});
+			if (!row.expected.requiresVopConfirmation) {
+				const sent = bank.sent.length;
+				await expect(client.confirmTransfer(response.transferId)).rejects.toThrow();
+				expect(bank.sent).toHaveLength(sent);
 
-		it('accepts an order without check on 0010 to it', async () => {
-			removeTransaction('HKVPP');
-			bank.responses.push(
-				initOk(),
-				answer(OK, hirms(3, '0010::Auftrag zur Ausfuehrung vorgemerkt.')),
-				endOk(),
-			);
-
-			expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
-				success: true,
-				outcomeUncertain: false,
-				requiresTan: false,
-			});
+				if (!row.endedByBank) {
+					expect(sentOrders().at(-1)).toEqual(['HKEND']);
+				}
+			}
 		});
 	});
 

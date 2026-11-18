@@ -204,9 +204,9 @@ Each call returns a `TransferResponse`:
 | ------------------------------------------ | ----------------------------------------------------------------------- | --------------------------------------- |
 | `success` and `requiresVopConfirmation`    | The bank has checked the payee and waits for a decision; see `vop`      | `confirmTransfer(transferId)` or `cancelTransfer(transferId)` |
 | `success` and `requiresTan`                | The bank asks for the TAN                                               | `transferWithTan()` or `cancelTransfer(transferId)` |
-| `success`, neither flag                    | The bank has accepted the transfer                                      | -                                       |
+| `success`, neither flag                    | The bank reports the transfer as executed (0020, or 3091 with 3076)    | -                                       |
 | `success: false`                           | The transfer stopped; `failureReason` and `bankAnswers` say why         | -                                       |
-| `success: false` and `outcomeUncertain`    | The bank did not say whether it executed the transfer (such as code 9000, or 0020 next to an error) | Check the account before sending it again |
+| `success: false` and `outcomeUncertain`    | The bank may have executed the transfer without confirming it: it received the order (0010, 3070) and a later step failed or timed out, or it answered 9000, or it reported an execution its other answers contradict | Check the account before sending it again |
 
 The transfer is done only when `success` is true and neither `requiresTan` nor `requiresVopConfirmation` is.
 
@@ -231,7 +231,7 @@ Things to know before using it:
 - **The `endToEndId` identifies a transfer only when you give it one.** Without it, every transfer carries the shared `NOTPROVIDED`. Even a reference of your own may not show on the payer's statement, so finding a transfer there may need the account, the amount, the payee and the date.
 - **One transfer at a time.** A client handles one transfer at a time, in its own dialog, which stays open while the client waits for the decision or the TAN. Banks end idle dialogs after some minutes. Every response carries the `transferId` of its transfer; `confirmTransfer()` and `cancelTransfer()` take it, and `transferWithTan()` takes only the `tanReference` of the challenge outstanding, so that a late decision cannot act on another transfer. A call made while the previous one still waits for the bank throws without sending anything.
 - **Synchronize once after upgrading.** A `bankingInformation` saved by an earlier release of this library lacks the bank's Verification of Payee parameters (HIVPPS), and `canTransfer()` stays false without them. `synchronize()` then asks the bank for its whole BPD again, keeping the system ID; persist the updated `bankingInformation` afterwards.
-- **Asynchronous checks are polled for up to 60 seconds.** Some banks deliver the VoP result only after a while; `transfer()` waits as long as the bank says before asking again, and stops the transfer, unexecuted, when it would have to wait more than 60 seconds in total.
+- **Asynchronous checks are polled for up to 60 seconds.** Some banks deliver the VoP result only after a while; `transfer()` waits as long as the bank says before asking again, and stops the transfer when it would have to wait more than 60 seconds in total: unexecuted if the bank has not yet received the order, otherwise with `outcomeUncertain`, since the bank may still execute it.
 
 The transfer flow has been tested against mocked bank answers only. The behaviour of individual banks it handles comes from the DK specification and from what other FinTS libraries report; reports from real banks are welcome.
 

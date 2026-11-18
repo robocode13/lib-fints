@@ -434,8 +434,10 @@ export class FinTSClient {
 	 * - `success` and neither flag: the bank accepted the transfer.
 	 * - `success: false`: the transfer stopped; `bankAnswers` and `failureReason` say why. Anything
 	 *   unexpected, such as an unknown result code or a missing VoP ID, ends it this way. With
-	 *   `outcomeUncertain` the bank did not say whether it executed the order (such as code
-	 *   9000, or 0020 to the order next to an error): check the account before sending it again.
+	 *   `outcomeUncertain` the bank may have executed the order without confirming it (it
+	 *   received the order and a later step failed or timed out, it answered 9000, or it
+	 *   reported an execution its other answers contradict): check the account before
+	 *   sending it again.
 	 *
 	 * While the bank is still checking the payee, the call asks again until the result is
 	 * there; `bankAnswers` then holds the answers to every one of these messages.
@@ -768,13 +770,14 @@ export class FinTSClient {
 
 				if (waitedSeconds + waitSeconds > VOP_TIMEOUT_SECONDS) {
 					order.status = 'failed';
-					// After 3070 the bank processes the order whatever the check brings
-					const processing = order.processingReference !== undefined;
+					const { reason, uncertain } = order.evidence.giveUp(
+						`The bank did not deliver the Verification of Payee result within ${VOP_TIMEOUT_SECONDS} seconds.`,
+					);
 					response = {
 						...response,
 						success: false,
-						outcomeUncertain: processing,
-						failureReason: `The bank did not deliver the Verification of Payee result within ${VOP_TIMEOUT_SECONDS} seconds. ${processing ? 'It processes the transfer under a reference (3070) and may execute it; check the account before sending the transfer again.' : 'The transfer was not executed.'}`,
+						outcomeUncertain: uncertain,
+						failureReason: reason,
 					};
 					break;
 				}
