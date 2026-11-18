@@ -245,7 +245,7 @@ export function buildPain001(
 	now: Date = new Date(),
 ): Pain001Message {
 	if (!SUPPORTED_FORMATS.includes(descriptor)) {
-		throw new SepaValidationError('descriptor', `pain.001 format '${descriptor}' is not supported`);
+		throw new SepaValidationError('descriptor', 'the pain.001 format is not supported');
 	}
 
 	if (!transfer || typeof transfer !== 'object') {

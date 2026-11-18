@@ -4,7 +4,7 @@ import { AccountType } from '../bankAccount.js';
 import type { BankingInformation } from '../bankingInformation.js';
 import type { BankTransaction } from '../bankTransaction.js';
 import { FinTSClient } from '../client.js';
-import { Language, TanMediaRequirement } from '../codes.js';
+import { Language, TanMediaRequirement, UpdUsage } from '../codes.js';
 import { FinTSConfig } from '../config.js';
 import { extractVopResult } from '../interactions/creditTransferInteraction.js';
 import { InitDialogInteraction } from '../interactions/initDialogInteraction.js';
@@ -295,6 +295,27 @@ describe('FinTSClient SEPA credit transfer', () => {
 
 		it('is false for an account the UPD does not allow transfers from', () => {
 			expect(client.canTransfer('9876543210')).toBe(false);
+		});
+
+		it('leaves an account the UPD does not list HKCCS for to the bank with UPD usage 1', async () => {
+			const upd = config.bankingInformation.upd;
+			if (upd) {
+				upd.usage = UpdUsage.MissingUnknown;
+				// The fixture's IBAN for this account has wrong check digits
+				upd.bankAccounts[1].iban = 'DE89370400440532013000';
+			}
+			expect(client.canTransfer('9876543210')).toBe(true);
+
+			bank.responses.push(initOk(), answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')));
+			expect(await client.transfer('9876543210', TRANSFER)).toMatchObject({
+				requiresVopConfirmation: true,
+			});
+			expect(sentOrders()[1]).toEqual(['HKVPP', 'HKCCS', 'HKTAN']);
+		});
+
+		it('is false without a TAN method that can send the HKTAN the transfer requires', () => {
+			config.tanMethodId = undefined;
+			expect(client.canTransfer(ACCOUNT)).toBe(false);
 		});
 
 		it('is false for an account without IBAN', () => {
@@ -1217,6 +1238,19 @@ describe('FinTSClient SEPA credit transfer', () => {
 		expect(response.bankingInformationUpdated).toBe(true);
 	});
 
+	it('reports updated banking information also when only closing the executed transfer failed', async () => {
+		bank.responses.push(
+			answer(OK, "HIRMS:3:2:3+0020::Auftrag ausgefuehrt.'", "HIKIM:4:2:3+Notice+Changed.'"),
+			answer(OK, hirms(4, '0020::Auftrag ausgefuehrt.'), hivppSingle('RCVC')),
+			new Error('lost the answer to HKEND'),
+		);
+
+		expect(await client.transfer(ACCOUNT, TRANSFER)).toMatchObject({
+			success: true,
+			bankingInformationUpdated: true,
+		});
+	});
+
 	it('reads a HIVPP whose binary VoP ID ends in a question mark', async () => {
 		bank.responses.push(
 			initOk(),
@@ -1888,6 +1922,26 @@ describe('FinTSClient SEPA credit transfer', () => {
 				name: TRANSFER.name,
 				debtor: 'DE89370400440532013000',
 			});
+		});
+
+		it('sends no order when the TAN method the HKTAN needs is gone after the login', async () => {
+			atInitialisation(() => {
+				config.tanMethodId = undefined;
+			});
+			bank.responses.push(initOk(), endOk());
+
+			await expect(client.transfer(ACCOUNT, TRANSFER)).rejects.toThrow(/no TAN method/);
+			expect(sentOrders()).toEqual([['HKIDN', 'HKVVB', 'HKTAN'], ['HKEND']]);
+		});
+
+		it('confirms no order without a TAN method that can send its HKTAN', async () => {
+			bank.responses.push(initOk(), answer(WARNINGS, hirms(3, CHECK_RESULT), hivppSingle('RVNM')));
+			const response = await client.transfer(ACCOUNT, TRANSFER);
+			config.tanMethodId = undefined;
+			bank.responses.push(endOk());
+
+			await expect(client.confirmTransfer(response.transferId)).rejects.toThrow(/TAN method/);
+			expect(sentOrders().filter((segments) => segments.includes('HKCCS'))).toHaveLength(1);
 		});
 
 		it('checks the payee when the dialog initialisation brings parameters that require it', async () => {

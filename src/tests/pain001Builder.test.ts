@@ -437,6 +437,19 @@ describe('buildPain001', () => {
 			/not supported/,
 		);
 	});
+
+	it('keeps the unsupported format out of the error', () => {
+		const error = (() => {
+			try {
+				buildPain001(debtor, transfer, 'private-reference');
+			} catch (caught) {
+				return caught as Error;
+			}
+		})();
+
+		expect(error).toBeInstanceOf(SepaValidationError);
+		expect(error?.message).not.toContain('private-reference');
+	});
 });
 
 describe('package root', () => {

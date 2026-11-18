@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { FinTSConfig } from '../config.js';
 import type { InternationalAccount } from '../dataGroups/InternationalAccount.js';
+import { canSendTanSegment } from '../dialog.js';
 import type { Message } from '../message.js';
 import type { Pain001Message } from '../pain001Builder.js';
 import type { Segment } from '../segment.js';
@@ -525,8 +526,15 @@ export class CreditTransferInteraction extends TransferOrderInteraction {
 		super(HKCCS.Id, order);
 	}
 
-	protected createSegments(_config: FinTSConfig): Segment[] {
+	protected createSegments(config: FinTSConfig): Segment[] {
 		if (this.step === 'confirm') {
+			// The submit checked it, but the TAN method may have changed since
+			if (!canSendTanSegment(config)) {
+				throw new Error(
+					'the confirmation needs a TAN method of version 6 or later; select one with selectTanMethod()',
+				);
+			}
+
 			return [this.order.createHkvpa(), this.order.createHkccs()];
 		}
 

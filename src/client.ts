@@ -1,7 +1,8 @@
 import { internationalAccount } from './accountDescriptor.js';
 import { type AccountRef, describeAccount } from './bankAccount.js';
+import { UpdUsage } from './codes.js';
 import { FinTSConfig } from './config.js';
-import { Dialog } from './dialog.js';
+import { canSendTanSegment, Dialog } from './dialog.js';
 import {
 	type AccountBalanceResponse,
 	BalanceInteraction,
@@ -396,9 +397,11 @@ export class FinTSClient {
 
 	/**
 	 * Checks if the bank supports SEPA credit transfers in general or from the given account when provided:
-	 * HKCCS in a version this library speaks, a pain.001 format it builds, and, where the bank requires
-	 * Verification of Payee for transfers, readable VoP parameters (HIVPPS)
-	 * @param account when the account number is provided, checks if the account allows transfers and has an IBAN
+	 * HKCCS in a version this library speaks, a pain.001 format it builds, where the bank requires
+	 * Verification of Payee for transfers, readable VoP parameters (HIVPPS), and, where the bank requires
+	 * a TAN or VoP for them, a selected TAN method of version 6 or later
+	 * @param account when the account number is provided, checks if the account allows transfers and has an IBAN;
+	 * an account whose UPD entry does not list HKCCS counts only with UPD usage 1, which leaves it to the bank
 	 * @returns true if the bank (and account) supports SEPA credit transfers
 	 */
 	canTransfer(account?: AccountRef): boolean {
@@ -635,7 +638,12 @@ export class FinTSClient {
 			);
 		}
 
-		if (account && !this.config.isAccountTransactionSupported(account, HKCCS.Id)) {
+		// With UPD usage 1 the bank decides on a transaction the account does not list
+		if (
+			account &&
+			this.config.bankingInformation.upd?.usage !== UpdUsage.MissingUnknown &&
+			!this.config.isAccountTransactionSupported(account, HKCCS.Id)
+		) {
 			throw new Error(
 				`account ${describeAccount(account)} does not allow SEPA credit transfers (HKCCS) according to the bank's account information (UPD)`,
 			);
@@ -653,7 +661,19 @@ export class FinTSClient {
 			);
 		}
 
-		return { hkccsVersion, descriptor, vopParameters: this.getVopParameters() };
+		const vopParameters = this.getVopParameters();
+		const tanRequired = this.config.bankingInformation.bpd?.allowedTransactions.find(
+			(t) => t.transId === HKCCS.Id,
+		)?.tanRequired;
+
+		// The check and the order go only together with HKTAN (DK VoP specification E.8.1)
+		if ((tanRequired || vopParameters) && !canSendTanSegment(this.config)) {
+			throw new Error(
+				'the bank requires a TAN for transfers, but no TAN method of version 6 or later is selected; select one with selectTanMethod()',
+			);
+		}
+
+		return { hkccsVersion, descriptor, vopParameters };
 	}
 
 	/**
@@ -765,6 +785,10 @@ export class FinTSClient {
 		let response: TransferResponse;
 		// Any message of the call may update it, the dialog initialisation above all
 		const bankingInformation = JSON.stringify(this.config.bankingInformation);
+		const withUpdate = (response: TransferResponse): TransferResponse =>
+			JSON.stringify(this.config.bankingInformation) === bankingInformation
+				? response
+				: { ...response, bankingInformationUpdated: true };
 
 		transfer.tanReference = undefined;
 
@@ -805,16 +829,14 @@ export class FinTSClient {
 
 			// The bank accepted the order and only ending the dialog failed: still a success
 			if (order.status === 'accepted' && order.lastResponse) {
-				return order.lastResponse;
+				return withUpdate(order.lastResponse);
 			}
 
 			await this.endQuietly(dialog);
 			throw error;
 		}
 
-		if (JSON.stringify(this.config.bankingInformation) !== bankingInformation) {
-			response = { ...response, bankingInformationUpdated: true };
-		}
+		response = withUpdate(response);
 
 		if (response.success && response.requiresTan) {
 			transfer.tanReference = response.tanReference ?? '';

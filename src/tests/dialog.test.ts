@@ -373,11 +373,11 @@ describe('Dialog', () => {
 			new InitDialogInteraction(config, true)
 				.createSegments(config)
 				.find((segment) => segment.header.segId === 'HKIDN') as HKIDNSegment;
-		const addHkvpp = (params?: unknown) => {
+		const addHkvpp = (params?: unknown, versions = [1]) => {
 			config.bankingInformation.bpd?.allowedTransactions.push({
 				transId: 'HKVPP',
 				tanRequired: false,
-				versions: [1],
+				versions,
 				params,
 			});
 		};
@@ -388,6 +388,12 @@ describe('Dialog', () => {
 
 			expect(hkvvbOf(true).bpdVersion).toBe(0);
 			expect(hkidnOf().systemId).toBe('MOCK_SYSTEM_ID');
+		});
+
+		it('keeps the cached BPD version for an HIVPPS version this library cannot read', () => {
+			addHkvpp(undefined, [2]);
+
+			expect(hkvvbOf(true).bpdVersion).toBe(1);
 		});
 
 		it('keeps the cached BPD version when the HKVPP parameters are there', () => {

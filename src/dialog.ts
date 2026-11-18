@@ -16,6 +16,14 @@ import { HKEND } from './segments/HKEND.js';
 import { HKTAN, type HKTANSegment } from './segments/HKTAN.js';
 import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
 
+/**
+ * Whether a message can carry HKTAN for an order: it needs the PIN and a selected TAN
+ * method of version 6 or later (PSD2 SCA)
+ */
+export function canSendTanSegment(config: FinTSConfig): boolean {
+	return !!(config.userId && config.pin && (config.selectedTanMethod?.version ?? 0) >= 6);
+}
+
 export class Dialog {
 	dialogId: string = '0';
 	lastMessageNumber = 0;
@@ -256,7 +264,7 @@ export class Dialog {
 			message.addSegment(segment);
 		});
 
-		if (this.config.userId && this.config.pin && isTanMethodNeeded) {
+		if (isTanMethodNeeded && canSendTanSegment(this.config)) {
 			const hktan: HKTANSegment = {
 				header: { segId: HKTAN.Id, segNr: 0, version: tanMethod?.version ?? 0 },
 				tanProcess: TanProcess.Process4,
