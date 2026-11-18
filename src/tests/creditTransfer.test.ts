@@ -704,6 +704,13 @@ describe('FinTSClient SEPA credit transfer', () => {
 				requiresVopConfirmation: true,
 				vop: { result: 'match' },
 			});
+			// The answers of every poll, not only of the last one
+			expect(response.bankAnswers.map((answer) => answer.code)).toEqual(
+				expect.arrayContaining([3040, 3905, 3090]),
+			);
+			expect(
+				response.bankAnswers.filter((answer) => answer.code === 3040).map((a) => a.params?.[0]),
+			).toEqual(['TP-0001', 'TP-0002']);
 			expect(sleep.mock.calls).toEqual([[2000], [1000]]);
 			expect(sentOrders()).toEqual([
 				['HKIDN', 'HKVVB', 'HKTAN'],

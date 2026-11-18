@@ -434,6 +434,9 @@ export class FinTSClient {
 	 *   `outcomeUncertain` the bank did not say whether it executed the order (such as code
 	 *   9000, or 0020 to the order next to an error): check the account before sending it again.
 	 *
+	 * While the bank is still checking the payee, the call asks again until the result is
+	 * there; `bankAnswers` then holds the answers to every one of these messages.
+	 *
 	 * Only one transfer can be in progress per client. Every response carries the same
 	 * `transferId` for it.
 	 *
@@ -775,7 +778,10 @@ export class FinTSClient {
 				await this.sleep(waitSeconds * 1000);
 				order.lastResponse = undefined;
 				await dialog.continueWith(new VopPollInteraction(order));
+				// The caller sees what the bank said on every poll of this call
+				const earlierAnswers = response.bankAnswers;
 				response = this.toTransferResponse(order, dialog);
+				response = { ...response, bankAnswers: [...earlierAnswers, ...response.bankAnswers] };
 			}
 		} catch (error) {
 			release();
