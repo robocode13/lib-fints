@@ -322,23 +322,45 @@ describe('buildPain001', () => {
 		expectValidationError(
 			() => buildPain001(debtor, { ...transfer, name: 'José Müller' }),
 			'name',
-			/SEPA character set: "é"/,
+			/SEPA character set at position 4/,
 		);
 		expectValidationError(
 			() => buildPain001(debtor, { ...transfer, purpose: 'Mail an max@example.org' }),
 			'purpose',
-			/"@"/,
+			/at position 12/,
 		);
 		expectValidationError(
 			() => buildPain001(debtor, { ...transfer, purpose: '<b>' }),
 			'purpose',
-			/"<", ">"/,
+			/at positions 1, 3/,
 		);
 		expectValidationError(
 			() => buildPain001(debtor, { ...transfer, purpose: 'Zeile 1\nZeile 2' }),
 			'purpose',
-			/"\\n"/,
+			/at position 8/,
 		);
+	});
+
+	it('names the field of a rejected value without repeating the value', () => {
+		const cases: [Partial<CreditTransfer>, string, string][] = [
+			[{ iban: 'DE02120300000000202052' }, 'iban', 'DE02120300000000202052'],
+			[{ iban: 'DE0212030000-0000202051' }, 'iban', 'DE0212030000'],
+			[{ bic: 'NOBIC' }, 'bic', 'NOBIC'],
+			[{ name: 'José Müller' }, 'name', 'é'],
+			[{ purpose: 'Mail an max@example.org' }, 'purpose', '@'],
+			[{ endToEndId: 'RECHNUNG-Ä' }, 'endToEndId', 'Ä'],
+		];
+
+		for (const [change, field, value] of cases) {
+			expect(() => buildPain001(debtor, { ...transfer, ...change })).toThrow(SepaValidationError);
+			try {
+				buildPain001(debtor, { ...transfer, ...change });
+			} catch (error) {
+				expect((error as SepaValidationError).field).toBe(field);
+				expect((error as Error).message).toContain(field);
+				expect((error as Error).message).not.toContain(value);
+			}
+		}
 	});
 
 	it('rejects leading and trailing spaces instead of trimming them', () => {
@@ -381,7 +403,7 @@ describe('buildPain001', () => {
 		expectValidationError(
 			() => buildPain001(debtor, { ...transfer, endToEndId: 'Bestellung-Ä1' }),
 			'endToEndId',
-			/"Ä"/,
+			/at position 12/,
 		);
 		expectValidationError(
 			() => buildPain001(debtor, { ...transfer, endToEndId: '/E2E' }),

@@ -130,7 +130,8 @@ export type Pain001Message = {
 };
 
 /**
- * Thrown before anything is sent when a transfer's data cannot go into a pain.001 as given
+ * Thrown before anything is sent when a transfer's data cannot go into a pain.001 as given.
+ * The message names the field, never the value.
  */
 export class SepaValidationError extends Error {
 	constructor(
@@ -174,7 +175,7 @@ export function normalizeIban(iban: string, field = 'iban'): string {
 	const normalized = /^[A-Za-z0-9 ]*$/.test(iban) ? iban.replace(/ /g, '').toUpperCase() : '';
 
 	if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(normalized)) {
-		throw new SepaValidationError(field, `${field} '${iban}' is not a well-formed IBAN`);
+		throw new SepaValidationError(field, `${field} is not a well-formed IBAN`);
 	}
 
 	const length = IBAN_LENGTHS[normalized.slice(0, 2)];
@@ -187,7 +188,7 @@ export function normalizeIban(iban: string, field = 'iban'): string {
 	}
 
 	if (ibanChecksum(normalized) !== 1) {
-		throw new SepaValidationError(field, `${field} '${iban}' has invalid check digits`);
+		throw new SepaValidationError(field, `${field} has invalid check digits`);
 	}
 
 	return normalized;
@@ -221,7 +222,7 @@ export function normalizeBic(
 	const normalized = /^[A-Za-z0-9]*$/.test(bic) ? bic.toUpperCase() : '';
 
 	if (!(BIC_PATTERNS[descriptor] ?? BIC_PATTERNS[PAIN_001_001_09]).test(normalized)) {
-		throw new SepaValidationError(field, `${field} '${bic}' is not a valid BIC`);
+		throw new SepaValidationError(field, `${field} is not a valid BIC`);
 	}
 
 	return normalized;
@@ -377,15 +378,19 @@ function checkReference(value: string, field: string): string {
 	return value;
 }
 
+/**
+ * Names the positions of the characters not allowed, not the characters: the error
+ * message must not repeat the value (it may end up in logs)
+ */
 function checkCharacters(value: string, field: string, allowed: RegExp) {
-	const invalid = [...new Set([...value].filter((char) => !allowed.test(char)))];
+	const positions = [...value].flatMap((char, index) => (allowed.test(char) ? [] : [index + 1]));
 
-	if (invalid.length > 0) {
+	if (positions.length > 0) {
 		throw new SepaValidationError(
 			field,
-			`${field} contains characters outside the SEPA character set: ${invalid
-				.map((char) => JSON.stringify(char))
-				.join(', ')}`,
+			`${field} contains characters outside the SEPA character set at position${
+				positions.length > 1 ? 's' : ''
+			} ${positions.join(', ')}`,
 		);
 	}
 }
