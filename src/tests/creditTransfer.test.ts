@@ -1056,6 +1056,19 @@ describe('FinTSClient SEPA credit transfer', () => {
 		});
 	});
 
+	it('reads a HIVPP whose binary VoP ID ends in a question mark', async () => {
+		bank.responses.push(
+			initOk(),
+			answer(
+				WARNINGS,
+				hirms(3, CHECK_RESULT),
+				hivppSingle('RVMC', { closeMatchName: 'Herr Meier' }).replace('@6@VOP-01', '@3@AB?'),
+			),
+		);
+
+		expect((await client.transfer(ACCOUNT, TRANSFER)).vop?.suggestedName).toBe('Herr Meier');
+	});
+
 	describe('results for another payee', () => {
 		const OTHER_IBAN = 'DE89370400440532013000';
 

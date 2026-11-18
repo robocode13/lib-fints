@@ -24,4 +24,10 @@ describe('splitBySeparator', () => {
 		expect(segments[3]).toBe('hello?+world??');
 		expect(segments[6]).toBe('1');
 	});
+
+	it('does not take a binary value ending in ? as escaping the next separator', () => {
+		const segments = splitBySeparator("HIVPP:5:1:3+@3@AB?'HNHBS:7:1+1'", "'");
+
+		expect(segments).toEqual(['HIVPP:5:1:3+@3@AB?', 'HNHBS:7:1+1']);
+	});
 });
