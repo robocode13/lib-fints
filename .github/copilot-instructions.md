@@ -6,7 +6,7 @@ This TypeScript library implements the German FinTS 3.0 banking protocol for sec
 
 ### Core Components
 
-- **`FinTSClient`**: Main API - handles account balances, statements, portfolios, and credit card data
+- **`FinTSClient`**: Main API - handles account balances, statements, portfolios, credit card data and SEPA credit transfers
 - **`FinTSConfig`**: Configuration factory with two modes: `forFirstTimeUse()` and `fromBankingInformation()`
 - **Segments**: FinTS protocol message units (see `src/segments/`) - each has request/response pairs (e.g., `HKSAL`/`HISAL`)
 - **Interactions**: High-level transaction orchestrators (see `src/interactions/`) that combine multiple segments
@@ -111,7 +111,7 @@ Check capability with `can*()` methods (e.g., `canGetAccountBalance()`). Not all
 
 - **FinTS 3.0 only** - older protocol versions not supported
 - **PIN/TAN authentication only** - no certificate-based auth
-- **No payment transactions** - read-only operations (balances, statements, portfolios)
+- **Few payment transactions** - besides read-only operations (balances, statements, portfolios) only single SEPA credit transfers (HKCCS, instant HKIPZ) with Verification of Payee (HKVPP/HKVPA)
 - **German banking focus** - country code defaults to 280
 
 When extending functionality, follow the established segment definition pattern and ensure proper registration in the registry.

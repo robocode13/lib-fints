@@ -16,6 +16,11 @@ import { HKEND } from './segments/HKEND.js';
 import { HKTAN, type HKTANSegment } from './segments/HKTAN.js';
 import { HNHBK, type HNHBKSegment } from './segments/HNHBK.js';
 
+/** A name check should take seconds; this many polls is plenty */
+const MAX_VOP_POLLS = 10;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export class Dialog {
 	dialogId: string = '0';
 	lastMessageNumber = 0;
@@ -59,18 +64,55 @@ export class Dialog {
 			throw new Error('dialog start can only be called on a new dialog');
 		}
 
+		return this.run();
+	}
+
+	/**
+	 * Continues a customer order the bank paused for Verification of Payee, once the
+	 * customer has seen the name check and agreed (see FinTSClient.confirmTransfer).
+	 */
+	async resume(): Promise<Map<string, ClientResponse>> {
+		if (this.hasEnded) {
+			throw Error('cannot resume a customer order when dialog has already ended');
+		}
+
+		if (!this.currentInteraction) {
+			throw new Error('there is no running customer interaction in this dialog to resume');
+		}
+
+		return this.run();
+	}
+
+	/**
+	 * Sends one message after another until the dialog ends, fails or waits for the
+	 * customer: a TAN, or the release after a name check. A name check the bank has
+	 * not finished yet is asked again after the pause it requests.
+	 */
+	private async run(firstMessage?: CustomerMessage): Promise<Map<string, ClientResponse>> {
 		let clientResponse: ClientResponse;
+		let message = firstMessage;
+		let polls = 0;
 
 		do {
-			const message = this.createCurrentCustomerMessage();
-			const responseMessage = await this.httpClient.sendMessage(message);
-			await this.handlePartedMessages(message, responseMessage, this.currentInteraction);
+			const sent = message ?? this.createCurrentCustomerMessage();
+			message = undefined;
+			const responseMessage = await this.httpClient.sendMessage(sent);
+			await this.handlePartedMessages(sent, responseMessage, this.currentInteraction);
 			clientResponse = this.currentInteraction.handleClientResponse(responseMessage);
 			this.checkEnded(clientResponse);
 			this.dialogId = clientResponse.dialogId;
 			this.responses.set(this.currentInteraction.segId, clientResponse);
 
-			if (clientResponse.success && !clientResponse.requiresTan) {
+			if (clientResponse.vopPending) {
+				if (++polls > MAX_VOP_POLLS) {
+					throw new Error('the bank did not finish the payee name check in time');
+				}
+				await wait(Math.min(Math.max(clientResponse.vopWaitSeconds ?? 2, 1), 10) * 1000);
+			} else if (
+				clientResponse.success &&
+				!clientResponse.requiresTan &&
+				!clientResponse.requiresVopConfirmation
+			) {
 				this.currentInteractionIndex++;
 
 				if (this.currentInteractionIndex > 0) {
@@ -81,7 +123,8 @@ export class Dialog {
 			!this.hasEnded &&
 			this.currentInteractionIndex < this.interactions.length &&
 			clientResponse.success &&
-			!clientResponse.requiresTan
+			!clientResponse.requiresTan &&
+			!clientResponse.requiresVopConfirmation
 		);
 
 		return this.responses;
@@ -104,38 +147,7 @@ export class Dialog {
 			throw new Error('there is no running customer interaction in this dialog to continue');
 		}
 
-		let clientResponse: ClientResponse;
-
-		let isFirstMessage = true;
-
-		do {
-			const message = isFirstMessage
-				? this.createCurrentTanMessage(tanOrderReference, tan)
-				: this.createCurrentCustomerMessage();
-			const responseMessage = await this.httpClient.sendMessage(message);
-			await this.handlePartedMessages(message, responseMessage, this.currentInteraction);
-			clientResponse = this.currentInteraction.handleClientResponse(responseMessage);
-			this.checkEnded(clientResponse);
-			this.dialogId = clientResponse.dialogId;
-			this.responses.set(this.currentInteraction.segId, clientResponse);
-
-			if (clientResponse.success && !clientResponse.requiresTan) {
-				this.currentInteractionIndex++;
-
-				if (this.currentInteractionIndex > 0) {
-					this.isInitialized = true;
-				}
-			}
-
-			isFirstMessage = false;
-		} while (
-			!this.hasEnded &&
-			this.currentInteractionIndex < this.interactions.length &&
-			clientResponse.success &&
-			!clientResponse.requiresTan
-		);
-
-		return this.responses;
+		return this.run(this.createCurrentTanMessage(tanOrderReference, tan));
 	}
 
 	addCustomerInteraction(interaction: CustomerInteraction, afterCurrent = false): void {
@@ -176,7 +188,10 @@ export class Dialog {
 
 		const tanMethod = this.config.selectedTanMethod;
 		const isScaSupported = tanMethod && tanMethod.version >= 6;
-		let isTanMethodNeeded = isScaSupported && this.currentInteraction.segId !== HKEND.Id;
+		let isTanMethodNeeded =
+			isScaSupported &&
+			this.currentInteraction.segId !== HKEND.Id &&
+			!this.currentInteraction.withoutTan;
 
 		if (isCustomerOrder) {
 			const bankTransaction = this.config.bankingInformation.bpd?.allowedTransactions.find(
@@ -211,6 +226,10 @@ export class Dialog {
 			};
 
 			message.addSegment(hktan);
+		}
+
+		for (const segment of this.currentInteraction.getSegmentsAfterTan(this.config)) {
+			message.addSegment(segment);
 		}
 
 		return message;

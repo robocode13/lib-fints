@@ -4,6 +4,7 @@ import type { Dialog } from '../dialog.js';
 import type { Message } from '../message.js';
 import type { Segment } from '../segment.js';
 import { HITAN, type HITANSegment } from '../segments/HITAN.js';
+import type { VopResultCode } from '../segments/HIVPP.js';
 import { HNHBK, type HNHBKSegment } from '../segments/HNHBK.js';
 import type { Statement } from '../statement.js';
 
@@ -40,6 +41,29 @@ export interface ClientResponse {
 	 */
 	tanChallengeHhdUc?: string;
 	tanMediaName?: string;
+	/**
+	 * Verification of Payee: the bank checked the payee's name and waits for the
+	 * customer to release the order (see FinTSClient.confirmTransfer). The dialog
+	 * stays open until then.
+	 */
+	requiresVopConfirmation?: boolean;
+	/** The bank has not finished the name check yet; the dialog polls again. */
+	vopPending?: boolean;
+	/** Seconds the bank asks to wait before polling again */
+	vopWaitSeconds?: number;
+	/** Result of the name check, when the bank sent one */
+	vop?: VopResult;
+}
+
+export interface VopResult {
+	/** RCVC match, RVMC close match, RVNM no match, RVNA not applicable, PDNG pending */
+	result?: VopResultCode;
+	/** For a close match: the name the bank has on record */
+	differentName?: string;
+	/** Why the check was not possible (RVNA) */
+	reason?: string;
+	/** Text the bank wants shown to the customer */
+	infoText?: string;
 }
 
 export interface StatementResponse extends ClientResponse {
@@ -48,6 +72,13 @@ export interface StatementResponse extends ClientResponse {
 
 export abstract class CustomerInteraction {
 	dialog?: Dialog;
+	/** The next message of this interaction goes without HKTAN (a Verification of Payee poll) */
+	withoutTan = false;
+
+	/** Segments that follow HKTAN in the same message (the Verification of Payee request, HKVPP) */
+	getSegmentsAfterTan(_config: FinTSConfig): Segment[] {
+		return [];
+	}
 
 	constructor(public segId: string) {}
 

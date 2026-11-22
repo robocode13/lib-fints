@@ -24,13 +24,17 @@ import {
 } from './interactions/portfolioInteraction.js';
 import { StatementInteractionCAMT } from './interactions/statementInteractionCAMT.js';
 import { StatementInteractionMT940 } from './interactions/statementInteractionMT940.js';
+import { TransferInteraction } from './interactions/transferInteraction.js';
 import { DKKKU } from './segments/DKKKU.js';
 import { HKCAZ } from './segments/HKCAZ.js';
+import { HKCCS } from './segments/HKCCS.js';
 import { HKEKA } from './segments/HKEKA.js';
 import { HKIDN } from './segments/HKIDN.js';
+import { HKIPZ } from './segments/HKIPZ.js';
 import { HKKAZ } from './segments/HKKAZ.js';
 import { HKKKU } from './segments/HKKKU.js';
 import { HKSAL } from './segments/HKSAL.js';
+import { HKVPP } from './segments/HKVPP.js';
 import { HKWPD } from './segments/HKWPD.js';
 import type { TanMethod } from './tanMethod.js';
 
@@ -98,6 +102,74 @@ export class FinTSClient {
 	 * @param account when the account number is provided, checks if the account supports fetching the balance
 	 * @returns true if the bank (and account) supports fetching the account balance
 	 */
+	/**
+	 * Checks if the bank accepts SEPA single credit transfers (HKCCS), or instant ones (HKIPZ)
+	 * @param account - optional, checks the account's allowed transactions as well
+	 * @param instant - SEPA Instant (HKIPZ) instead of a regular transfer
+	 */
+	canTransfer(account?: AccountRef, instant = false): boolean {
+		const segId = instant ? HKIPZ.Id : HKCCS.Id;
+		return account
+			? this.config.isAccountTransactionSupported(account, segId)
+			: this.config.isTransactionSupported(segId);
+	}
+
+	/**
+	 * Sends a SEPA single credit transfer. The bank usually asks for a TAN.
+	 * @param account - the debtor account, must be in config.bankingInformation.upd.bankAccounts
+	 * @param sepaDescriptor - the pain format URN, one the bank lists in HISPAS supportedSepaFormats
+	 * @param painMessage - the complete pain.001 XML document with exactly one transaction
+	 * @param instant - SEPA Instant (HKIPZ): the money arrives within seconds; the pain.001 should carry LclInstrm INST
+	 * @returns the response; success and bankAnswers tell whether the bank accepted the order
+	 */
+	async transfer(
+		account: AccountRef,
+		sepaDescriptor: string,
+		painMessage: string,
+		instant = false,
+	): Promise<ClientResponse> {
+		// BPD stored before HIVPPS was understood lack its parameters (the report formats).
+		// Version 0 makes the bank send the BPD again with this dialog's initialisation.
+		const bpd = this.config.bankingInformation.bpd;
+		if (
+			bpd &&
+			this.config.isTransactionSupported(HKVPP.Id) &&
+			!this.config.getTransactionParameters(HKVPP.Id)
+		) {
+			bpd.version = 0;
+		}
+		return this.startCustomerOrderInteraction(
+			new TransferInteraction(account, sepaDescriptor, painMessage, instant),
+		);
+	}
+
+	/**
+	 * Continues a credit transfer when a TAN is required
+	 * @param tanReference The TAN reference provided in the first call's response
+	 * @param tan The TAN entered by the user, can be omitted if a decoupled TAN method is used
+	 */
+	/**
+	 * Releases a transfer after Verification of Payee. Call it when `transfer` returned
+	 * `requiresVopConfirmation` and the customer, having seen `vop`, still wants to pay.
+	 * The bank then usually asks for the TAN; continue with `transferWithTan`.
+	 * Not calling it leaves the order unexecuted.
+	 */
+	async confirmTransfer(): Promise<ClientResponse> {
+		if (!this.currentDialog) {
+			throw new Error('no transfer is waiting for the payee name check to be confirmed');
+		}
+		const responses = await this.currentDialog.resume();
+		return (
+			responses.get(HKCCS.Id) ??
+			responses.get(HKIPZ.Id) ??
+			([...responses.values()].at(-1) as ClientResponse)
+		);
+	}
+
+	async transferWithTan(tanReference: string, tan?: string): Promise<ClientResponse> {
+		return this.continueCustomerInteractionWithTan([HKCCS.Id, HKIPZ.Id], tanReference, tan);
+	}
+
 	canGetAccountBalance(account?: AccountRef): boolean {
 		return account
 			? this.config.isAccountTransactionSupported(account, HKSAL.Id)

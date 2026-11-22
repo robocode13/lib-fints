@@ -209,6 +209,7 @@ The following table shows all transactions supported by the FinTSClient interfac
 | **Portfolio**              | `getPortfolio(account: AccountRef, currency?, priceQuality?, maxEntries?)` | Fetches securities portfolio information for depot accounts                  | HKWPD                      | ✓           | ✓                |
 | **Credit Card Statements** | `getCreditCardStatements(account: AccountRef, from?, to?)`            | Fetches credit card statements for credit card accounts                         | HKKKU, DKKKU               | ✓           | ✓                |
 | **Electronic Statements**  | `getElectronicStatements(account: AccountRef, options?)`              | Fetches the statement document from the electronic mailbox, usually a PDF       | HKEKA                      | ✓           | ✓                |
+| **SEPA Credit Transfer**   | `transfer(account: AccountRef, sepaDescriptor, painMessage, instant?)` | Sends a single SEPA credit transfer (pain.001), regular or instant, with Verification of Payee | HKCCS, HKIPZ, HKVPP, HKVPA | ✓ | ✓ |
 | **TAN Method Selection**   | `selectTanMethod(tanMethodId)`                                       | Selects a TAN method by ID from available methods                               | -                          | ❌          | ❌               |
 | **TAN Media Selection**    | `selectTanMedia(tanMediaName)`                                       | Selects a specific TAN media device by name                                     | -                          | ❌          | ❌               |
 
@@ -223,6 +224,7 @@ For each account-specific transaction, the client provides corresponding `can*` 
 | `canGetPortfolio(account?: AccountRef)`            | Checks if portfolio information fetching is supported           |
 | `canGetCreditCardStatements(account?: AccountRef)` | Checks if credit card statements fetching is supported          |
 | `canGetElectronicStatements(account?: AccountRef)` | Checks if electronic account statements fetching is supported   |
+| `canTransfer(account?: AccountRef, instant?)`      | Checks if (instant) SEPA credit transfers are supported         |
 
 ### Transaction Parameters
 
@@ -274,14 +276,41 @@ Every transaction that supports TAN authentication has a corresponding `*WithTan
 - `getAccountStatementsWithTan(tanReference, tan?)`
 - `getPortfolioWithTan(tanReference, tan?)`
 - `getCreditCardStatementsWithTan(tanReference, tan?)`
+- `transferWithTan(tanReference, tan?)`
 
 The `tan` parameter can be omitted when using decoupled TAN methods.
+
+### SEPA credit transfers and Verification of Payee
+
+`transfer()` sends one SEPA credit transfer. The caller builds the complete pain.001 document (one transaction) and passes the format the bank lists in the HISPAS parameters (`config.getTransactionParameters<HISPASParameter>('HKSPA')?.supportedSepaFormats`). With `instant = true` it goes as an instant transfer (HKIPZ); the pain.001 should then carry `<LclInstrm><Cd>INST</Cd></LclInstrm>`.
+
+Since October 2025 banks check the payee's name before executing a transfer (Verification of Payee, VoP). Where the BPD list HKVPP, the library sends the name check along and may come back with `requiresVopConfirmation`: the bank has checked the name and waits for the customer's go-ahead. Show `response.vop` (result `RCVC` match, `RVMC` close match with `differentName`, `RVNM` no match, `RVNA` not possible, plus the bank's `infoText`) and call `confirmTransfer()` only if the customer still wants to pay. Without it the bank executes nothing.
+
+```typescript
+let response = await client.transfer(account, sepaDescriptor, painXml, true);
+
+if (response.requiresVopConfirmation) {
+  // response.vop.result: 'RCVC' | 'RVMC' | 'RVNM' | 'RVNA' | ...
+  if (!customerAgrees(response.vop)) return; // nothing is executed
+  response = await client.confirmTransfer();
+}
+
+if (response.requiresTan) {
+  response = await client.transferWithTan(response.tanReference!, userTAN);
+}
+
+console.log(response.success, response.bankAnswers);
+```
+
+A bank that is still checking the name answers with an Aufsetzpunkt (3040); the dialog then polls on its own, waiting as long as the bank asks. Code 3091 means the bank needs no confirmation and continues with the TAN right away. The message order follows recorded traffic from Atruvia (Volksbanken).
+
+Never send a transfer twice on your own: a network error after sending leaves it open whether the bank received the order.
 
 ## Limitations
 
 - Only FinTS 3.0 is supported (older versions may not work)
 - Only PIN/TAN security is supported (including decoupled TAN methods)
-- No support for payment transactions or transfers yet
+- Of the payment transactions, only single SEPA credit transfers (regular and instant) are supported – no batch or scheduled transfers, standing orders or direct debits yet
 
 Implementing further transactions should be straight forward and contributions are highly appreciated
 
@@ -291,6 +320,7 @@ Implementing further transactions should be straight forward and contributions a
 - DKB
 - ING-DiBa
 - Renault Bank Direkt
+- meine Volksbank Raiffeisenbank (Atruvia) – including SEPA credit transfers, instant transfers and Verification of Payee
 
 ## Built With
 
